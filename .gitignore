@@ -1,0 +1,18 @@
+.generated/
+
+__pycache__/
+
+.pytest_cache/
+
+.ruff_cache/
+
+# disable coverage
+coverage.lcov
+htmlcov/
+.coverage
+
+# MacOS
+*.DS_Store
+
+# Intellij IDE
+.idea/
