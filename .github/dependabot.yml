@@ -14,16 +14,3 @@ updates:
         patterns:
         - "*"
 
-  - package-ecosystem: "devcontainers"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "08:00"
-      timezone: "Europe/Amsterdam"
-    labels:
-      - "dependencies"
-    groups:
-      alldevcontainers:
-        patterns:
-        - "*"
