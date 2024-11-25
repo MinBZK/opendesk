@@ -10,7 +10,9 @@ See [contributing docs](CONTRIBUTING.md)
 
 ## Testing
 
-We use conftest to write tests against structured configuration data
+We use conftest to write tests against structured configuration data. 
+
+Question: should we add checkov and trivy checks
 
 ## Secret Management
 
