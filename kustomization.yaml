@@ -2,3 +2,31 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: tn-openbsw-opendesk
+
+resources:
+  - manifests/migrations-pre-secrets.yaml
+  - manifests/migrations-pre.yaml
+  - manifests/services-secrets.yaml
+  - manifests/services.yaml
+  - manifests/nubus-secrets.yaml
+  - manifests/nubus.yaml
+  - manifests/open-xchange-secrets.yaml
+  - manifests/open-xchange.yaml
+  - manifests/nextcloud-secrets.yaml
+  - manifests/nextcloud.yaml
+  - manifests/collabora-secrets.yaml
+  - manifests/collabora.yaml
+  - manifests/cryptpad.yaml
+  - manifests/jitsi-secrets.yaml
+  - manifests/jitsi.yaml
+  - manifests/element-secrets.yaml
+  - manifests/element.yaml
+  - manifests/openproject-secrets.yaml
+  - manifests/openproject.yaml
+  - manifests/xwiki-secrets.yaml
+  - manifests/xwiki.yaml
+  - manifests/openproject-bootstrap-secrets.yaml
+  - manifests/openproject-bootstrap.yaml
+  - manifests/migrations-post-secrets.yaml
+  - manifests/migrations-post.yaml
+  - manifests/vault.yaml

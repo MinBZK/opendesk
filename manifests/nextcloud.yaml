@@ -1,0 +1,810 @@
+# Source: opendesk-nextcloud-management/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opendesk-nextcloud-management
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: opendesk-nextcloud-management
+    helm.sh/chart: opendesk-nextcloud-management-3.4.1
+    app.kubernetes.io/instance: opendesk-nextcloud-management
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    intents.otterize.com/service-name: opendesk-nextcloud-php
+automountServiceAccountToken: false
+---
+# Source: opendesk-nextcloud-management/templates/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: opendesk-nextcloud-management-1
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: opendesk-nextcloud-management
+    helm.sh/chart: opendesk-nextcloud-management-3.4.1
+    app.kubernetes.io/instance: opendesk-nextcloud-management
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    intents.otterize.com/service-name: opendesk-nextcloud-php
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 180
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: opendesk-nextcloud-management
+        helm.sh/chart: opendesk-nextcloud-management-3.4.1
+        app.kubernetes.io/instance: opendesk-nextcloud-management
+        app.kubernetes.io/managed-by: Helm
+      annotations:
+        checksum/configmap: acde1e61e095f29a11e2beccf5f9fddf452025a1ba4608d42f0e7733a028b5fd
+        intents.otterize.com/service-name: opendesk-nextcloud-php
+    spec:
+      securityContext:
+        fsGroup: 101
+        fsGroupChangePolicy: Always
+      serviceAccountName: opendesk-nextcloud-management
+      restartPolicy: Never
+      containers:
+      - name: init
+        command:
+        - /usr/bin/php
+        - /usr/local/bin/entrypoint/entrypoint.php
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 101
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nextcloud:2.2.2@sha256:90f8e64ef9156c87dbd9befef99c6e3222f87daa393231d393d728c5b64506ee
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: FS_ENV_SUBSCRIPTION_KEY
+          value:
+        - name: FS_ENV_SUBSCRIPTION_DATA
+          value:
+        - name: FS_ENV_DEFAULT_QUOTA
+          value: 1 GB
+        - name: FS_ENV_RETENTION_OBLIGATION_VERSIONS
+          value: auto
+        - name: FS_ENV_RETENTION_OBLIGATION_TRASHBIN
+          value: auto
+        - name: FS_ENV_DEV_MODE
+          value: 'false'
+        - name: FS_ENV_RUN_MODE
+          value: init
+        - name: FS_ENV_LOGLEVEL
+          value: '2'
+        - name: FS_ENV_DBTYPE
+          value: mysql
+        - name: FS_ENV_DBHOST
+          value: mariadb
+        - name: FS_ENV_DBNAME
+          value: nextcloud
+        - name: FS_ENV_DBPORT
+          value: '3306'
+        - name: FS_ENV_DBUSER
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-database
+              key: username
+        - name: FS_ENV_DBPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-database
+              key: password
+        - name: FS_ENV_NCADMINNAME
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-administrator
+              key: username
+        - name: FS_ENV_NCADMINPASS
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-administrator
+              key: password
+        - name: FS_ENV_REDIS_HOST
+          value: redis-headless
+        - name: FS_ENV_REDIS_PORT
+          value: '6379'
+        - name: FS_ENV_REDIS_TIMEOUT
+          value: '30'
+        - name: FS_ENV_REDIS_DBINDEX
+          value: '4'
+        - name: FS_ENV_PHP_REDIS_DBINDEX
+          value: '5'
+        - name: FS_ENV_REDIS_USER
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-cache
+              key: username
+        - name: FS_ENV_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-cache
+              key: password
+        - name: FS_ENV_MAIL_SMTPAUTH
+          value: 'false'
+        - name: FS_ENV_MAIL_SMTPMODE
+          value: smtp
+        - name: FS_ENV_MAIL_SMTPSECURE
+          value: ''
+        - name: FS_ENV_MAIL_SMTPHOST
+          value: postfix.tn-openbsw-opendesk.svc.cluster.local
+        - name: FS_ENV_MAIL_SMTPPORT
+          value: '25'
+        - name: FS_ENV_MAIL_DOMAIN
+          value: opendesk.apps.digilab.network
+        - name: FS_ENV_MAIL_FROM_ADDRESS
+          value: no-reply
+        - name: FS_ENV_MAIL_SMTPVERIFYPEER
+          value: 'true'
+        - name: FS_ENV_PORTAL_URL
+          value: https://portal.opendesk.apps.digilab.network
+        - name: FS_ENV_LOGO_URL
+          value:
+            https://portal.opendesk.apps.digilab.network/univention/portal/icons/logos/domain.svg
+        - name: FS_ENV_WEBMAIL_URL
+          value: https://webmail.opendesk.apps.digilab.network
+        - name: FS_ENV_PORTAL_JSON_USERNAME_ATTRIBUTE
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-integration
+              key: username
+        - name: FS_ENV_PORTAL_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-integration
+              key: password
+        - name: FS_ENV_PORTAL_NAVIGATION_JSON_URL
+          value: https://portal.opendesk.apps.digilab.network/univention/portal/navigation.json
+        - name: FS_ENV_PORTAL_AUTH_METHOD
+          value: basic
+        - name: FS_ENV_PORTAL_MENU_TABNAME
+          value: target
+        - name: FS_ENV_OIDC_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-oidc
+              key: username
+        - name: FS_ENV_OIDC_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-oidc
+              key: password
+        - name: FS_ENV_OIDC_DISCOVERY_URI
+          value:
+            https://id.opendesk.apps.digilab.network/realms/opendesk/.well-known/openid-configuration
+        - name: FS_ENV_OIDC_MAPPING_UID
+          value: opendesk_useruuid
+        - name: FS_ENV_LDAP
+          value:
+            ewogICJsZGFwQWdlbnROYW1lIjogICJ1aWQ9bGRhcHNlYXJjaF9uZXh0Y2xvdWQsY249dXNlcnMsZGM9c3dwLWxkYXAsZGM9aW50ZXJuYWwiLAogICJsZGFwQmFzZSI6ICJkYz1zd3AtbGRhcCxkYz1pbnRlcm5hbCIsCiAgImxkYXBCYXNlR3JvdXBzIjogImRjPXN3cC1sZGFwLGRjPWludGVybmFsIiwKICAibGRhcEJhc2VVc2VycyI6ICJkYz1zd3AtbGRhcCxkYz1pbnRlcm5hbCIsCiAgImxkYXBIb3N0IjogImxkYXA6Ly91bXMtbGRhcC1zZXJ2ZXIiLAogICJsZGFwUG9ydCI6ICIzODkiLAogICJsZGFwQWRtaW5Hcm91cCI6ICJtYW5hZ2VkLWJ5LWF0dHJpYnV0ZS1GaWxlc2hhcmVBZG1pbiIKfQo=
+        - name: FS_ENV_LDAP_AGENT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-ldap
+              key: password
+        - name: FS_ENV_ANTIVIRUS_ICAP_HOST
+          value: clamav-simple
+        - name: FS_ENV_ANTIVIRUS_ICAP_PORT
+          value: '1344'
+        - name: FS_ENV_ANTIVIRUS_ICAP_SERVICE
+          value: avscan
+        - name: FS_ENV_ANTIVIRUS_ICAP_HEADER
+          value: X-Infection-Found
+        - name: FS_ENV_ANTIVIRUS_ICAP_MODE
+          value: reqmod
+        - name: FS_ENV_ANTIVIRUS_ICAP_CHUNK_SIZE
+          value: '1048576'
+        - name: FS_ENV_ANTIVIRUS_ACTION
+          value: delete
+        - name: FS_ENV_CRYPTPAD_HOST
+          value: https://pad.opendesk.apps.digilab.network
+        - name: FS_ENV_MONITORING_TOKEN
+          value: 98ae85b1fe57df8049c4d082f835c6425ed0ad53
+        - name: FS_ENV_OBJECTSTORE_BUCKET
+          value: nextcloud
+        - name: FS_ENV_OBJECTSTORE_HOST
+          value: objectstore.opendesk.apps.digilab.network
+        - name: FS_ENV_OBJECTSTORE_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-objectstore
+              key: username
+        - name: FS_ENV_OBJECTSTORE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-management-objectstore
+              key: password
+        - name: FS_ENV_OBJECTSTORE_PORT
+          value: '443'
+        - name: FS_ENV_OBJECTSTORE_PATH_STYLE
+          value: 'true'
+        - name: FS_ENV_OBJECTSTORE_USE_SSL
+          value: 'true'
+        - name: FS_ENV_OBJECTSTORE_REGION
+          value: eu-west-1
+        - name: FS_ENV_OBJECTSTORE_STORAGE_CLASS
+          value: STANDARD
+        - name: FS_ENV_WOPI_ALLOWLIST
+          value: 10.0.0.0/8
+        - name: FS_ENV_INTERNAL_WOPI_URL
+          value: https://office.opendesk.apps.digilab.network
+        - name: FS_ENV_PUBLIC_WOPI_URL
+          value: https://office.opendesk.apps.digilab.network
+        - name: FS_ENV_TRUSTED_DOMAINS
+          value: files.opendesk.apps.digilab.network
+        - name: FS_ENV_TRUSTED_PROXIES
+          value: 127.0.0.1
+        - name: FS_ENV_THEMING_COLOR
+          value: '#6af56a'
+        - name: FS_ENV_NCADMINENABLED
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_ALLOW_LINKS
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_ALLOW_MAIL_NOTIFICATION
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_ALLOW_PUBLIC_UPLOAD
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_DEFAULT_INTERNAL_EXPIRE_DATE
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_ENFORCE_INTERNAL_EXPIRE_DATE
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_INTERNAL_EXPIRE_AFTER_N_DAYS
+          value: '90'
+        - name: FS_ENV_SHAREAPI_DEFAULT_EXPIRE_DATE
+          value: 'true'
+        - name: FS_ENV_SHAREAPI_ENFORCE_EXPIRE_DATE
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_EXPIRE_AFTER_N_DAYS
+          value: '30'
+        - name: FS_ENV_SHAREAPI_ENFORCE_LINKS_PASSWORD
+          value: 'false'
+        - name: FS_ENV_ENFORCE_PASSWORD_PROTECTION
+          value: 'false'
+        - name: FS_ENV_CREATE_OCDATA
+          value: 'true'
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 512Mi
+        volumeMounts:
+        - name: nextcloud-data
+          mountPath: /var/nextcloud/data
+        - name: nextcloud-config
+          mountPath: /var/www/html/config
+        - name: nextcloud-tmp
+          mountPath: /tmp
+      volumes:
+      - name: nextcloud-data
+        emptyDir: {}
+      - name: nextcloud-tmp
+        emptyDir: {}
+      - name: nextcloud-config
+        emptyDir: {}
+---
+# Source: opendesk-nextcloud/charts/aio/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opendesk-nextcloud-aio
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: aio
+    helm.sh/chart: aio-3.4.0
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    intents.otterize.com/service-name: opendesk-nextcloud
+automountServiceAccountToken: false
+---
+# Source: opendesk-nextcloud/charts/exporter/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opendesk-nextcloud-exporter
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: exporter
+    helm.sh/chart: exporter-3.4.0
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+automountServiceAccountToken: false
+---
+# Source: opendesk-nextcloud/charts/aio/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: opendesk-nextcloud-aio
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: aio
+    helm.sh/chart: aio-3.4.0
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    intents.otterize.com/service-name: opendesk-nextcloud
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: php
+    port: 9000
+    targetPort: php
+    protocol: TCP
+  - name: status
+    port: 8081
+    targetPort: status
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: aio
+    app.kubernetes.io/instance: opendesk-nextcloud
+---
+# Source: opendesk-nextcloud/charts/exporter/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: opendesk-nextcloud-exporter
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: exporter
+    helm.sh/chart: exporter-3.4.0
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9205
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: exporter
+    app.kubernetes.io/instance: opendesk-nextcloud
+---
+# Source: opendesk-nextcloud/charts/aio/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opendesk-nextcloud-aio
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: aio
+    helm.sh/chart: aio-3.4.0
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    intents.otterize.com/service-name: opendesk-nextcloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: aio
+      app.kubernetes.io/instance: opendesk-nextcloud
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: 20ce1bee6f4077107f59a3803c440d9b3f2172b951ddc4fced90b0819758415a
+      labels:
+        app.kubernetes.io/name: aio
+        helm.sh/chart: aio-3.4.0
+        app.kubernetes.io/instance: opendesk-nextcloud
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      securityContext:
+        fsGroup: 101
+        fsGroupChangePolicy: Always
+      serviceAccountName: opendesk-nextcloud-aio
+      containers:
+      - name: aio
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 101
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nextcloud:2.2.2@sha256:90f8e64ef9156c87dbd9befef99c6e3222f87daa393231d393d728c5b64506ee
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: FS_ENV_OVERWRITE_PROTOCOL
+          value: https
+        - name: FS_ENV_TRUSTED_PROXIES
+          value: 127.0.0.1
+        - name: FS_ENV_RUN_MODE
+          value: runtime
+        - name: FS_ENV_DBTYPE
+          value: mysql
+        - name: FS_ENV_DBHOST
+          value: mariadb
+        - name: FS_ENV_DBNAME
+          value: nextcloud
+        - name: FS_ENV_DBPORT
+          value: '3306'
+        - name: FS_ENV_DBUSER
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-aio-database
+              key: username
+        - name: FS_ENV_DBPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-aio-database
+              key: password
+        - name: FS_ENV_REDIS_HOST
+          value: redis-headless
+        - name: FS_ENV_REDIS_PORT
+          value: '6379'
+        - name: FS_ENV_REDIS_TIMEOUT
+          value: '30'
+        - name: FS_ENV_REDIS_DBINDEX
+          value: '4'
+        - name: FS_ENV_PHP_REDIS_DBINDEX
+          value: '5'
+        - name: FS_ENV_REDIS_USER
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-aio-cache
+              key: username
+        - name: FS_ENV_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-aio-cache
+              key: password
+        - name: FS_ENV_CREATE_OCDATA
+          value: 'true'
+        - name: FS_ENV_TRUSTED_DOMAINS
+          value: files.opendesk.apps.digilab.network
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 1
+          periodSeconds: 1
+          timeoutSeconds: 5
+          failureThreshold: 10
+          successThreshold: 1
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8081
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 10
+          successThreshold: 1
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: php
+          containerPort: 9000
+          protocol: TCP
+        - name: status
+          containerPort: 8081
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 512Mi
+        volumeMounts:
+        - name: nextcloud-config
+          mountPath: /var/www/html/config
+        - name: nextcloud-data
+          mountPath: /var/nextcloud/data
+        - name: nextcloud-tmp
+          mountPath: /tmp
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+        - name: nginx-tmp
+          mountPath: /var/cache/nginx/
+        - name: run
+          mountPath: /var/run/
+      volumes:
+      - name: nextcloud-data
+        emptyDir: {}
+      - name: nextcloud-tmp
+        emptyDir: {}
+      - name: nginx-tmp
+        emptyDir: {}
+      - name: run
+        emptyDir: {}
+      - name: nextcloud-config
+        emptyDir:
+          medium: Memory
+          sizeLimit: 5Mi
+      - name: nginx-config
+        emptyDir:
+          medium: Memory
+          sizeLimit: 5Mi
+---
+# Source: opendesk-nextcloud/charts/exporter/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opendesk-nextcloud-exporter
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: exporter
+    helm.sh/chart: exporter-3.4.0
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exporter
+      app.kubernetes.io/instance: opendesk-nextcloud
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: 614cec74e25da6ae59051a15248ffb9cce958acedb91240f2817fd703e66909a
+      labels:
+        app.kubernetes.io/name: exporter
+        helm.sh/chart: exporter-3.4.0
+        app.kubernetes.io/instance: opendesk-nextcloud
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      securityContext:
+        fsGroup: 65532
+        fsGroupChangePolicy: Always
+      serviceAccountName: opendesk-nextcloud-exporter
+      containers:
+      - name: exporter
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 65532
+          runAsNonRoot: true
+          runAsUser: 65532
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nextcloud-exporter:1.0.1@sha256:63e63c7420e37d3989fa0ffdbcf18a07b2a603ab9b2a849c2e7e44342dd82af0
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: NEXTCLOUD_TIMEOUT
+          value: 5s
+        - name: NEXTCLOUD_TLS_SKIP_VERIFY
+          value: 'false'
+        - name: NEXTCLOUD_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: opendesk-nextcloud-exporter
+              key: token
+        - name: NEXTCLOUD_SERVER
+          value: http://opendesk-nextcloud-apache2
+        livenessProbe:
+          tcpSocket:
+            port: 9205
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          tcpSocket:
+            port: 9205
+          initialDelaySeconds: 1
+          periodSeconds: 1
+          timeoutSeconds: 5
+          failureThreshold: 10
+          successThreshold: 1
+        startupProbe:
+          tcpSocket:
+            port: 9205
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 10
+          successThreshold: 1
+        ports:
+        - name: metrics
+          containerPort: 9205
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 99
+            memory: 128Mi
+          requests:
+            cpu: 0.1
+            memory: 32Mi
+        volumeMounts:
+      volumes:
+---
+# Source: opendesk-nextcloud/charts/aio/templates/cron-job.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: opendesk-nextcloud-aio-cron
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: aio
+    helm.sh/chart: aio-3.4.0
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    intents.otterize.com/service-name: opendesk-nextcloud
+spec:
+  schedule: '*/5 * * * *'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 0
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 180
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: aio
+            helm.sh/chart: aio-3.4.0
+            app.kubernetes.io/instance: opendesk-nextcloud
+            app.kubernetes.io/managed-by: Helm
+          annotations:
+            checksum/configmap: 20ce1bee6f4077107f59a3803c440d9b3f2172b951ddc4fced90b0819758415a
+            intents.otterize.com/service-name: opendesk-nextcloud
+        spec:
+          securityContext:
+            fsGroup: 101
+            fsGroupChangePolicy: Always
+          serviceAccountName: opendesk-nextcloud-aio
+          restartPolicy: Never
+          containers:
+          - name: cron
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              privileged: false
+              readOnlyRootFilesystem: true
+              runAsGroup: 101
+              runAsNonRoot: true
+              runAsUser: 101
+              seLinuxOptions:
+              seccompProfile:
+                type: RuntimeDefault
+            image:
+              registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nextcloud:2.2.2@sha256:90f8e64ef9156c87dbd9befef99c6e3222f87daa393231d393d728c5b64506ee
+            command:
+            - /usr/bin/php
+            - /usr/local/bin/entrypoint/entrypoint.php
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: FS_ENV_RUN_MODE
+              value: cron
+            - name: FS_ENV_DBTYPE
+              value: mysql
+            - name: FS_ENV_DBHOST
+              value: mariadb
+            - name: FS_ENV_DBNAME
+              value: nextcloud
+            - name: FS_ENV_DBPORT
+              value: '3306'
+            - name: FS_ENV_DBUSER
+              valueFrom:
+                secretKeyRef:
+                  name: opendesk-nextcloud-aio-database
+                  key: username
+            - name: FS_ENV_DBPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: opendesk-nextcloud-aio-database
+                  key: password
+            - name: FS_ENV_CREATE_OCDATA
+              value: 'true'
+            resources:
+              limits:
+                cpu: 99
+                memory: 1Gi
+              requests:
+                cpu: 0.1
+                memory: 512Mi
+            volumeMounts:
+            - name: nextcloud-config
+              mountPath: /var/www/html/config
+            - name: nextcloud-data
+              mountPath: /var/nextcloud/data
+            - name: nextcloud-tmp
+              mountPath: /tmp
+          volumes:
+          - name: nextcloud-data
+            emptyDir: {}
+          - name: nextcloud-tmp
+            emptyDir: {}
+          - name: nextcloud-config
+            emptyDir:
+              medium: Memory
+              sizeLimit: 5Mi
+---
+# Source: opendesk-nextcloud/charts/aio/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opendesk-nextcloud-aio
+  labels:
+    app.kubernetes.io/name: aio
+    helm.sh/chart: aio-3.4.0
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    intents.otterize.com/service-name: opendesk-nextcloud
+    nginx.ingress.kubernetes.io/proxy-body-size: 100M
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '600'
+    nginx.org/client-max-body-size: 100M
+    nginx.org/proxy-read-timeout: 600s
+    nginx.org/proxy-send-timeout: 600s
+spec:
+  tls:
+  - hosts:
+    - files.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: files.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: opendesk-nextcloud-aio
+            port:
+              name: http

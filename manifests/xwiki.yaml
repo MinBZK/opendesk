@@ -1,0 +1,499 @@
+# Source: xwiki/templates/xwiki-sa.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: xwiki-sa
+---
+# Source: xwiki/templates/configmaps.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xwiki
+  labels:
+    app.kubernetes.io/name: xwiki
+    helm.sh/chart: xwiki-1.4.0
+    app.kubernetes.io/instance: xwiki
+    app.kubernetes.io/managed-by: Helm
+data:
+  DB_USER: root
+  DB_HOST: mariadb
+  DB_DATABASE: xwiki
+#
+---
+# Source: xwiki/templates/initialization-configmaps.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xwiki-init-scripts
+  labels:
+    app.kubernetes.io/name: xwiki
+    helm.sh/chart: xwiki-1.4.0
+    app.kubernetes.io/instance: xwiki
+    app.kubernetes.io/managed-by: Helm
+data:
+  entrypoint: |
+    #!/bin/bash
+    ##
+    # *Experimental* solution for custom properties.
+    # With time we are looking other alternatives to setup this custom values.
+    ##
+    # Always execute "first_start" in order to get all new values keys from future versions.
+    rm -f /usr/local/xwiki/data/xwiki.cfg
+    rm -f /usr/local/xwiki/data/xwiki.properties
+    rm -f /usr/local/xwiki/data/hibernate.cfg.xml
+
+    # Reuse commands/resources from default entrypoint.
+    source /usr/local/bin/docker-entrypoint.sh
+    file_env 'CONTEXT_PATH' 'ROOT'
+    if [ -d "/usr/local/tomcat" ]; then
+      export AS_PATH=/usr/local/tomcat
+    else
+      export AS_PATH=/var/lib/jetty
+    fi
+    echo "Path: ${AS_PATH}"
+    # Setup all default actions from first start
+    first_start
+    ##
+    # On future versions, when LTS start have this method we can remove this from this script.
+    # This method was requested on: https://github.com/xwiki/xwiki-docker/pull/36
+    ##
+    function xwiki_replace_or_add() {
+      local file_path="$1"
+      local setting="$2"
+      local new_value="$3"
+
+      # Check if the setting exists in the file
+      if grep -Eq "^ *#? *$setting=" "$file_path"; then
+        # If the setting exists, replace the occurrence with the new value
+        sed -i 's|^\( *#\? *\)'"$setting"'=.*$|'"$setting"'='"$new_value"'|g' "$file_path"
+      else
+        # If the setting doesn't exist, add it at the end of the file
+        echo "$setting=$new_value" >> "$file_path"
+      fi
+    }
+
+    # Add URL for Solr Remote instance
+    # Backward compatibility for old image
+
+    # Replace all values from keys defineded on customConfigs
+    # If we detect extension, we loop over the array and add them
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.cfg" 'xwiki.authentication.ldap.UID_attr' 'uid'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.cfg" 'xwiki.authentication.ldap.base_DN' 'dc=swp-ldap,dc=internal'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.cfg" 'xwiki.authentication.ldap.bind_DN' 'uid=ldapsearch_xwiki,cn=users,dc=swp-ldap,dc=internal'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.cfg" 'xwiki.authentication.ldap.bind_pass' '18b512a7fb08645d87035c85088b6959b5e39b66'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.cfg" 'xwiki.authentication.ldap.fields_mapping' 'last_name=sn,first_name=givenName,email=mailPrimaryAddress'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.cfg" 'xwiki.authentication.ldap.groupcache_expiration' '300'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.cfg" 'xwiki.authentication.ldap.photo_attribute' 'jpegPhoto'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.cfg" 'xwiki.authentication.ldap.port' '389'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.cfg" 'xwiki.authentication.ldap.server' 'ums-ldap-server'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.cfg" 'xwiki.authentication.ldap.update_photo' '1'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.cfg" 'xwiki.superadminpassword' 'c1f7d21430d4a6c279863c0e10fed44aa89009cb'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.cfg" 'xwiki.url.protocol' 'https'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'notifications.emails.live.graceTime' '5'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'oidc.clientid' 'opendesk-xwiki'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'oidc.endpoint.token.auth_method' 'client_secret_basic'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'oidc.endpoint.userinfo.method' 'GET'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'oidc.logoutMechanism' 'rpInitiated'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'oidc.provider' 'https://id.opendesk.apps.digilab.network/realms/opendesk'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'oidc.scope' 'openid,opendesk-xwiki-scope'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'oidc.secret' '44d47b82369fce1e6113a486ce3966775c3f85bc'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'oidc.skipped' 'false'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'oidc.user.nameFormater' '${oidc.user.opendesk_username._clean._lowerCase}'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'oidc.user.subjectFormater' '${oidc.user.opendesk_username._lowerCase}'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'oidc.userinfoclaims' 'xwiki_user_accessibility,xwiki_user_company,xwiki_user_displayHiddenDocuments,xwiki_user_editor,xwiki_user_usertype'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'openoffice.autoStart' 'false'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'openoffice.homePath' '/tmp'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'openoffice.serverType' '0'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'url.trustedDomains' 'id.opendesk.apps.digilab.network'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'wikiInitializer.initialRequest.xwiki.contextPath' '/'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'wikiInitializer.initialRequest.xwiki.remoteAddress' 'wiki.opendesk.apps.digilab.network'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'wikiInitializer.initialRequest.xwiki.url' 'https://wiki.opendesk.apps.digilab.network/distribution/'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'workplaceServices.base' 'https://portal.opendesk.apps.digilab.network'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'workplaceServices.navigationEndpoint' 'https://portal.opendesk.apps.digilab.network/univention/portal/navigation.json'
+
+          xwiki_replace_or_add "/usr/local/xwiki/data/xwiki.properties" 'workplaceServices.portalSecret' 'cae3bc9cf223dd0947855197082fb2b99d00ed5e'
+
+    # Replace the platform provenance to keep track of the image
+    sed -i 's/<id>org.xwiki.platform:xwiki-platform-distribution-war/<id>org.xwiki.contrib:xwiki-platform-distribution-helm-docker/' \
+      $AS_PATH/webapps/ROOT/META-INF/extension.xed
+    sed -i 's/<id>org.xwiki.platform:xwiki-platform-distribution-docker/<id>org.xwiki.contrib:xwiki-platform-distribution-helm-docker/' \
+      $AS_PATH/webapps/ROOT/META-INF/extension.xed
+
+    if [ -d "/var/lib/jetty" ]; then
+      echo "" > start.d/xwiki.ini
+        echo '-Dattachment:xwiki:FlamingoThemes.Iceberg@logo.svg=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODIiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCA4MiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuNDM1MzggMy45MDQ3OUM3LjEzMDM2IDMuOTA0NzkgOC44NTI2IDUuODgxNjIgOC44NTI2IDguMzAyOEM4Ljg1MjYgMTAuNzI0IDcuMTMwMzYgMTIuNzAwOCA0LjQzNTM4IDEyLjcwMDhDMS43NDA0IDEyLjcwMDggMCAxMC43MjQgMCA4LjMwMjhDMCA1Ljg4MTYyIDEuNzIyMjUgMy45MDQ3OSA0LjQzNTM4IDMuOTA0NzlaTTQuNDM1MzggMTEuNjI3MkM2LjQ5ODgxIDExLjYyNzIgNy41OTEzMiAxMC4wOTI4IDcuNTkxMzIgOC4zMDI4QzcuNTkxMzIgNi41MTI3NiA2LjQ5ODgxIDQuOTc4NDQgNC40MzUzOCA0Ljk3ODQ0QzIuMzcxOTUgNC45Nzg0NCAxLjI2MzEgNi41MTI3NiAxLjI2MzEgOC4zMDI4QzEuMjYzMSAxMC4wOTI4IDIuMzUzOCAxMS42MjcyIDQuNDM1MzggMTEuNjI3MloiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik0xMC40OTIyIDQuMDc1MjZIMTEuNzU1M1Y2LjIyMjU4QzEyLjM1MjQgNC44MDc5NiAxMy42MTU1IDMuOTA0NzkgMTUuNDU3NSAzLjkwNDc5QzE3LjgyOTQgMy45MDQ3OSAxOS40MzE5IDUuNjk0ODIgMTkuNDMxOSA4LjMxOTEyQzE5LjQzMTkgMTAuOTQzNCAxNy44Mjk0IDEyLjcwMDggMTUuNDU3NSAxMi43MDA4QzEzLjU4MSAxMi43MDA4IDEyLjMzNiAxMS43NjMyIDExLjc1NTMgMTAuMzgzVjE1LjYzMzRIMTAuNDkyMlY0LjA3NTI2Wk0xNS4wNjM3IDExLjYyNzJDMTYuNzY5NiAxMS42MjcyIDE4LjE2ODggMTAuNTY5OCAxOC4xNjg4IDguMzE5MTJDMTguMTY4OCA2LjA2ODQzIDE2Ljc2OTYgNC45Nzg0NCAxNS4wNjM3IDQuOTc4NDRDMTMuMzU3OCA0Ljk3ODQ0IDExLjgwNjEgNi4wODY1NiAxMS44MDYxIDguMzE5MTJDMTEuODA2MSAxMC41NTE3IDEzLjM3NTkgMTEuNjI3MiAxNS4wNjM3IDExLjYyNzJaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMjQuNzg3MSAzLjkwNDY1QzI3LjIwOTggMy45MDQ2NSAyOC44MzA0IDUuNDIyNjQgMjguODMwNCA4LjAxMjQ4VjguNTIzOTJIMjIuMDI0OUMyMi4wNzU3IDEwLjI5NzYgMjIuOTc5NSAxMS42NTk3IDI0Ljg1NiAxMS42NTk3QzI2LjQwNzcgMTEuNjU5NyAyNy4zMTMzIDEwLjg0MTcgMjcuNjIgOS41Nzk0NUgyOC44NjQ5QzI4LjUwNzQgMTEuMDc5MyAyNy40ODM4IDEyLjY5ODkgMjQuODkwNSAxMi42OTg5QzIyLjE0NDcgMTIuNjk4OSAyMC44MTQ1IDEwLjY1MzEgMjAuODE0NSA4LjE4MTE1QzIwLjgxNDUgNS40NTM0NyAyMi40MDA2IDMuOTAyODMgMjQuNzg4OSAzLjkwMjgzTDI0Ljc4NzEgMy45MDQ2NVpNMjcuNTgzNyA3LjUzNTVDMjcuNDYzOSA1Ljg4MTQ4IDI2LjM1NSA0Ljk0Mzg1IDI0Ljc2ODkgNC45NDM4NUMyMy4yODQ0IDQuOTQzODUgMjIuMTc1NiA1Ljg5NzgxIDIyLjAzOTQgNy41MzU1SDI3LjU4MzdaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMzAuNjAzNSA0LjA3NTI2SDMxLjg2NjZWNi40Mjc1MkMzMi4zMjc2IDQuODU4NzUgMzMuNTIxNyAzLjkwNDc5IDM1LjM4MDEgMy45MDQ3OUMzNy4yMzg0IDMuOTA0NzkgMzguNDE2MiA1LjEzMjYgMzguNDE2MiA3LjM0ODg0VjEyLjUzMDNIMzcuMTM2OFY3LjQ1MDRDMzcuMTM2OCA1LjY5NDgyIDM2LjQ1NDQgNC45Nzg0NCAzNC45NTM2IDQuOTc4NDRDMzMuMDQyNiA0Ljk3ODQ0IDMxLjg2NjYgNi41ODE2OCAzMS44NjY2IDguODQ4N1YxMi41MzAzSDMwLjYwMzVWNC4wNzUyNloiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik00MC41NDg4IDAuNTExMjNINDQuOTY3OUM0Ni4yMTgzIDAuNTExMjMgNDcuMzIxNyAwLjY2NTM4NiA0OC4yNzgxIDAuOTcxODg3QzQ5LjIzMjcgMS4yNzgzOSA1MC4wMTQ4IDEuODc1MDcgNTAuNjIyOCAyLjc2MTkyQzUxLjIzMDggMy42NDg3OCA1MS41MzU2IDQuODk4MzYgNTEuNTM1NiA2LjUxMjQ4QzUxLjUzNTYgOC4xMjY2IDUxLjIzMDggOS4zOTQzMSA1MC42MjI4IDEwLjI3OTRDNTAuMDE0OCAxMS4xNjYyIDQ5LjIzMjcgMTEuNzYyOSA0OC4yNzgxIDEyLjA2OTRDNDcuMzIxNyAxMi4zNzU5IDQ2LjIyMDEgMTIuNTMwMSA0NC45Njc5IDEyLjUzMDFINDAuNTQ4OFYwLjUxMTIzWk00NC45Njc5IDEwLjEyN0M0NS44MzE3IDEwLjEyNyA0Ni41MjMyIDEwLjA1ODEgNDcuMDQwNCA5LjkyMjA3QzQ3LjU1NzYgOS43ODYwNSA0Ny45Nzg2IDkuNDU5NiA0OC4zMDM1IDguOTQwOTFDNDguNjI4MyA4LjQyNDAzIDQ4Ljc4OTggNy42MTMzNCA0OC43ODk4IDYuNTEyNDhDNDguNzg5OCA1LjQxMTYyIDQ4LjYyNDcgNC42MTU0NCA0OC4yOTYyIDQuMDkxM0M0Ny45NjU5IDMuNTY4OTggNDcuNTQ0OSAzLjIzODkxIDQ3LjAzMzEgMy4xMDI4OEM0Ni41MjEzIDIuOTY2ODYgNDUuODMzNSAyLjg5Nzk1IDQ0Ljk2OTcgMi44OTc5NUg0My4yODAxVjEwLjEyN0g0NC45Njk3SDQ0Ljk2NzlaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNNTMuMzE1OCA1LjgyMjA1QzUzLjY5NjkgNS4xNTY0NiA1NC4yMjUgNC42NDg2NSA1NC45MDE5IDQuMjk2OEM1NS41Nzg5IDMuOTQ0OTYgNTYuMzU1NiAzLjc2OTA0IDU3LjIzMDMgMy43NjkwNEM1OC42NjQgMy43NjkwNCA1OS43ODM4IDQuMTQ5OSA2MC41OTEzIDQuOTExNjJDNjEuMzk4OSA1LjY3MzM0IDYxLjgwMTggNi43MjUyMyA2MS44MDE4IDguMDY1NDlWOC43ODE4N0g1NS4zNTM4QzU1LjM5OTIgOS4zOTQ4NyA1NS41OTM0IDkuODc1NDggNTUuOTM0NiAxMC4yMjE5QzU2LjI3NTcgMTAuNTY4MyA1Ni43NDIyIDEwLjc0MjQgNTcuMzMzOCAxMC43NDI0QzU3Ljg0NTUgMTAuNzQyNCA1OC4yNjg0IDEwLjYzNTQgNTguNjA0MSAxMC40MTc4QzU4LjkzOTkgMTAuMjAxOSA1OS4xNTIyIDkuODk1NDMgNTkuMjQ0OCA5LjQ5NjQ0SDYxLjgyQzYxLjY4MzkgMTAuNDUwNCA2MS4yMjQ3IDExLjIyNDggNjAuNDQ2MiAxMS44MTQyQzU5LjY2NzYgMTIuNDA1NSA1OC42MzUgMTIuNzAxMSA1Ny4zNTAxIDEyLjcwMTFDNTYuNDA2NCAxMi43MDExIDU1LjU4NzkgMTIuNTEwNyA1NC44OTI5IDEyLjEyOThDNTQuMTk5NiAxMS43NDg5IDUzLjY2NzkgMTEuMjE3NiA1My4yOTc3IDEwLjUzNTZDNTIuOTI3NCA5Ljg1MzcyIDUyLjc0NDEgOS4wNzAyNCA1Mi43NDQxIDguMTgzMzhDNTIuNzQ0MSA3LjI5NjUyIDUyLjkzNDcgNi40ODc2NSA1My4zMTU4IDUuODIyMDVaTTU5LjI3NzQgNy4zODE3NkM1OS4yMzIxIDYuODM1ODYgNTkuMDMwNiA2LjQxNTExIDU4LjY3MTMgNi4xMTk0OUM1OC4zMTM4IDUuODIzODcgNTcuODQ5MiA1LjY3Njk2IDU3LjI4MTEgNS42NzY5NkM1Ni43MTMxIDUuNjc2OTYgNTYuMjcyMSA1LjgyNTY4IDU1LjkyNTUgNi4xMTk0OUM1NS41Nzg5IDYuNDE1MTEgNTUuMzgyOSA2LjgzNTg2IDU1LjMzNzUgNy4zODE3Nkg1OS4yNzc0WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTY0LjEwNzUgMTEuODY0N0M2My4zNTYxIDExLjMwOCA2Mi45ODA1IDEwLjQ5IDYyLjk4MDUgOS40MDkxSDY1LjU3MzhDNjUuNTczOCA5Ljg5ODc4IDY1LjcyODEgMTAuMjU5NyA2Ni4wMzQ4IDEwLjQ5MThDNjYuMzQxNSAxMC43MjU4IDY2LjgxMzMgMTAuODQxOSA2Ny40NTAzIDEwLjg0MTlDNjcuOTE2NyAxMC44NDE5IDY4LjI1NDMgMTAuNzgyIDY4LjQ2NDggMTAuNjYyM0M2OC42NzUzIDEwLjU0MjYgNjguNzgwNiAxMC4zNTIyIDY4Ljc4MDYgMTAuMDkxQzY4Ljc4MDYgOS45MDk2NiA2OC43MTg5IDkuNzYwOTQgNjguNTkzNyA5LjY0ODVDNjguNDY4NCA5LjUzNDI0IDY4LjI2ODggOS40MzgxMiA2Ny45OTY2IDkuMzU4MzJMNjUuMzY4OCA4LjY0MTk0QzY0Ljc4OCA4LjQ5NTA0IDY0LjI4ODkgOC4yMzAyNSA2My44Njc5IDcuODQ5NEM2My40NDY5IDcuNDY4NTQgNjMuMjM2NCA2Ljk0MjU5IDYzLjIzNjQgNi4yNzE1NUM2My4yMzY0IDUuNDY0NDkgNjMuNTY4NSA0Ljg0NjA1IDY0LjIzNDUgNC40MTI2QzY0LjkwMDUgMy45ODA5NiA2NS44Mjk3IDMuNzY1MTQgNjcuMDIzOSAzLjc2NTE0QzY4LjM0MzIgMy43NjUxNCA2OS4zNzIyIDQuMDI5OTIgNzAuMTEwOCA0LjU1NzY5QzcwLjg0OTUgNS4wODU0NSA3MS4yMTk3IDUuODUwNzkgNzEuMjE5NyA2Ljg1MDA5SDY4LjYyNjNDNjguNjI2MyA2LjAyMTI3IDY4LjA5ODIgNS42MDU5NiA2Ny4wNDAyIDUuNjA1OTZDNjYuNjY0NSA1LjYwNTk2IDY2LjM2ODcgNS42Njk0MyA2Ni4xNTI3IDUuNzkyNzZDNjUuOTM2OCA1LjkxNzkgNjUuODI3OSA2LjA4Mjk0IDY1LjgyNzkgNi4yODc4N0M2NS44Mjc5IDYuNjM5NzIgNjYuMTQgNi44OTU0MyA2Ni43NjYyIDcuMDU1MDNMNjguNzc4OCA3LjU1MDE1QzY5LjU2MjggNy43NDQyMSA3MC4xOTI1IDguMDQxNjQgNzAuNjY0MyA4LjQ0NjA4QzcxLjEzNjIgOC44NDg3IDcxLjM3MjEgOS40MTQ1NCA3MS4zNzIxIDEwLjE0MThDNzEuMzcyMSAxMC45NzI0IDcxLjA0IDExLjYwNTQgNzAuMzc0IDEyLjA0MjVDNjkuNzA3OSAxMi40Nzk2IDY4LjcyMjUgMTIuNjk5IDY3LjQxNCAxMi42OTlDNjUuOTU4NiAxMi42OTkgNjQuODU1MiAxMi40MTk3IDY0LjEwMzggMTEuODYyOUw2NC4xMDc1IDExLjg2NDdaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNNzIuODA2NiAwSDc1LjRWNy4yNjE3MUw3OC44MjgyIDMuOTM3MzZIODIuMDAwNEw3Ny43MTkzIDguMTE0MTFMODEuOTg0MSAxMi41MzAzSDc4LjgyODJMNzUuNCA4LjkxNTczVjEyLjUzMDNINzIuODA2NlYwWiIgZmlsbD0iYmxhY2siLz4KPC9zdmc+Cg==' >> start.d/xwiki.ini
+        echo '-Dattachment:xwiki:XWiki.DefaultSkin@icons.xwiki.favicon.svg=data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iRWJlbmVfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgMTI4IDEyOCI+CiAgPGRlZnM+CiAgICA8c3R5bGU+CiAgICAgIC5jbHMtMSB7CiAgICAgICAgZmlsbDogIzU3MWVmYTsKICAgICAgfQoKICAgICAgLmNscy0yIHsKICAgICAgICBmaWxsOiAjOTI3YWZhOwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik04My4xLDk3LjI2djIuMTJjMCw4Ljk3LTcuMywxNi4yNy0xNi4yNywxNi4yN0gyOC42MmMtOC45NywwLTE2LjI3LTcuMy0xNi4yNy0xNi4yN3YtMzguMmMwLTguOTcsNy4zLTE2LjI3LDE2LjI3LTE2LjI3aDIuMTJ2NTIuMzVoNTIuMzVaIi8+CiAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNODMuODEsODQuNTJoLTQwLjMzdi00NC41N2MwLTE1LjIyLDEyLjM4LTI3LjU5LDI3LjU5LTI3LjU5aDEyLjc0YzE3LjU2LDAsMzEuODQsMTQuMjgsMzEuODQsMzEuODR2OC40OWMwLDE3LjU2LTE0LjI4LDMxLjg0LTMxLjg0LDMxLjg0Wk02MS44OCw2Ni4xMmgyMS45M2M3LjQxLDAsMTMuNDQtNi4wMywxMy40NC0xMy40NHYtOC40OWMwLTcuNDEtNi4wMy0xMy40NC0xMy40NC0xMy40NGgtMTIuNzRjLTUuMDcsMC05LjIsNC4xMy05LjIsOS4ydjI2LjE4WiIvPgo8L3N2Zz4=' >> start.d/xwiki.ini
+        echo '-Dattachment:xwiki:XWiki.DefaultSkin@icons.xwiki.favicon144.png=data:image/png;base64,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' >> start.d/xwiki.ini
+        echo '-Dattachment:xwiki:XWiki.DefaultSkin@icons.xwiki.favicon16.png=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAHYAAAB2AH6XKZyAAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAAY5JREFUOI2lksFKW0EUhr8zudeLVhAqQQu1kQS6LUiRrroSKVbXjfQRpGA3QqvLQHfiogo+QaM7m6KI9AGEWLdFVGKKK6UUhUQZ7xwX3qQ2uYlg/9Xwzznf+ecwoqr8j7x2l29Tl2mn5iUifapYRPZ6konN5SK2ViOtEkwO2ilV5oGO277Ajqp7ky8HBy0B2bR9RkgxSvgb+IPiITwGDPCjJ+m/WC5iTdx0CeVV1FyqXPkD+SM/ky/7KVUZAxQYOjsNR4loACzN0L/4MRwHUPRRZO9/PaZSq1kpe5tACQDnnhJNYWmuOhD63i5wAolvsUv5K3czRKSewOFNAL13NDL5xD4HBgEwrlRPoCoPbp7WpKFsym5F5wBhGEgg7LmwY6MOaKOHwEiDVxLIrv6i2hKguO8gF42+QQ4rnf6XtZ+c17xYwMpRUAAKd6S7BRCtRivIfJ61B7GpxE2/ywVNUA8gDN16wphPQLdCOqb/1PeD7Thw/SsvfLhMG2NeC9L1T4HoueVq7X2u87gt4L66BhVQi4kGcML1AAAAAElFTkSuQmCC' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.brand-primary=#6af56a' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.btn-primary-bg=@brand-primary' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.lessCode=li#tmWorkplaceServices { padding-left: 16px; padding-top: 5px; } .navbar-right { padding-top: 8px; } .navbar { border-bottom: 1px solid #ddd !important; height: 64px;} div#companylogo { width: 90px; height: auto; padding-top: 7px; padding-left: 9px; }' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.link-color=@brand-primary' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-bg=#ffffff' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-color=@brand-primary' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-link-active-color=@brand-primary' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-link-color=@brand-primary' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-link-hover-bg=#f5f5f5' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-link-hover-color=@brand-primary' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.OIDCIssuer=https://id.opendesk.apps.digilab.network/realms/opendesk' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.addOIDCObject=1' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.forceXWikiUsersGroupMembershipUpdate=1' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.ldapGroupImportSearchDN=dc=swp-ldap,dc=internal' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.ldapGroupImportSearchFilter=(&(objectClass=opendeskKnowledgemanagementGroup)(opendeskKnowledgemanagementEnabled=TRUE))' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.ldapUserAttributes=sn,givenname,uid,mailPrimaryAddress' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.triggerGroupImport=1' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.triggerGroupsUpdate=1' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.usersAllowedToImport=globalAdmin' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:Mail.MailConfig^Mail.SendMailConfigClass.from=no-reply@opendesk.apps.digilab.network' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:Mail.MailConfig^Mail.SendMailConfigClass.host=postfix.tn-openbsw-opendesk.svc.cluster.local' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:Mail.MailConfig^Mail.SendMailConfigClass.port=25' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:Mail.MailConfig^Mail.SendMailConfigClass.properties=mail.smtp.starttls.enable=false' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:XWiki.AuthService.Configuration^XWiki.AuthService.ConfigurationClass.authService=oidc' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.colorTheme=FlamingoThemes.Iceberg' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.default_language=de_DE' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.languages=de_DE' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.ldap_group_mapping=xwiki:XWiki.XWikiAdminGroup=cn=managed-by-attribute-KnowledgemanagementAdmin,cn=groups,dc=swp-ldap,dc=internal' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.timezone=Europe/Berlin' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.title=MijnBureau Wissen - $!tdoc.displayTitle' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:XWiki.XWikiServerXwiki^XWiki.XWikiServerClass.port=443' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:XWiki.XWikiServerXwiki^XWiki.XWikiServerClass.secure=1' >> start.d/xwiki.ini
+        echo '-Dproperty:xwiki:XWiki.XWikiServerXwiki^XWiki.XWikiServerClass.server=wiki.opendesk.apps.digilab.network' >> start.d/xwiki.ini
+      export JAVA_OPTIONS="${JAVA_OPTS}"
+    else
+      if (/usr/local/tomcat/bin/version.sh | grep -q 'Tomcat/8'); then
+        echo "Old Tomcat don't support java_opts file... Using normal props."
+          export JAVA_OPTS="${JAVA_OPTS} -Dattachment:xwiki:FlamingoThemes.Iceberg@logo.svg=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODIiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCA4MiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuNDM1MzggMy45MDQ3OUM3LjEzMDM2IDMuOTA0NzkgOC44NTI2IDUuODgxNjIgOC44NTI2IDguMzAyOEM4Ljg1MjYgMTAuNzI0IDcuMTMwMzYgMTIuNzAwOCA0LjQzNTM4IDEyLjcwMDhDMS43NDA0IDEyLjcwMDggMCAxMC43MjQgMCA4LjMwMjhDMCA1Ljg4MTYyIDEuNzIyMjUgMy45MDQ3OSA0LjQzNTM4IDMuOTA0NzlaTTQuNDM1MzggMTEuNjI3MkM2LjQ5ODgxIDExLjYyNzIgNy41OTEzMiAxMC4wOTI4IDcuNTkxMzIgOC4zMDI4QzcuNTkxMzIgNi41MTI3NiA2LjQ5ODgxIDQuOTc4NDQgNC40MzUzOCA0Ljk3ODQ0QzIuMzcxOTUgNC45Nzg0NCAxLjI2MzEgNi41MTI3NiAxLjI2MzEgOC4zMDI4QzEuMjYzMSAxMC4wOTI4IDIuMzUzOCAxMS42MjcyIDQuNDM1MzggMTEuNjI3MloiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik0xMC40OTIyIDQuMDc1MjZIMTEuNzU1M1Y2LjIyMjU4QzEyLjM1MjQgNC44MDc5NiAxMy42MTU1IDMuOTA0NzkgMTUuNDU3NSAzLjkwNDc5QzE3LjgyOTQgMy45MDQ3OSAxOS40MzE5IDUuNjk0ODIgMTkuNDMxOSA4LjMxOTEyQzE5LjQzMTkgMTAuOTQzNCAxNy44Mjk0IDEyLjcwMDggMTUuNDU3NSAxMi43MDA4QzEzLjU4MSAxMi43MDA4IDEyLjMzNiAxMS43NjMyIDExLjc1NTMgMTAuMzgzVjE1LjYzMzRIMTAuNDkyMlY0LjA3NTI2Wk0xNS4wNjM3IDExLjYyNzJDMTYuNzY5NiAxMS42MjcyIDE4LjE2ODggMTAuNTY5OCAxOC4xNjg4IDguMzE5MTJDMTguMTY4OCA2LjA2ODQzIDE2Ljc2OTYgNC45Nzg0NCAxNS4wNjM3IDQuOTc4NDRDMTMuMzU3OCA0Ljk3ODQ0IDExLjgwNjEgNi4wODY1NiAxMS44MDYxIDguMzE5MTJDMTEuODA2MSAxMC41NTE3IDEzLjM3NTkgMTEuNjI3MiAxNS4wNjM3IDExLjYyNzJaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMjQuNzg3MSAzLjkwNDY1QzI3LjIwOTggMy45MDQ2NSAyOC44MzA0IDUuNDIyNjQgMjguODMwNCA4LjAxMjQ4VjguNTIzOTJIMjIuMDI0OUMyMi4wNzU3IDEwLjI5NzYgMjIuOTc5NSAxMS42NTk3IDI0Ljg1NiAxMS42NTk3QzI2LjQwNzcgMTEuNjU5NyAyNy4zMTMzIDEwLjg0MTcgMjcuNjIgOS41Nzk0NUgyOC44NjQ5QzI4LjUwNzQgMTEuMDc5MyAyNy40ODM4IDEyLjY5ODkgMjQuODkwNSAxMi42OTg5QzIyLjE0NDcgMTIuNjk4OSAyMC44MTQ1IDEwLjY1MzEgMjAuODE0NSA4LjE4MTE1QzIwLjgxNDUgNS40NTM0NyAyMi40MDA2IDMuOTAyODMgMjQuNzg4OSAzLjkwMjgzTDI0Ljc4NzEgMy45MDQ2NVpNMjcuNTgzNyA3LjUzNTVDMjcuNDYzOSA1Ljg4MTQ4IDI2LjM1NSA0Ljk0Mzg1IDI0Ljc2ODkgNC45NDM4NUMyMy4yODQ0IDQuOTQzODUgMjIuMTc1NiA1Ljg5NzgxIDIyLjAzOTQgNy41MzU1SDI3LjU4MzdaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMzAuNjAzNSA0LjA3NTI2SDMxLjg2NjZWNi40Mjc1MkMzMi4zMjc2IDQuODU4NzUgMzMuNTIxNyAzLjkwNDc5IDM1LjM4MDEgMy45MDQ3OUMzNy4yMzg0IDMuOTA0NzkgMzguNDE2MiA1LjEzMjYgMzguNDE2MiA3LjM0ODg0VjEyLjUzMDNIMzcuMTM2OFY3LjQ1MDRDMzcuMTM2OCA1LjY5NDgyIDM2LjQ1NDQgNC45Nzg0NCAzNC45NTM2IDQuOTc4NDRDMzMuMDQyNiA0Ljk3ODQ0IDMxLjg2NjYgNi41ODE2OCAzMS44NjY2IDguODQ4N1YxMi41MzAzSDMwLjYwMzVWNC4wNzUyNloiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik00MC41NDg4IDAuNTExMjNINDQuOTY3OUM0Ni4yMTgzIDAuNTExMjMgNDcuMzIxNyAwLjY2NTM4NiA0OC4yNzgxIDAuOTcxODg3QzQ5LjIzMjcgMS4yNzgzOSA1MC4wMTQ4IDEuODc1MDcgNTAuNjIyOCAyLjc2MTkyQzUxLjIzMDggMy42NDg3OCA1MS41MzU2IDQuODk4MzYgNTEuNTM1NiA2LjUxMjQ4QzUxLjUzNTYgOC4xMjY2IDUxLjIzMDggOS4zOTQzMSA1MC42MjI4IDEwLjI3OTRDNTAuMDE0OCAxMS4xNjYyIDQ5LjIzMjcgMTEuNzYyOSA0OC4yNzgxIDEyLjA2OTRDNDcuMzIxNyAxMi4zNzU5IDQ2LjIyMDEgMTIuNTMwMSA0NC45Njc5IDEyLjUzMDFINDAuNTQ4OFYwLjUxMTIzWk00NC45Njc5IDEwLjEyN0M0NS44MzE3IDEwLjEyNyA0Ni41MjMyIDEwLjA1ODEgNDcuMDQwNCA5LjkyMjA3QzQ3LjU1NzYgOS43ODYwNSA0Ny45Nzg2IDkuNDU5NiA0OC4zMDM1IDguOTQwOTFDNDguNjI4MyA4LjQyNDAzIDQ4Ljc4OTggNy42MTMzNCA0OC43ODk4IDYuNTEyNDhDNDguNzg5OCA1LjQxMTYyIDQ4LjYyNDcgNC42MTU0NCA0OC4yOTYyIDQuMDkxM0M0Ny45NjU5IDMuNTY4OTggNDcuNTQ0OSAzLjIzODkxIDQ3LjAzMzEgMy4xMDI4OEM0Ni41MjEzIDIuOTY2ODYgNDUuODMzNSAyLjg5Nzk1IDQ0Ljk2OTcgMi44OTc5NUg0My4yODAxVjEwLjEyN0g0NC45Njk3SDQ0Ljk2NzlaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNNTMuMzE1OCA1LjgyMjA1QzUzLjY5NjkgNS4xNTY0NiA1NC4yMjUgNC42NDg2NSA1NC45MDE5IDQuMjk2OEM1NS41Nzg5IDMuOTQ0OTYgNTYuMzU1NiAzLjc2OTA0IDU3LjIzMDMgMy43NjkwNEM1OC42NjQgMy43NjkwNCA1OS43ODM4IDQuMTQ5OSA2MC41OTEzIDQuOTExNjJDNjEuMzk4OSA1LjY3MzM0IDYxLjgwMTggNi43MjUyMyA2MS44MDE4IDguMDY1NDlWOC43ODE4N0g1NS4zNTM4QzU1LjM5OTIgOS4zOTQ4NyA1NS41OTM0IDkuODc1NDggNTUuOTM0NiAxMC4yMjE5QzU2LjI3NTcgMTAuNTY4MyA1Ni43NDIyIDEwLjc0MjQgNTcuMzMzOCAxMC43NDI0QzU3Ljg0NTUgMTAuNzQyNCA1OC4yNjg0IDEwLjYzNTQgNTguNjA0MSAxMC40MTc4QzU4LjkzOTkgMTAuMjAxOSA1OS4xNTIyIDkuODk1NDMgNTkuMjQ0OCA5LjQ5NjQ0SDYxLjgyQzYxLjY4MzkgMTAuNDUwNCA2MS4yMjQ3IDExLjIyNDggNjAuNDQ2MiAxMS44MTQyQzU5LjY2NzYgMTIuNDA1NSA1OC42MzUgMTIuNzAxMSA1Ny4zNTAxIDEyLjcwMTFDNTYuNDA2NCAxMi43MDExIDU1LjU4NzkgMTIuNTEwNyA1NC44OTI5IDEyLjEyOThDNTQuMTk5NiAxMS43NDg5IDUzLjY2NzkgMTEuMjE3NiA1My4yOTc3IDEwLjUzNTZDNTIuOTI3NCA5Ljg1MzcyIDUyLjc0NDEgOS4wNzAyNCA1Mi43NDQxIDguMTgzMzhDNTIuNzQ0MSA3LjI5NjUyIDUyLjkzNDcgNi40ODc2NSA1My4zMTU4IDUuODIyMDVaTTU5LjI3NzQgNy4zODE3NkM1OS4yMzIxIDYuODM1ODYgNTkuMDMwNiA2LjQxNTExIDU4LjY3MTMgNi4xMTk0OUM1OC4zMTM4IDUuODIzODcgNTcuODQ5MiA1LjY3Njk2IDU3LjI4MTEgNS42NzY5NkM1Ni43MTMxIDUuNjc2OTYgNTYuMjcyMSA1LjgyNTY4IDU1LjkyNTUgNi4xMTk0OUM1NS41Nzg5IDYuNDE1MTEgNTUuMzgyOSA2LjgzNTg2IDU1LjMzNzUgNy4zODE3Nkg1OS4yNzc0WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTY0LjEwNzUgMTEuODY0N0M2My4zNTYxIDExLjMwOCA2Mi45ODA1IDEwLjQ5IDYyLjk4MDUgOS40MDkxSDY1LjU3MzhDNjUuNTczOCA5Ljg5ODc4IDY1LjcyODEgMTAuMjU5NyA2Ni4wMzQ4IDEwLjQ5MThDNjYuMzQxNSAxMC43MjU4IDY2LjgxMzMgMTAuODQxOSA2Ny40NTAzIDEwLjg0MTlDNjcuOTE2NyAxMC44NDE5IDY4LjI1NDMgMTAuNzgyIDY4LjQ2NDggMTAuNjYyM0M2OC42NzUzIDEwLjU0MjYgNjguNzgwNiAxMC4zNTIyIDY4Ljc4MDYgMTAuMDkxQzY4Ljc4MDYgOS45MDk2NiA2OC43MTg5IDkuNzYwOTQgNjguNTkzNyA5LjY0ODVDNjguNDY4NCA5LjUzNDI0IDY4LjI2ODggOS40MzgxMiA2Ny45OTY2IDkuMzU4MzJMNjUuMzY4OCA4LjY0MTk0QzY0Ljc4OCA4LjQ5NTA0IDY0LjI4ODkgOC4yMzAyNSA2My44Njc5IDcuODQ5NEM2My40NDY5IDcuNDY4NTQgNjMuMjM2NCA2Ljk0MjU5IDYzLjIzNjQgNi4yNzE1NUM2My4yMzY0IDUuNDY0NDkgNjMuNTY4NSA0Ljg0NjA1IDY0LjIzNDUgNC40MTI2QzY0LjkwMDUgMy45ODA5NiA2NS44Mjk3IDMuNzY1MTQgNjcuMDIzOSAzLjc2NTE0QzY4LjM0MzIgMy43NjUxNCA2OS4zNzIyIDQuMDI5OTIgNzAuMTEwOCA0LjU1NzY5QzcwLjg0OTUgNS4wODU0NSA3MS4yMTk3IDUuODUwNzkgNzEuMjE5NyA2Ljg1MDA5SDY4LjYyNjNDNjguNjI2MyA2LjAyMTI3IDY4LjA5ODIgNS42MDU5NiA2Ny4wNDAyIDUuNjA1OTZDNjYuNjY0NSA1LjYwNTk2IDY2LjM2ODcgNS42Njk0MyA2Ni4xNTI3IDUuNzkyNzZDNjUuOTM2OCA1LjkxNzkgNjUuODI3OSA2LjA4Mjk0IDY1LjgyNzkgNi4yODc4N0M2NS44Mjc5IDYuNjM5NzIgNjYuMTQgNi44OTU0MyA2Ni43NjYyIDcuMDU1MDNMNjguNzc4OCA3LjU1MDE1QzY5LjU2MjggNy43NDQyMSA3MC4xOTI1IDguMDQxNjQgNzAuNjY0MyA4LjQ0NjA4QzcxLjEzNjIgOC44NDg3IDcxLjM3MjEgOS40MTQ1NCA3MS4zNzIxIDEwLjE0MThDNzEuMzcyMSAxMC45NzI0IDcxLjA0IDExLjYwNTQgNzAuMzc0IDEyLjA0MjVDNjkuNzA3OSAxMi40Nzk2IDY4LjcyMjUgMTIuNjk5IDY3LjQxNCAxMi42OTlDNjUuOTU4NiAxMi42OTkgNjQuODU1MiAxMi40MTk3IDY0LjEwMzggMTEuODYyOUw2NC4xMDc1IDExLjg2NDdaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNNzIuODA2NiAwSDc1LjRWNy4yNjE3MUw3OC44MjgyIDMuOTM3MzZIODIuMDAwNEw3Ny43MTkzIDguMTE0MTFMODEuOTg0MSAxMi41MzAzSDc4LjgyODJMNzUuNCA4LjkxNTczVjEyLjUzMDNINzIuODA2NlYwWiIgZmlsbD0iYmxhY2siLz4KPC9zdmc+Cg=="
+          export JAVA_OPTS="${JAVA_OPTS} -Dattachment:xwiki:XWiki.DefaultSkin@icons.xwiki.favicon.svg=data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iRWJlbmVfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgMTI4IDEyOCI+CiAgPGRlZnM+CiAgICA8c3R5bGU+CiAgICAgIC5jbHMtMSB7CiAgICAgICAgZmlsbDogIzU3MWVmYTsKICAgICAgfQoKICAgICAgLmNscy0yIHsKICAgICAgICBmaWxsOiAjOTI3YWZhOwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik04My4xLDk3LjI2djIuMTJjMCw4Ljk3LTcuMywxNi4yNy0xNi4yNywxNi4yN0gyOC42MmMtOC45NywwLTE2LjI3LTcuMy0xNi4yNy0xNi4yN3YtMzguMmMwLTguOTcsNy4zLTE2LjI3LDE2LjI3LTE2LjI3aDIuMTJ2NTIuMzVoNTIuMzVaIi8+CiAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNODMuODEsODQuNTJoLTQwLjMzdi00NC41N2MwLTE1LjIyLDEyLjM4LTI3LjU5LDI3LjU5LTI3LjU5aDEyLjc0YzE3LjU2LDAsMzEuODQsMTQuMjgsMzEuODQsMzEuODR2OC40OWMwLDE3LjU2LTE0LjI4LDMxLjg0LTMxLjg0LDMxLjg0Wk02MS44OCw2Ni4xMmgyMS45M2M3LjQxLDAsMTMuNDQtNi4wMywxMy40NC0xMy40NHYtOC40OWMwLTcuNDEtNi4wMy0xMy40NC0xMy40NC0xMy40NGgtMTIuNzRjLTUuMDcsMC05LjIsNC4xMy05LjIsOS4ydjI2LjE4WiIvPgo8L3N2Zz4="
+          export JAVA_OPTS="${JAVA_OPTS} -Dattachment:xwiki:XWiki.DefaultSkin@icons.xwiki.favicon144.png=data:image/png;base64,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"
+          export JAVA_OPTS="${JAVA_OPTS} -Dattachment:xwiki:XWiki.DefaultSkin@icons.xwiki.favicon16.png=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAHYAAAB2AH6XKZyAAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAAY5JREFUOI2lksFKW0EUhr8zudeLVhAqQQu1kQS6LUiRrroSKVbXjfQRpGA3QqvLQHfiogo+QaM7m6KI9AGEWLdFVGKKK6UUhUQZ7xwX3qQ2uYlg/9Xwzznf+ecwoqr8j7x2l29Tl2mn5iUifapYRPZ6konN5SK2ViOtEkwO2ilV5oGO277Ajqp7ky8HBy0B2bR9RkgxSvgb+IPiITwGDPCjJ+m/WC5iTdx0CeVV1FyqXPkD+SM/ky/7KVUZAxQYOjsNR4loACzN0L/4MRwHUPRRZO9/PaZSq1kpe5tACQDnnhJNYWmuOhD63i5wAolvsUv5K3czRKSewOFNAL13NDL5xD4HBgEwrlRPoCoPbp7WpKFsym5F5wBhGEgg7LmwY6MOaKOHwEiDVxLIrv6i2hKguO8gF42+QQ4rnf6XtZ+c17xYwMpRUAAKd6S7BRCtRivIfJ61B7GpxE2/ywVNUA8gDN16wphPQLdCOqb/1PeD7Thw/SsvfLhMG2NeC9L1T4HoueVq7X2u87gt4L66BhVQi4kGcML1AAAAAElFTkSuQmCC"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.brand-primary=#6af56a"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.btn-primary-bg=@brand-primary"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.lessCode=li#tmWorkplaceServices { padding-left: 16px; padding-top: 5px; } .navbar-right { padding-top: 8px; } .navbar { border-bottom: 1px solid #ddd !important; height: 64px;} div#companylogo { width: 90px; height: auto; padding-top: 7px; padding-left: 9px; }"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.link-color=@brand-primary"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-bg=#ffffff"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-color=@brand-primary"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-link-active-color=@brand-primary"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-link-color=@brand-primary"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-link-hover-bg=#f5f5f5"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-link-hover-color=@brand-primary"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.OIDCIssuer=https://id.opendesk.apps.digilab.network/realms/opendesk"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.addOIDCObject=1"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.forceXWikiUsersGroupMembershipUpdate=1"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.ldapGroupImportSearchDN=dc=swp-ldap,dc=internal"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.ldapGroupImportSearchFilter=(&(objectClass=opendeskKnowledgemanagementGroup)(opendeskKnowledgemanagementEnabled=TRUE))"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.ldapUserAttributes=sn,givenname,uid,mailPrimaryAddress"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.triggerGroupImport=1"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.triggerGroupsUpdate=1"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.usersAllowedToImport=globalAdmin"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:Mail.MailConfig^Mail.SendMailConfigClass.from=no-reply@opendesk.apps.digilab.network"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:Mail.MailConfig^Mail.SendMailConfigClass.host=postfix.tn-openbsw-opendesk.svc.cluster.local"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:Mail.MailConfig^Mail.SendMailConfigClass.port=25"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:Mail.MailConfig^Mail.SendMailConfigClass.properties=mail.smtp.starttls.enable=false"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:XWiki.AuthService.Configuration^XWiki.AuthService.ConfigurationClass.authService=oidc"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.colorTheme=FlamingoThemes.Iceberg"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.default_language=de_DE"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.languages=de_DE"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.ldap_group_mapping=xwiki:XWiki.XWikiAdminGroup=cn=managed-by-attribute-KnowledgemanagementAdmin,cn=groups,dc=swp-ldap,dc=internal"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.timezone=Europe/Berlin"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.title=MijnBureau Wissen - $!tdoc.displayTitle"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:XWiki.XWikiServerXwiki^XWiki.XWikiServerClass.port=443"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:XWiki.XWikiServerXwiki^XWiki.XWikiServerClass.secure=1"
+          export JAVA_OPTS="${JAVA_OPTS} -Dproperty:xwiki:XWiki.XWikiServerXwiki^XWiki.XWikiServerClass.server=wiki.opendesk.apps.digilab.network"
+      else
+        ## Clear contents of /tmp/java_opts.txt so that we don't add extra arguments at each pod restart.
+        echo "" > /tmp/java_opts.txt
+          echo '-Dattachment:xwiki:FlamingoThemes.Iceberg@logo.svg="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODIiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCA4MiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuNDM1MzggMy45MDQ3OUM3LjEzMDM2IDMuOTA0NzkgOC44NTI2IDUuODgxNjIgOC44NTI2IDguMzAyOEM4Ljg1MjYgMTAuNzI0IDcuMTMwMzYgMTIuNzAwOCA0LjQzNTM4IDEyLjcwMDhDMS43NDA0IDEyLjcwMDggMCAxMC43MjQgMCA4LjMwMjhDMCA1Ljg4MTYyIDEuNzIyMjUgMy45MDQ3OSA0LjQzNTM4IDMuOTA0NzlaTTQuNDM1MzggMTEuNjI3MkM2LjQ5ODgxIDExLjYyNzIgNy41OTEzMiAxMC4wOTI4IDcuNTkxMzIgOC4zMDI4QzcuNTkxMzIgNi41MTI3NiA2LjQ5ODgxIDQuOTc4NDQgNC40MzUzOCA0Ljk3ODQ0QzIuMzcxOTUgNC45Nzg0NCAxLjI2MzEgNi41MTI3NiAxLjI2MzEgOC4zMDI4QzEuMjYzMSAxMC4wOTI4IDIuMzUzOCAxMS42MjcyIDQuNDM1MzggMTEuNjI3MloiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik0xMC40OTIyIDQuMDc1MjZIMTEuNzU1M1Y2LjIyMjU4QzEyLjM1MjQgNC44MDc5NiAxMy42MTU1IDMuOTA0NzkgMTUuNDU3NSAzLjkwNDc5QzE3LjgyOTQgMy45MDQ3OSAxOS40MzE5IDUuNjk0ODIgMTkuNDMxOSA4LjMxOTEyQzE5LjQzMTkgMTAuOTQzNCAxNy44Mjk0IDEyLjcwMDggMTUuNDU3NSAxMi43MDA4QzEzLjU4MSAxMi43MDA4IDEyLjMzNiAxMS43NjMyIDExLjc1NTMgMTAuMzgzVjE1LjYzMzRIMTAuNDkyMlY0LjA3NTI2Wk0xNS4wNjM3IDExLjYyNzJDMTYuNzY5NiAxMS42MjcyIDE4LjE2ODggMTAuNTY5OCAxOC4xNjg4IDguMzE5MTJDMTguMTY4OCA2LjA2ODQzIDE2Ljc2OTYgNC45Nzg0NCAxNS4wNjM3IDQuOTc4NDRDMTMuMzU3OCA0Ljk3ODQ0IDExLjgwNjEgNi4wODY1NiAxMS44MDYxIDguMzE5MTJDMTEuODA2MSAxMC41NTE3IDEzLjM3NTkgMTEuNjI3MiAxNS4wNjM3IDExLjYyNzJaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMjQuNzg3MSAzLjkwNDY1QzI3LjIwOTggMy45MDQ2NSAyOC44MzA0IDUuNDIyNjQgMjguODMwNCA4LjAxMjQ4VjguNTIzOTJIMjIuMDI0OUMyMi4wNzU3IDEwLjI5NzYgMjIuOTc5NSAxMS42NTk3IDI0Ljg1NiAxMS42NTk3QzI2LjQwNzcgMTEuNjU5NyAyNy4zMTMzIDEwLjg0MTcgMjcuNjIgOS41Nzk0NUgyOC44NjQ5QzI4LjUwNzQgMTEuMDc5MyAyNy40ODM4IDEyLjY5ODkgMjQuODkwNSAxMi42OTg5QzIyLjE0NDcgMTIuNjk4OSAyMC44MTQ1IDEwLjY1MzEgMjAuODE0NSA4LjE4MTE1QzIwLjgxNDUgNS40NTM0NyAyMi40MDA2IDMuOTAyODMgMjQuNzg4OSAzLjkwMjgzTDI0Ljc4NzEgMy45MDQ2NVpNMjcuNTgzNyA3LjUzNTVDMjcuNDYzOSA1Ljg4MTQ4IDI2LjM1NSA0Ljk0Mzg1IDI0Ljc2ODkgNC45NDM4NUMyMy4yODQ0IDQuOTQzODUgMjIuMTc1NiA1Ljg5NzgxIDIyLjAzOTQgNy41MzU1SDI3LjU4MzdaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMzAuNjAzNSA0LjA3NTI2SDMxLjg2NjZWNi40Mjc1MkMzMi4zMjc2IDQuODU4NzUgMzMuNTIxNyAzLjkwNDc5IDM1LjM4MDEgMy45MDQ3OUMzNy4yMzg0IDMuOTA0NzkgMzguNDE2MiA1LjEzMjYgMzguNDE2MiA3LjM0ODg0VjEyLjUzMDNIMzcuMTM2OFY3LjQ1MDRDMzcuMTM2OCA1LjY5NDgyIDM2LjQ1NDQgNC45Nzg0NCAzNC45NTM2IDQuOTc4NDRDMzMuMDQyNiA0Ljk3ODQ0IDMxLjg2NjYgNi41ODE2OCAzMS44NjY2IDguODQ4N1YxMi41MzAzSDMwLjYwMzVWNC4wNzUyNloiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik00MC41NDg4IDAuNTExMjNINDQuOTY3OUM0Ni4yMTgzIDAuNTExMjMgNDcuMzIxNyAwLjY2NTM4NiA0OC4yNzgxIDAuOTcxODg3QzQ5LjIzMjcgMS4yNzgzOSA1MC4wMTQ4IDEuODc1MDcgNTAuNjIyOCAyLjc2MTkyQzUxLjIzMDggMy42NDg3OCA1MS41MzU2IDQuODk4MzYgNTEuNTM1NiA2LjUxMjQ4QzUxLjUzNTYgOC4xMjY2IDUxLjIzMDggOS4zOTQzMSA1MC42MjI4IDEwLjI3OTRDNTAuMDE0OCAxMS4xNjYyIDQ5LjIzMjcgMTEuNzYyOSA0OC4yNzgxIDEyLjA2OTRDNDcuMzIxNyAxMi4zNzU5IDQ2LjIyMDEgMTIuNTMwMSA0NC45Njc5IDEyLjUzMDFINDAuNTQ4OFYwLjUxMTIzWk00NC45Njc5IDEwLjEyN0M0NS44MzE3IDEwLjEyNyA0Ni41MjMyIDEwLjA1ODEgNDcuMDQwNCA5LjkyMjA3QzQ3LjU1NzYgOS43ODYwNSA0Ny45Nzg2IDkuNDU5NiA0OC4zMDM1IDguOTQwOTFDNDguNjI4MyA4LjQyNDAzIDQ4Ljc4OTggNy42MTMzNCA0OC43ODk4IDYuNTEyNDhDNDguNzg5OCA1LjQxMTYyIDQ4LjYyNDcgNC42MTU0NCA0OC4yOTYyIDQuMDkxM0M0Ny45NjU5IDMuNTY4OTggNDcuNTQ0OSAzLjIzODkxIDQ3LjAzMzEgMy4xMDI4OEM0Ni41MjEzIDIuOTY2ODYgNDUuODMzNSAyLjg5Nzk1IDQ0Ljk2OTcgMi44OTc5NUg0My4yODAxVjEwLjEyN0g0NC45Njk3SDQ0Ljk2NzlaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNNTMuMzE1OCA1LjgyMjA1QzUzLjY5NjkgNS4xNTY0NiA1NC4yMjUgNC42NDg2NSA1NC45MDE5IDQuMjk2OEM1NS41Nzg5IDMuOTQ0OTYgNTYuMzU1NiAzLjc2OTA0IDU3LjIzMDMgMy43NjkwNEM1OC42NjQgMy43NjkwNCA1OS43ODM4IDQuMTQ5OSA2MC41OTEzIDQuOTExNjJDNjEuMzk4OSA1LjY3MzM0IDYxLjgwMTggNi43MjUyMyA2MS44MDE4IDguMDY1NDlWOC43ODE4N0g1NS4zNTM4QzU1LjM5OTIgOS4zOTQ4NyA1NS41OTM0IDkuODc1NDggNTUuOTM0NiAxMC4yMjE5QzU2LjI3NTcgMTAuNTY4MyA1Ni43NDIyIDEwLjc0MjQgNTcuMzMzOCAxMC43NDI0QzU3Ljg0NTUgMTAuNzQyNCA1OC4yNjg0IDEwLjYzNTQgNTguNjA0MSAxMC40MTc4QzU4LjkzOTkgMTAuMjAxOSA1OS4xNTIyIDkuODk1NDMgNTkuMjQ0OCA5LjQ5NjQ0SDYxLjgyQzYxLjY4MzkgMTAuNDUwNCA2MS4yMjQ3IDExLjIyNDggNjAuNDQ2MiAxMS44MTQyQzU5LjY2NzYgMTIuNDA1NSA1OC42MzUgMTIuNzAxMSA1Ny4zNTAxIDEyLjcwMTFDNTYuNDA2NCAxMi43MDExIDU1LjU4NzkgMTIuNTEwNyA1NC44OTI5IDEyLjEyOThDNTQuMTk5NiAxMS43NDg5IDUzLjY2NzkgMTEuMjE3NiA1My4yOTc3IDEwLjUzNTZDNTIuOTI3NCA5Ljg1MzcyIDUyLjc0NDEgOS4wNzAyNCA1Mi43NDQxIDguMTgzMzhDNTIuNzQ0MSA3LjI5NjUyIDUyLjkzNDcgNi40ODc2NSA1My4zMTU4IDUuODIyMDVaTTU5LjI3NzQgNy4zODE3NkM1OS4yMzIxIDYuODM1ODYgNTkuMDMwNiA2LjQxNTExIDU4LjY3MTMgNi4xMTk0OUM1OC4zMTM4IDUuODIzODcgNTcuODQ5MiA1LjY3Njk2IDU3LjI4MTEgNS42NzY5NkM1Ni43MTMxIDUuNjc2OTYgNTYuMjcyMSA1LjgyNTY4IDU1LjkyNTUgNi4xMTk0OUM1NS41Nzg5IDYuNDE1MTEgNTUuMzgyOSA2LjgzNTg2IDU1LjMzNzUgNy4zODE3Nkg1OS4yNzc0WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTY0LjEwNzUgMTEuODY0N0M2My4zNTYxIDExLjMwOCA2Mi45ODA1IDEwLjQ5IDYyLjk4MDUgOS40MDkxSDY1LjU3MzhDNjUuNTczOCA5Ljg5ODc4IDY1LjcyODEgMTAuMjU5NyA2Ni4wMzQ4IDEwLjQ5MThDNjYuMzQxNSAxMC43MjU4IDY2LjgxMzMgMTAuODQxOSA2Ny40NTAzIDEwLjg0MTlDNjcuOTE2NyAxMC44NDE5IDY4LjI1NDMgMTAuNzgyIDY4LjQ2NDggMTAuNjYyM0M2OC42NzUzIDEwLjU0MjYgNjguNzgwNiAxMC4zNTIyIDY4Ljc4MDYgMTAuMDkxQzY4Ljc4MDYgOS45MDk2NiA2OC43MTg5IDkuNzYwOTQgNjguNTkzNyA5LjY0ODVDNjguNDY4NCA5LjUzNDI0IDY4LjI2ODggOS40MzgxMiA2Ny45OTY2IDkuMzU4MzJMNjUuMzY4OCA4LjY0MTk0QzY0Ljc4OCA4LjQ5NTA0IDY0LjI4ODkgOC4yMzAyNSA2My44Njc5IDcuODQ5NEM2My40NDY5IDcuNDY4NTQgNjMuMjM2NCA2Ljk0MjU5IDYzLjIzNjQgNi4yNzE1NUM2My4yMzY0IDUuNDY0NDkgNjMuNTY4NSA0Ljg0NjA1IDY0LjIzNDUgNC40MTI2QzY0LjkwMDUgMy45ODA5NiA2NS44Mjk3IDMuNzY1MTQgNjcuMDIzOSAzLjc2NTE0QzY4LjM0MzIgMy43NjUxNCA2OS4zNzIyIDQuMDI5OTIgNzAuMTEwOCA0LjU1NzY5QzcwLjg0OTUgNS4wODU0NSA3MS4yMTk3IDUuODUwNzkgNzEuMjE5NyA2Ljg1MDA5SDY4LjYyNjNDNjguNjI2MyA2LjAyMTI3IDY4LjA5ODIgNS42MDU5NiA2Ny4wNDAyIDUuNjA1OTZDNjYuNjY0NSA1LjYwNTk2IDY2LjM2ODcgNS42Njk0MyA2Ni4xNTI3IDUuNzkyNzZDNjUuOTM2OCA1LjkxNzkgNjUuODI3OSA2LjA4Mjk0IDY1LjgyNzkgNi4yODc4N0M2NS44Mjc5IDYuNjM5NzIgNjYuMTQgNi44OTU0MyA2Ni43NjYyIDcuMDU1MDNMNjguNzc4OCA3LjU1MDE1QzY5LjU2MjggNy43NDQyMSA3MC4xOTI1IDguMDQxNjQgNzAuNjY0MyA4LjQ0NjA4QzcxLjEzNjIgOC44NDg3IDcxLjM3MjEgOS40MTQ1NCA3MS4zNzIxIDEwLjE0MThDNzEuMzcyMSAxMC45NzI0IDcxLjA0IDExLjYwNTQgNzAuMzc0IDEyLjA0MjVDNjkuNzA3OSAxMi40Nzk2IDY4LjcyMjUgMTIuNjk5IDY3LjQxNCAxMi42OTlDNjUuOTU4NiAxMi42OTkgNjQuODU1MiAxMi40MTk3IDY0LjEwMzggMTEuODYyOUw2NC4xMDc1IDExLjg2NDdaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNNzIuODA2NiAwSDc1LjRWNy4yNjE3MUw3OC44MjgyIDMuOTM3MzZIODIuMDAwNEw3Ny43MTkzIDguMTE0MTFMODEuOTg0MSAxMi41MzAzSDc4LjgyODJMNzUuNCA4LjkxNTczVjEyLjUzMDNINzIuODA2NlYwWiIgZmlsbD0iYmxhY2siLz4KPC9zdmc+Cg=="' >> /tmp/java_opts.txt
+          echo '-Dattachment:xwiki:XWiki.DefaultSkin@icons.xwiki.favicon.svg="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iRWJlbmVfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgMTI4IDEyOCI+CiAgPGRlZnM+CiAgICA8c3R5bGU+CiAgICAgIC5jbHMtMSB7CiAgICAgICAgZmlsbDogIzU3MWVmYTsKICAgICAgfQoKICAgICAgLmNscy0yIHsKICAgICAgICBmaWxsOiAjOTI3YWZhOwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik04My4xLDk3LjI2djIuMTJjMCw4Ljk3LTcuMywxNi4yNy0xNi4yNywxNi4yN0gyOC42MmMtOC45NywwLTE2LjI3LTcuMy0xNi4yNy0xNi4yN3YtMzguMmMwLTguOTcsNy4zLTE2LjI3LDE2LjI3LTE2LjI3aDIuMTJ2NTIuMzVoNTIuMzVaIi8+CiAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNODMuODEsODQuNTJoLTQwLjMzdi00NC41N2MwLTE1LjIyLDEyLjM4LTI3LjU5LDI3LjU5LTI3LjU5aDEyLjc0YzE3LjU2LDAsMzEuODQsMTQuMjgsMzEuODQsMzEuODR2OC40OWMwLDE3LjU2LTE0LjI4LDMxLjg0LTMxLjg0LDMxLjg0Wk02MS44OCw2Ni4xMmgyMS45M2M3LjQxLDAsMTMuNDQtNi4wMywxMy40NC0xMy40NHYtOC40OWMwLTcuNDEtNi4wMy0xMy40NC0xMy40NC0xMy40NGgtMTIuNzRjLTUuMDcsMC05LjIsNC4xMy05LjIsOS4ydjI2LjE4WiIvPgo8L3N2Zz4="' >> /tmp/java_opts.txt
+          echo '-Dattachment:xwiki:XWiki.DefaultSkin@icons.xwiki.favicon144.png="data:image/png;base64,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"' >> /tmp/java_opts.txt
+          echo '-Dattachment:xwiki:XWiki.DefaultSkin@icons.xwiki.favicon16.png="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAHYAAAB2AH6XKZyAAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAAY5JREFUOI2lksFKW0EUhr8zudeLVhAqQQu1kQS6LUiRrroSKVbXjfQRpGA3QqvLQHfiogo+QaM7m6KI9AGEWLdFVGKKK6UUhUQZ7xwX3qQ2uYlg/9Xwzznf+ecwoqr8j7x2l29Tl2mn5iUifapYRPZ6konN5SK2ViOtEkwO2ilV5oGO277Ajqp7ky8HBy0B2bR9RkgxSvgb+IPiITwGDPCjJ+m/WC5iTdx0CeVV1FyqXPkD+SM/ky/7KVUZAxQYOjsNR4loACzN0L/4MRwHUPRRZO9/PaZSq1kpe5tACQDnnhJNYWmuOhD63i5wAolvsUv5K3czRKSewOFNAL13NDL5xD4HBgEwrlRPoCoPbp7WpKFsym5F5wBhGEgg7LmwY6MOaKOHwEiDVxLIrv6i2hKguO8gF42+QQ4rnf6XtZ+c17xYwMpRUAAKd6S7BRCtRivIfJ61B7GpxE2/ywVNUA8gDN16wphPQLdCOqb/1PeD7Thw/SsvfLhMG2NeC9L1T4HoueVq7X2u87gt4L66BhVQi4kGcML1AAAAAElFTkSuQmCC"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.brand-primary="#6af56a"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.btn-primary-bg="@brand-primary"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.lessCode="li#tmWorkplaceServices { padding-left: 16px; padding-top: 5px; } .navbar-right { padding-top: 8px; } .navbar { border-bottom: 1px solid #ddd !important; height: 64px;} div#companylogo { width: 90px; height: auto; padding-top: 7px; padding-left: 9px; }"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.link-color="@brand-primary"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-bg="#ffffff"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-color="@brand-primary"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-link-active-color="@brand-primary"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-link-color="@brand-primary"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-link-hover-bg="#f5f5f5"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:FlamingoThemes.Iceberg^FlamingoThemesCode.ThemeClass.navbar-default-link-hover-color="@brand-primary"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.OIDCIssuer="https://id.opendesk.apps.digilab.network/realms/opendesk"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.addOIDCObject="1"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.forceXWikiUsersGroupMembershipUpdate="1"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.ldapGroupImportSearchDN="dc=swp-ldap,dc=internal"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.ldapGroupImportSearchFilter="(&(objectClass=opendeskKnowledgemanagementGroup)(opendeskKnowledgemanagementEnabled=TRUE))"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.ldapUserAttributes="sn,givenname,uid,mailPrimaryAddress"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.triggerGroupImport="1"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.triggerGroupsUpdate="1"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:LDAPUserImport.WebHome^LDAPUserImport.LDAPUserImportConfigClass.usersAllowedToImport="globalAdmin"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:Mail.MailConfig^Mail.SendMailConfigClass.from="no-reply@opendesk.apps.digilab.network"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:Mail.MailConfig^Mail.SendMailConfigClass.host="postfix.tn-openbsw-opendesk.svc.cluster.local"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:Mail.MailConfig^Mail.SendMailConfigClass.port="25"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:Mail.MailConfig^Mail.SendMailConfigClass.properties="mail.smtp.starttls.enable=false"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:XWiki.AuthService.Configuration^XWiki.AuthService.ConfigurationClass.authService="oidc"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.colorTheme="FlamingoThemes.Iceberg"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.default_language="de_DE"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.languages="de_DE"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.ldap_group_mapping="xwiki:XWiki.XWikiAdminGroup=cn=managed-by-attribute-KnowledgemanagementAdmin,cn=groups,dc=swp-ldap,dc=internal"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.timezone="Europe/Berlin"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:XWiki.XWikiPreferences^XWiki.XWikiPreferences.title="MijnBureau Wissen - $!tdoc.displayTitle"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:XWiki.XWikiServerXwiki^XWiki.XWikiServerClass.port="443"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:XWiki.XWikiServerXwiki^XWiki.XWikiServerClass.secure="1"' >> /tmp/java_opts.txt
+          echo '-Dproperty:xwiki:XWiki.XWikiServerXwiki^XWiki.XWikiServerClass.server="wiki.opendesk.apps.digilab.network"' >> /tmp/java_opts.txt
+        export JAVA_OPTS="${JAVA_OPTS} @/tmp/java_opts.txt"
+      fi
+    fi
+
+    exec /usr/local/bin/docker-entrypoint.sh xwiki
+
+  glowroot.properties: |
+    data.dir=/usr/local/xwiki/data/glowroot/data
+    log.dir=/usr/local/xwiki/data/glowroot/log
+    tmp.dir=/usr/local/xwiki/data/glowroot/tmp
+---
+# Source: xwiki/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: xwiki
+  labels:
+    app.kubernetes.io/name: xwiki
+    helm.sh/chart: xwiki-1.4.0
+    app.kubernetes.io/instance: xwiki
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  sessionAffinity: ClientIP
+  selector:
+    app.kubernetes.io/name: xwiki
+    app.kubernetes.io/instance: xwiki
+---
+# Source: xwiki/templates/xwiki.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: xwiki
+  labels:
+    app.kubernetes.io/name: xwiki
+    helm.sh/chart: xwiki-1.4.0
+    app.kubernetes.io/instance: xwiki
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  serviceName: xwiki
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xwiki
+      app.kubernetes.io/instance: xwiki
+  template:
+    metadata:
+      annotations:
+        # Annotations to rollout changes on configs on workload
+        checksum/configmap: a80f42ceef17d396f89599e109b1554d5356f2a4c4523aa2a063efdf1ddb07cd
+        checksum/initialization-configmaps: 611a3452a8aa0a47f59f1fdb1fffc2a214024e92a08846843390f5f0fb1cfad7
+      labels:
+        app.kubernetes.io/name: xwiki
+        helm.sh/chart: xwiki-1.4.0
+        app.kubernetes.io/instance: xwiki
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      serviceAccountName: xwiki-sa
+      initContainers:
+      - name: xwiki-data-permissions
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/xwiki/images-mirror/xwiki:0.22-mariadb-jetty-alpine@sha256:ba29f44befc558c4a4d969f103b216c13a55194dbc532adc43567bee4943d65f
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -ec
+        - chown -R "100:101" /usr/local/xwiki/data
+        securityContext:
+          runAsUser: 0
+          seccompProfile:
+            type: RuntimeDefault
+        resources:
+          limits:
+            cpu: 99
+            memory: 8Gi
+          requests:
+            cpu: 0.1
+            memory: 1.5Gi
+        volumeMounts:
+        - name: xwiki-data
+          mountPath: /usr/local/xwiki/data
+      containers:
+      - name: xwiki
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/xwiki/images-mirror/xwiki:0.22-mariadb-jetty-alpine@sha256:ba29f44befc558c4a4d969f103b216c13a55194dbc532adc43567bee4943d65f
+        imagePullPolicy: IfNotPresent
+        command: [/bin/bash, /configmaps/entrypoint]
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 100
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: xwiki
+              key: DB_PASSWORD
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: xwiki
+              key: DB_HOST
+        - name: DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: xwiki
+              key: DB_USER
+        - name: DB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: xwiki
+              key: DB_DATABASE
+        startupProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 120
+          timeoutSeconds: 60
+          periodSeconds: 30
+          failureThreshold: 5
+          successThreshold: 1
+        livenessProbe:
+          httpGet:
+            path: /rest
+            port: 8080
+          initialDelaySeconds: 30
+          timeoutSeconds: 3
+          periodSeconds: 30
+          failureThreshold: 10
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /rest/wikis/xwiki/spaces
+            port: 8080
+          initialDelaySeconds: 30
+          timeoutSeconds: 3
+          periodSeconds: 30
+          failureThreshold: 10
+          successThreshold: 1
+        resources:
+          limits:
+            cpu: 99
+            memory: 8Gi
+          requests:
+            cpu: 0.1
+            memory: 1.5Gi
+        volumeMounts:
+        - name: xwiki-data
+          mountPath: /usr/local/xwiki/data
+        - name: configmaps
+          mountPath: /configmaps
+      securityContext:
+        fsGroup: 101
+      volumes:
+      - name: configmaps
+        configMap:
+          name: xwiki-init-scripts
+      - name: xwiki-data
+  volumeClaimTemplates:
+  - metadata:
+      name: xwiki-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: managed
+---
+# Source: xwiki/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: xwiki
+  labels:
+    app.kubernetes.io/name: xwiki
+    helm.sh/chart: xwiki-1.4.0
+    app.kubernetes.io/instance: xwiki
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    haproxy-ingress.github.io/headers: X-Forwarded-Host wiki.opendesk.apps.digilab.network
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/proxy-body-size: 100M
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '60'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '60'
+    nginx.ingress.kubernetes.io/session-cookie-expires: '1800'
+    nginx.ingress.kubernetes.io/session-cookie-name: XNGINX
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    nginx.org/client-max-body-size: 100M
+    nginx.org/proxy-read-timeout: 60s
+    nginx.org/proxy-send-timeout: 60s
+spec:
+  tls:
+  - hosts:
+    - wiki.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: wiki.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: xwiki
+            port:
+              number: 80
+

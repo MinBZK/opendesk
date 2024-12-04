@@ -1,0 +1,111 @@
+# Source: opendesk-openproject-bootstrap/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opendesk-openproject-bootstrap
+  labels:
+    app.kubernetes.io/name: opendesk-openproject-bootstrap
+    helm.sh/chart: opendesk-openproject-bootstrap-2.1.1
+    app.kubernetes.io/instance: opendesk-openproject-bootstrap
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: false
+---
+# Source: opendesk-openproject-bootstrap/templates/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: opendesk-openproject-bootstrap-bootstrap-1
+  labels:
+    app.kubernetes.io/name: opendesk-openproject-bootstrap
+    helm.sh/chart: opendesk-openproject-bootstrap-2.1.1
+    app.kubernetes.io/instance: opendesk-openproject-bootstrap
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 1800
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: opendesk-openproject-bootstrap
+        helm.sh/chart: opendesk-openproject-bootstrap-2.1.1
+        app.kubernetes.io/instance: opendesk-openproject-bootstrap
+        app.kubernetes.io/managed-by: Helm
+      annotations:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: opendesk-openproject-bootstrap
+      containers:
+      - name: opendesk-openproject-bootstrap
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        resources:
+          limits:
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 256Mi
+
+        image: 
+          registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-openproject-bootstrap:1.1.4@sha256:2fd97a316114428849aaeef87fb8755274e675830088a93afcafac91bb048d1d
+        imagePullPolicy: IfNotPresent
+        command:
+        - /app/entrypoint.sh
+
+        volumeMounts:
+        - mountPath: /app/temp
+          name: temp-dir
+        env:
+        - name: OPENPROJECT_HOST
+          value: https://projects.opendesk.apps.digilab.network
+        - name: OPENPROJECT_STORAGE_NAME
+          value: Nextcloud at opendesk.apps.digilab.network
+        - name: OP_ADMIN_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: openprojectAdminUsername
+              name: opendesk-openproject-bootstrap
+        - name: OP_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: openprojectAdminPassword
+              name: opendesk-openproject-bootstrap
+
+        - name: NEXTCLOUD_HOST
+          value: https://files.opendesk.apps.digilab.network
+        - name: NC_ADMIN_USERNAME
+          value: nextcloud
+        - name: SETUP_PROJECT_FOLDER
+          value: 'true'
+        - name: NC_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: nextcloudAdminPassword
+              name: opendesk-openproject-bootstrap
+
+        - name: OD_OP_BOOTSTRAP_TEMP_DIR
+          value: /app/temp
+        - name: OD_OP_BOOTSTRAP_DEBUG_ENABLED
+          value: 'false'
+        - name: OD_OP_BOOTSTRAP_DEBUG_PAUSE_BEFORE_SCRIPT_START
+          value: '0'
+
+      volumes:
+      - name: temp-dir
+        emptyDir:
+          sizeLimit: 20Mi

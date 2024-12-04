@@ -1,0 +1,283 @@
+# Source: cryptpad/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cryptpad
+  labels:
+    helm.sh/chart: cryptpad-0.0.20
+    app.kubernetes.io/name: cryptpad
+    app.kubernetes.io/instance: cryptpad
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: cryptpad/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cryptpad
+  labels:
+    helm.sh/chart: cryptpad-0.0.20
+    app.kubernetes.io/name: cryptpad
+    app.kubernetes.io/instance: cryptpad
+    app.kubernetes.io/managed-by: Helm
+data:
+  config.js: |
+    /* globals module */
+
+    module.exports = {  
+            httpUnsafeOrigin: 'https://pad.opendesk.apps.digilab.network',
+            httpSafeOrigin: 'https://pad.opendesk.apps.digilab.network',
+            adminKeys: [],
+              archivePath: "./data/archive",
+              blobPath: "./blob",
+              blobStagingPath: "./data/blobstage",
+              blockPath: "./block",
+              decreePath: "./data/decrees",
+              filePath: "./datastore/",
+              httpAddress: "0.0.0.0",
+              installMethod: "helm-docker",
+              logFeedback: "false",
+              logLevel: "info",
+              logPath: "./data/logs",
+              logToStdout: "false",
+              pinPath: "./data/pins",
+              taskPath: "./data/tasks",
+              verbose: "false",
+
+
+        };
+  application_config.js: |
+    /*
+    * You can override the configurable values from this file.
+    * The recommended method is to make a copy of this file (/customize.dist/application_config.js)
+      in a 'customize' directory (/customize/application_config.js).
+    * If you want to check all the configurable values, you can open the internal configuration file
+      but you should not change it directly (/common/application_config_internal.js)
+    */
+    define(['/common/application_config_internal.js'], function (AppConfig) {
+          AppConfig.availablePadTypes =  ["diagram"];
+
+        return AppConfig;
+    });
+---
+# Source: cryptpad/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: cryptpad
+  labels:
+    helm.sh/chart: cryptpad-0.0.20
+    app.kubernetes.io/name: cryptpad
+    app.kubernetes.io/instance: cryptpad
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  - port: 83
+    targetPort: ws
+    protocol: TCP
+    name: ws
+  sessionAffinity: ClientIP
+  selector:
+    app.kubernetes.io/name: cryptpad
+    app.kubernetes.io/instance: cryptpad
+---
+# Source: cryptpad/templates/cryptpad.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cryptpad
+  labels:
+    helm.sh/chart: cryptpad-0.0.20
+    app.kubernetes.io/name: cryptpad
+    app.kubernetes.io/instance: cryptpad
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cryptpad
+      app.kubernetes.io/instance: cryptpad
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: b48fcf297555b0deb86ac68f2f888d84bfd9172583df31321841f76085af955b
+      labels:
+        app.kubernetes.io/name: cryptpad
+        app.kubernetes.io/instance: cryptpad
+    spec:
+      serviceAccountName: cryptpad
+      securityContext:
+        fsGroup: 4001
+      initContainers:
+      - name: init-cryptpad
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 4001
+          runAsNonRoot: true
+          runAsUser: 4001
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image: 
+          registry.opencode.de/bmi/opendesk/components/supplier/xwiki/images-mirror/cryptpad:opendesk-20231222@sha256:f4d20d5c38c87b11ed1a1b46ef6a3633d32c6758ebdff8556458f040318fa5e2
+        imagePullPolicy: IfNotPresent
+        command: [/bin/sh, -c]
+        volumeMounts:
+        - name: cryptpad-data
+          mountPath: /cryptpad/data
+        args:
+        - |
+          FILE=/cryptpad/data/decrees/decree.ndjson
+          mkdir -p /cryptpad/data/decrees
+          VALUE='["ENABLE_EMBEDDING", [true], "", 0]'
+          if  [ -f $FILE ] && [ $(grep -c "ENABLE_EMBEDDING" $FILE) -gt 0 ]
+          then
+            sed -i "s|.*ENABLE_EMBEDDING.*|$VALUE|g" "$FILE"
+          else
+            echo "$VALUE" >> "$FILE"
+          fi
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 512Mi
+      containers:
+      - name: cryptpad
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 4001
+          runAsNonRoot: true
+          runAsUser: 4001
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image: 
+          registry.opencode.de/bmi/opendesk/components/supplier/xwiki/images-mirror/cryptpad:opendesk-20231222@sha256:f4d20d5c38c87b11ed1a1b46ef6a3633d32c6758ebdff8556458f040318fa5e2
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: CPAD_MAIN_DOMAIN
+          value: https://pad.opendesk.apps.digilab.network
+        - name: CPAD_SANDBOX_DOMAIN
+          value: https://pad.opendesk.apps.digilab.network
+        - name: CPAD_CONF
+          value: /cryptpad/config/config.js
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        - name: ws
+          containerPort: 3003
+          protocol: TCP
+        startupProbe:
+          tcpSocket:
+            port: 3000
+          initialDelaySeconds: 0
+          timeoutSeconds: 1
+          periodSeconds: 10
+          failureThreshold: 5
+          successThreshold: 1
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 0
+          timeoutSeconds: 1
+          periodSeconds: 10
+          failureThreshold: 5
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 0
+          timeoutSeconds: 1
+          periodSeconds: 10
+          failureThreshold: 5
+          successThreshold: 1
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 512Mi
+        volumeMounts:
+        - name: cryptpad-blob
+          mountPath: /cryptpad/blob
+        - name: cryptpad-block
+          mountPath: /cryptpad/block
+        - name: cryptpad-data
+          mountPath: /cryptpad/data
+        - name: cryptpad-datastore
+          mountPath: /cryptpad/datastore
+        - name: configmaps
+          mountPath: /cryptpad/config/config.js
+          subPath: config.js
+        - name: configmaps
+          mountPath: /cryptpad/customize/application_config.js
+          subPath: application_config.js
+      volumes:
+      - name: configmaps
+        configMap:
+          name: cryptpad
+      - name: cryptpad-blob
+        emptyDir: {}
+      - name: cryptpad-block
+        emptyDir: {}
+      - name: cryptpad-data
+        emptyDir: {}
+      - name: cryptpad-datastore
+        emptyDir: {}
+---
+# Source: cryptpad/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cryptpad
+  labels:
+    helm.sh/chart: cryptpad-0.0.20
+    app.kubernetes.io/name: cryptpad
+    app.kubernetes.io/instance: cryptpad
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    nginx.org/websocket-services: cryptpad
+spec:
+  tls:
+  - hosts:
+    - pad.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: pad.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: cryptpad
+            port:
+              number: 80
+      - path: /cryptpad_websocket
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: cryptpad
+            port:
+              number: 83
+

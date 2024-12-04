@@ -1,0 +1,5111 @@
+# Source: dovecot/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dovecot
+  labels:
+    app.kubernetes.io/name: dovecot
+    helm.sh/chart: dovecot-1.4.0
+    app.kubernetes.io/instance: dovecot
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: true
+---
+# Source: dovecot/templates/configmap-virtual.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: dovecot-virtual
+  labels:
+    app.kubernetes.io/name: dovecot
+    helm.sh/chart: dovecot-1.4.0
+    app.kubernetes.io/instance: dovecot
+    app.kubernetes.io/managed-by: Helm
+data:
+  dovecot-virtual: |
+    *
+    -INBOX/Trash
+    -INBOX/Trash/*
+    -INBOX/Spam
+    -INBOX/Spam/*
+---
+# Source: dovecot/templates/configmap.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: dovecot
+  labels:
+    app.kubernetes.io/name: dovecot
+    helm.sh/chart: dovecot-1.4.0
+    app.kubernetes.io/instance: dovecot
+    app.kubernetes.io/managed-by: Helm
+data:
+  dovecot.conf: |2
+
+
+    auth_master_user_separator = *
+    auth_mechanisms = xoauth2 oauthbearer plain login
+    auth_realms = souvap
+    auth_verbose = no
+    first_valid_uid = 1000
+    listen = *
+    mail_debug = no
+    mail_location = mdbox:~/mdbox
+    mail_plugins = acl notify push_notification welcome zlib quota virtual
+    mail_uid=vmail
+    mail_gid=vmail
+    login_trusted_networks = 10.0.0.0/8
+    doveadm_password = "84d23be6710d8a9a36945c40f789865c75a3c8fc"
+    managesieve_notify_capability = mailto
+    managesieve_sieve_capability = fileinto reject envelope encoded-character vacation subaddress comparator-i;ascii-numeric relational regex imap4flags copy include variables body enotify environment mailbox date index ihave duplicate mime foreverypart extracttext
+    mbox_write_locks = fcntl
+
+    # Search inside attachments
+    # https://documentation.open-xchange.com/latest/middleware/mail/dovecot/attachment_marker.html
+    # https://doc.dovecot.org/settings/core/#core_setting-mail_attachment_detection_options
+    mail_attachment_detection_options = add-flags
+
+    # Submission settings
+    submission_ssl = "no"
+    submission_host = "postfix.tn-openbsw-opendesk.svc.cluster.local:25"
+    submission_host = "postfix.tn-openbsw-opendesk.svc.cluster.local:25"
+
+    namespace {  # FIXME namespaces auslagern?
+      list = children
+      location = mdbox:%%h/mdbox:INDEXPVT=%h/shared/%%u
+      prefix = Freigaben/%%n/
+      separator = /
+      subscriptions = yes
+      type = shared
+    }
+
+    namespace inbox {
+      inbox = yes
+      location =
+      mailbox Drafts {
+        special_use = \Drafts
+      }
+      mailbox Junk {
+        special_use = \Junk
+      }
+      mailbox Sent {
+        special_use = \Sent
+      }
+      mailbox "Sent Messages" {
+        special_use = \Sent
+      }
+      mailbox Trash {
+        special_use = \Trash
+      }
+      prefix =
+    }
+
+    # Primary accounts with OAuth2
+    passdb {
+      driver = oauth2
+      args = /etc/dovecot/oauth2-primary.conf.ext
+      mechanisms = xoauth2 oauthbearer
+
+      # Primary accounts from OX have at least one @ in the login name
+      username_filter = *@*
+
+      # If successful, do not bother with secondary accounts
+      result_success = return-ok
+
+      result_failure = return-fail
+      result_internalfail = return-fail
+    }
+
+    # Primary accounts with password use LDAP auth bind
+    passdb {
+      driver = ldap
+      args = /etc/dovecot/ldap-primary.conf.ext
+      mechanisms = plain login
+
+      # Primary accounts from external clients have at most one @ in the login name
+      username_filter = !*@*@*
+
+      # If successful, do not bother with secondary accounts
+      result_success = return-ok
+
+      result_failure = return-fail
+      result_internalfail = return-fail
+    }
+
+    # OAuth2 authentication
+    # Step 1: authenticate and extract user's UUID from the token
+    passdb {
+      driver = oauth2
+      args = /etc/dovecot/oauth2-secondary.conf.ext
+      mechanisms = xoauth2 oauthbearer
+
+      # If authentication successful, continue with fetching user's DN
+      result_success = continue-ok
+
+      result_failure = return-fail
+      result_internalfail = return-fail
+    }
+    # Step 2: Retrieve user's DN
+    passdb {
+      driver = ldap
+      args = /etc/dovecot/ldap-userdn.conf.ext
+      mechanisms = xoauth2 oauthbearer
+
+      # If DN was found, continue with authorization
+      result_success = continue-ok
+
+      result_failure = return-fail
+      result_internalfail = return-fail
+    }
+
+    # Password authentication via LDAP auth bind
+    passdb {
+      driver = ldap
+      args = /etc/dovecot/ldap-secondary.conf.ext
+      mechanisms = plain login
+
+      # If authentication successful, continue with authorization
+      result_success = continue-ok
+
+      result_failure = return-fail
+      result_internalfail = return-fail
+    }
+
+    # Authorization for secondary accounts via LDAP
+    passdb {
+      driver = ldap
+      args = /etc/dovecot/ldap-authz.conf.ext
+
+      # After authorization we're done
+      result_success = return-ok
+
+      result_failure = return-fail
+      result_internalfail = return-fail
+    }
+
+    # Fixme: Enabled but commented files don't exist on ox-gwb
+    plugin {
+      acl = vfile
+    #   acl_shared_dict = file:/data/usr/local/dovecot/db/shared-mailboxes.db
+      sieve_before = /etc/dovecot/global-spam-script.sieve
+    #   sieve_default = /data/usr/local/dovecot/sieve/default_scripts
+      # welcome_script = welcome %u
+    }
+
+    protocols = imap pop3 lmtp sieve
+    service auth {
+      inet_listener {
+        port = 3659
+      }
+      unix_listener auth-userdb {
+        group = vmail
+        mode = 0666
+        user = vmail
+      }
+    }
+    service doveadm {
+      inet_listener {
+        port = 9000
+      }
+      inet_listener http {
+        port = 8080
+      }
+    }
+    service stats {
+      inet_listener http {
+        port = 9900
+      }
+    }
+    service imap-login {
+      process_limit = 300
+      inet_listener imap {
+        port = 143
+      }
+    }
+    service lmtp {
+      inet_listener lmtp {
+        port = 24
+      }
+    }
+
+    # Fixme: script does not exist on ox-gwb
+    service welcome {
+      executable = script /etc/devecot/welcome.sh
+      unix_listener welcome {
+        user = vmail
+      }
+      user = vmail
+    }
+
+    service managesieve-login {
+      inet_listener sieve {
+        port = 4190
+      }
+    }
+
+    # SSL / TLS
+    ssl=yes
+    disable_plaintext_auth = no
+    ssl_cert=</etc/tls/tls.crt
+    ssl_key=</etc/tls/tls.key
+
+    # old userdb removed, new entries created by ansible (feat_dpx_functmailbox.yml)
+    userdb {
+      driver = prefetch
+    }
+
+    userdb {
+      args = /etc/dovecot/ldap-userdn.conf.ext
+      driver = ldap
+    }
+
+    protocol imap {
+      mail_plugins = $mail_plugins imap_quota imap_acl
+    }
+
+    local 10.0.0.0/8 {
+      doveadm_password = "84d23be6710d8a9a36945c40f789865c75a3c8fc"
+    }
+
+    protocol lmtp {
+      mail_plugins = $mail_plugins sieve
+    }
+
+    plugin {
+      zlib_save = gz
+      zlib_save_level = 6
+    }
+
+    # heinlein - replication
+    #replication_full_sync_interval = 3 days
+    #replication_max_conns = 10
+    #replication_dsync_parameters = -d -n INBOX -l 30 -U
+
+    doveadm_port = 24245
+
+    #plugin {
+    #	mail_replica = tcp:10.0.204.8:24245
+    #}
+
+    service aggregator {
+      fifo_listener replication-notify-fifo {
+        user = vmail
+      }
+      unix_listener replication-notify {
+        user = vmail
+      }
+    }
+
+    #service replicator {
+    # process_min_avail = 1
+    # unix_listener replicator-doveadm {
+    #  mode = 0600
+    #  user = vmail
+    # }
+    #}
+
+    # FIXME - Variable, Firewall-Freischaltung, Port eigentlich fuer Prometheus, DANGER WILL ROBINSON
+    service doveadm {
+      inet_listener {
+      port = 9200
+      }
+    }
+
+    # Replication:
+    #service doveadm {
+    #        executable = /usr/bin/ionice -c idle /usr/bin/nice -n 10 /usr/libexec/dovecot/doveadm-server
+    #}
+
+    # heinlein - Systuning Start
+    shutdown_clients = no
+    # Fixme: use stdout in container
+    #rawlog_dir = %h/rawlog
+
+    ## PUSH to OX
+    # Store METADATA information within user's Maildir directory
+    #mail_attribute_dict = file:%h/mail/dovecot-attributes
+    #
+    #remote 10.0.0.0/8  {
+    #  protocol imap {
+    #    imap_metadata = yes
+    #  }
+    #}
+    #
+
+    # Quota Start
+
+    mailbox_list_index = yes
+
+    plugin {
+      quota = count:User quota
+
+      quota_rule = *:storage=1000M
+      quota_rule2 = Trash:storage=+200M
+
+      quota_grace = 100M
+      quota_status_nouser = DUNNO
+      quota_status_overquota = "552 5.2.2 Mailbox is full"
+
+      quota_full_tempfail = yes
+
+      quota_vsizes = yes
+
+      quota_warning  = storage=80%% quota-warning 80 %u
+      quota_warning2 = storage=95%% quota-warning 95 %u
+
+      #quota_over_flag_value = FALSE
+      #quota_over_script = quota-warning mismatch %u
+    }
+
+    service quota-warning {
+      executable = script /etc/dovecot/quota-warning.sh
+      user = vmail
+      unix_listener quota-warning {
+        user = vmail
+      }
+    }
+    # Quota Ende
+    # Wird fuer Quota gebraucht, damit der vmail User auf den stats-writer socket schreiben darf
+    # FIXME? - https://doc.dovecot.org/configuration_manual/stats/
+
+    service stats {
+      unix_listener stats-reader {
+        user = vmail
+        group = vmail
+        mode = 0660
+      }
+
+      unix_listener stats-writer {
+        user = vmail
+        group = vmail
+        mode = 0660
+      }
+    }
+
+    ### Begin FTS
+
+    plugin {
+      fts = dovecot
+
+      # Fall back to built in search.
+      #fts_enforced = no
+
+      # Local filesystem example:
+      # Use local filesystem storing FTS indexes
+      fts_dovecot_fs = posix:prefix=%h/fts/
+
+      # Detected languages. Languages that are not recognized, default to the
+      # first enumerated language, i.e. en.
+      fts_languages = de en fr # German, English and French.
+
+      # This chain of filters first normalizes and lower cases the text, then
+      #  stems the words and lastly removes stopwords.
+      fts_filters = normalizer-icu snowball stopwords
+
+      # This chain of filters will first lowercase all text, stem the words,
+      # remove possessive suffixes, and remove stopwords.
+      fts_filters_en = lowercase snowball english-possessive stopwords
+
+      # These tokenizers will preserve addresses as complete search tokens, but
+      # otherwise tokenize the text into "words".
+      fts_tokenizers = generic email-address
+      fts_tokenizer_generic = algorithm=simple
+
+      # Proactively index mail as it is delivered or appended, not only when
+      # searching.
+      fts_autoindex=yes
+
+      # How many \Recent flagged mails a mailbox is allowed to have, before it
+      # is not autoindexed.
+      # This setting can be used to exclude mailboxes that are seldom accessed
+      # from automatic indexing.
+      fts_autoindex_max_recent_msgs=499
+
+      # Exclude mailboxes we do not wish to index automatically.
+      # These will be indexed on demand, if they are used in a search.
+      fts_autoindex_exclude = \Junk
+      fts_autoindex_exclude2 = \Trash
+      }
+
+    # Ende FTS
+
+    ## Begin Virtual Search Folder
+
+    namespace Virtual {
+      prefix = Virtual/
+      separator = /
+      hidden = yes
+      list = no
+      subscriptions = no
+      location = virtual:/etc/dovecot/virtual:INDEX=%h/virtual
+    }
+
+    protocol imap {
+      imap_capability = +XDOVECOT
+    }
+
+    namespace Virtual {
+     mailbox All {
+       special_use = \All
+     }
+    }
+
+    ## Ende Virtual Search Folder
+
+    # Examples: https://doc.dovecot.org/configuration_manual/stats/openmetrics/
+    #metric client_connections {
+
+    #  filter = event=client_connection_finished
+    #}
+    #metric auth_success {
+    #  filter = (event=auth_request_finished AND success=yes)
+    #}
+
+    metric imap_command {
+      filter = event=imap_command_finished
+      group_by = cmd_name tagged_reply_state
+    }
+
+    metric smtp_command {
+      filter = event=smtp_server_command_finished
+      group_by = cmd_name status_code duration:exponential:1:5:10
+    }
+
+    metric mail_delivery {
+      filter = event=mail_delivery_finished
+      group_by = duration:exponential:1:5:10
+    }
+    ##### Ende dovecot.conf #####
+
+    log_path=/dev/stdout
+    info_log_path=/dev/stdout
+    debug_log_path=/dev/stdout
+    auth_debug=yes
+    auth_debug_passwords=yes
+    verbose_ssl=yes
+
+
+  global-spam-script.sieve: |2
+
+
+    require "fileinto";
+    if header :contains "X-Spam-Flag" "YES" {
+      fileinto "Spam";
+    }
+
+
+  ldap-authz.conf.ext: |2
+
+
+    hosts = ums-ldap-server:389
+    dn = uid=ldapsearch_dovecot,cn=users,dc=swp-ldap,dc=internal
+    dnpass = '27011e324294d8c9ebf6d7a0d4e8f201e6c59ecd'
+    ldap_version = 3
+    base = dc=swp-ldap,dc=internal
+    deref = never
+    scope = subtree
+
+    pass_attrs = =user=%L{ldap:entryUUID}, \
+      =userdb_home=/srv/mail/%0.2L{ldap:entryUUID}/%L{ldap:entryUUID}/
+    pass_filter = (& \
+      (univentionObjectType=oxmail/functional_account) \
+      (|(mailPrimaryAddress=%Ld)(entryUUID=%0.36Lu)) \
+      (uniqueMember=%{passdb:userDN}) \
+    )
+
+
+  ldap-primary.conf.ext: |2
+
+
+    hosts = ums-ldap-server:389
+    dn = uid=ldapsearch_dovecot,cn=users,dc=swp-ldap,dc=internal
+    dnpass = '27011e324294d8c9ebf6d7a0d4e8f201e6c59ecd'
+    ldap_version = 3
+    base = dc=swp-ldap,dc=internal
+    deref = never
+    scope = subtree
+
+    auth_bind = yes
+    pass_attrs = =user=%L{ldap:entryUUID}, \
+      =userdb_home=/srv/mail/%0.2L{ldap:entryUUID}/%L{ldap:entryUUID}/
+    pass_filter = (&(univentionObjectType=users/user)(uid=%Ln))
+
+
+  ldap-secondary.conf.ext: |2
+
+
+    hosts = ums-ldap-server:389
+    dn = uid=ldapsearch_dovecot,cn=users,dc=swp-ldap,dc=internal
+    dnpass = '27011e324294d8c9ebf6d7a0d4e8f201e6c59ecd'
+    ldap_version = 3
+    base = dc=swp-ldap,dc=internal
+    deref = never
+    scope = subtree
+
+    auth_bind = yes
+    pass_attrs = entryDN=userDN
+    pass_filter = (&(univentionObjectType=users/user)(uid=%Ln))
+
+
+  ldap-userdn.conf.ext: |2
+
+
+    hosts = ums-ldap-server:389
+    dn = uid=ldapsearch_dovecot,cn=users,dc=swp-ldap,dc=internal
+    dnpass = '27011e324294d8c9ebf6d7a0d4e8f201e6c59ecd'
+    ldap_version = 3
+    base = dc=swp-ldap,dc=internal
+    deref = never
+    scope = subtree
+
+    # Authentication with OAuth2 - Step 2
+    pass_attrs = entryDN=userDN
+    pass_filter = (&(univentionObjectType=users/user)(entryUUID=%{passdb:userUUID}))
+
+    # Authorization
+    user_attrs = =user=%L{ldap:entryUUID}, \
+      =home=/srv/mail/%0.2L{ldap:entryUUID}/%L{ldap:entryUUID}/
+    user_filter = (& \
+      (|(univentionObjectType=oxmail/functional_account) \
+        (univentionObjectType=users/user)) \
+      (mailPrimaryAddress=%Lu) \
+    )
+
+
+  migration-masterpsw.conf.ext: |2
+
+
+    hosts = ums-ldap-server:389
+    dn = uid=ldapsearch_dovecot,cn=users,dc=swp-ldap,dc=internal
+    dnpass = '27011e324294d8c9ebf6d7a0d4e8f201e6c59ecd'
+    ldap_version = 3
+    base = dc=swp-ldap,dc=internal
+    deref = never
+    scope = subtree
+
+    auth_bind = no
+    pass_attrs = =user=%L{ldap:entryUUID}, \
+      =password={plain}363f07b04db03ce6dd867da311c720f18d44ca95, \
+      =userdb_home=/srv/mail/%0.2L{ldap:entryUUID}/%L{ldap:entryUUID}/
+    pass_filter = (&(univentionObjectType=users/user)(uid=%Ln))
+
+
+  oauth2-primary.conf.ext: |2
+
+
+    introspection_mode = post
+    introspection_url = "https://opendesk-dovecot:ca34bbddc524ad97fca62ecce5307e646aebc6b7@id.opendesk.apps.digilab.network/realms/opendesk/protocol/openid-connect/token/introspect"
+    tls_ca_cert_file = /etc/ssl/certs/ca-certificates.crt
+    active_attribute = active
+    active_value = true
+    debug = yes
+    client_id = opendesk-dovecot
+    client_secret = 'ca34bbddc524ad97fca62ecce5307e646aebc6b7'
+
+    username_attribute = opendesk_username
+    username_format = %Ln
+
+    pass_attrs = user=%{oauth2:opendesk_useruuid} \
+      userdb_home=/srv/mail/%0.2L{oauth2:opendesk_useruuid}/%L{oauth2:opendesk_useruuid}/
+
+
+  oauth2-secondary.conf.ext: |2
+
+
+    introspection_mode = post
+    introspection_url = "https://opendesk-dovecot:ca34bbddc524ad97fca62ecce5307e646aebc6b7@id.opendesk.apps.digilab.network/realms/opendesk/protocol/openid-connect/token/introspect"
+    tls_ca_cert_file = /etc/ssl/certs/ca-certificates.crt
+    active_attribute = active
+    active_value = true
+    debug = yes
+    client_id = opendesk-dovecot
+    client_secret = 'ca34bbddc524ad97fca62ecce5307e646aebc6b7'
+
+    username_attribute = azp
+    username_format = oxoidc
+
+    pass_attrs = userUUID=%{oauth2:opendesk_useruuid}
+
+
+  quota-warning.sh: |2
+
+
+    #!/bin/sh
+
+    PERCENT=\$1
+    USER=\$2
+    cat << EOF | /usr/lib/dovecot/dovecot-lda -d \$USER -o "plugin/quota=count:User quota:noenforcing"
+    From: postmaster@opendesk.apps.digilab.network
+    To: \$USER
+    Date: \$(date +"%a, %d %b %Y %H:%M:%S %z")
+    Subject: Quota Warnung zu Ihrem E-Mail Konto
+    Content-Type: text/plain; charset="utf-8"
+    Content-Transfer-Encoding: 8bit
+
+    Guten Tag,
+
+    Ihr Postkorb \$USER ist aktuell zu \$PERCENT% gefüllt.
+
+    Bitte archivieren oder löschen Sie alte, nicht mehr benötige Nachrichten. Andernfalls
+    könnte es vorkommen, dass Sie keine neuen Nachrichten mehr empfangen können.
+
+    Mit freundlichem Gruß,
+     Ihr Postmaster
+    EOF
+
+
+  welcome.sh: |2
+
+
+    #!/bin/sh
+    USER=$1
+    cat << EOF | /usr/lib/dovecot/dovecot-lda -d $USER
+    From: postmaster@opendesk.apps.digilab.network
+    Subject: Willkommen
+
+    Message.
+
+    EOF
+
+
+---
+# Source: dovecot/templates/persistentvolumeclaim.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dovecot
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: managed
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Source: dovecot/templates/service-external.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: dovecot-external
+  labels:
+    app.kubernetes.io/name: dovecot
+    helm.sh/chart: dovecot-1.4.0
+    app.kubernetes.io/instance: dovecot
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: dovecot
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 993
+    targetPort: 993
+    protocol: TCP
+    name: imaps
+  - port: 995
+    targetPort: 995
+    protocol: TCP
+    name: pop3s
+  selector:
+    app.kubernetes.io/name: dovecot
+    app.kubernetes.io/instance: dovecot
+---
+# Source: dovecot/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: dovecot
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: dovecot
+    helm.sh/chart: dovecot-1.4.0
+    app.kubernetes.io/instance: dovecot
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: dovecot
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3659
+    targetPort: 3659
+    protocol: TCP
+    name: auth
+  - port: 9000
+    targetPort: 9000
+    protocol: TCP
+    name: doveadm
+  - port: 9200
+    targetPort: 9200
+    protocol: TCP
+    name: doveadm2
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: doveadmhttp
+  - port: 143
+    targetPort: 143
+    protocol: TCP
+    name: imap
+  - port: 993
+    targetPort: 993
+    protocol: TCP
+    name: imaps
+  - port: 24
+    targetPort: 24
+    protocol: TCP
+    name: lmpt
+  - port: 4190
+    targetPort: 4190
+    protocol: TCP
+    name: managasieve
+  - port: 9900
+    targetPort: 9900
+    protocol: TCP
+    name: openmetrics
+  - port: 110
+    targetPort: 110
+    protocol: TCP
+    name: pop3
+  - port: 995
+    targetPort: 995
+    protocol: TCP
+    name: pop3s
+  selector:
+    app.kubernetes.io/name: dovecot
+    app.kubernetes.io/instance: dovecot
+---
+# Source: dovecot/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dovecot
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: dovecot
+    helm.sh/chart: dovecot-1.4.0
+    app.kubernetes.io/instance: dovecot
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dovecot
+      app.kubernetes.io/instance: dovecot
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: cf8a5ea7d0510128acaf836c074d17f70666c9ae1e2f841c31f7cfc9c5533b4d
+      labels:
+        app.kubernetes.io/name: dovecot
+        helm.sh/chart: dovecot-1.4.0
+        app.kubernetes.io/instance: dovecot
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      securityContext:
+        fsGroup: 1000
+      serviceAccountName: dovecot
+      volumes:
+      - name: config-volume
+        configMap:
+          name: dovecot
+      - name: config-virtual-volume
+        configMap:
+          name: dovecot-virtual
+      - name: tls-volume
+        secret:
+          secretName: opendesk-certificates-tls
+      - name: srv-mail
+        persistentVolumeClaim:
+          claimName: dovecot
+      - name: run-dovecot
+        emptyDir:
+          sizeLimit: 10Mi
+      - name: var-lib-dovecot
+        emptyDir:
+          sizeLimit: 100Mi
+      containers:
+      - name: dovecot
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - CHOWN
+            - DAC_OVERRIDE
+            - KILL
+            - NET_BIND_SERVICE
+            - SETGID
+            - SETUID
+            - SYS_CHROOT
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images/dovecot-public-sector:2.3.21@sha256:c76965a84d1ca527f523404eb027119f6736b199c094e4671037cb345ecad3dc
+        imagePullPolicy: IfNotPresent
+        env:
+        ports:
+        - name: auth
+          containerPort: 3659
+          protocol:
+        - name: doveadm
+          containerPort: 9000
+          protocol:
+        - name: doveadm2
+          containerPort: 9200
+          protocol:
+        - name: doveadmhttp
+          containerPort: 8080
+          protocol:
+        - name: imap
+          containerPort: 143
+          protocol:
+        - name: imaps
+          containerPort: 993
+          protocol:
+        - name: lmpt
+          containerPort: 24
+          protocol:
+        - name: managasieve
+          containerPort: 4190
+          protocol:
+        - name: openmetrics
+          containerPort: 9900
+          protocol:
+        - name: pop3
+          containerPort: 110
+          protocol:
+        - name: pop3s
+          containerPort: 995
+          protocol:
+        livenessProbe:
+          tcpSocket:
+            port: imap
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 10
+          successThreshold: 1
+        readinessProbe:
+          tcpSocket:
+            port: imap
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 10
+          successThreshold: 1
+        resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
+          requests:
+            cpu: 0.1
+            memory: 32Mi
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/dovecot
+        - name: config-virtual-volume
+          mountPath: /etc/dovecot/virtual/All
+        - name: tls-volume
+          mountPath: /etc/tls
+        - name: srv-mail
+          mountPath: /srv/mail
+        - name: run-dovecot
+          mountPath: /run/dovecot
+        - name: var-lib-dovecot
+          mountPath: /var/lib/dovecot
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: open-xchange-core-mw
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-5.9.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-mw
+    version: 8.28.5
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-documentconverter/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-documentconverter-dc-configmap
+data:
+  configdb.properties: |
+    readDriverClass=com.mysql.cj.jdbc.Driver
+    readUrl=jdbc:mysql://mariadb:3306/configdb
+    readProperty.1=user=root
+    readProperty.2=password=6c3e5177d1196ce1c7e94a3ed70d4536916bc46b
+
+    writeDriverClass=com.mysql.cj.jdbc.Driver
+    writeUrl=jdbc:mysql://mariadb:3306/configdb
+    writeProperty.1=user=root
+    writeProperty.2=password=6c3e5177d1196ce1c7e94a3ed70d4536916bc46b
+
+    cleanerInterval=10000
+    maxIdle=-1
+    maxIdleTime=60000
+    maxActive=100
+    maxWait=10000
+    maxLifeTime=600000
+    exhaustedAction=BLOCK
+    testOnActivate=false
+    testOnDeactivate=true
+    testOnIdle=false
+    testThreads=false
+    com.openexchange.database.replicationMonitor=true
+    com.openexchange.database.checkWriteCons=false
+  logback.xml: |
+    <?xml version="1.0" encoding="UTF-8" ?>
+    <configuration debug="true">
+
+      <property scope="context" name="com.openexchange.logging.filter.loggerWhitelist" value="com.openexchange" />
+      <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator"/>
+      <define name="syslogPatternLayoutActivator" class="com.openexchange.logback.extensions.SyslogPatternLayoutActivator" />
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                              JSON Appender                              -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="com.openexchange.logback.json.extensions.ExtendedJsonLayout">
+                <jsonFormatter class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter">
+                    <prettyPrint>false</prettyPrint>
+                </jsonFormatter>
+                <timestampFormat>yyyy-MM-dd'T'HH:mm:ss.SSSZ</timestampFormat>
+                <timestampFormatTimezoneId>Etc/UTC</timestampFormatTimezoneId>
+                <includeReadableTimestamp>false</includeReadableTimestamp>
+                <includeLogLevelName>false</includeLogLevelName>
+                <appendLineSeparator>true</appendLineSeparator>
+            </layout>
+        </encoder>
+      </appender>
+
+      <appender name="ASYNCJSON" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+        <appender-ref ref="JSON"/>
+      </appender>
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                            Logstash Appender                            -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                             Syslog Appender                             -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                              File Appender                              -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/open-xchange/documentconverter/documentconverter.log.0</file>
+        <rollingPolicy class="com.openexchange.logback.extensions.policies.FixedWindowRollingPolicy">
+          <fileNamePattern>/var/log/open-xchange/documentconverter/documentconverter.log.%i</fileNamePattern>
+          <minIndex>1</minIndex>
+          <maxIndex>5</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+          <maxFileSize>2MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder class="com.openexchange.logback.extensions.encoders.ExtendedPatternLayoutEncoder">
+          <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss,SSSZ"} %-5level [%thread] %class.%method\(%class{0}.java:%line\)%n%sanitisedMessage%n%lmdc%exception{full}</pattern>
+        </encoder>
+      </appender>
+
+      <appender name="ASYNCFILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+        <appender-ref ref="FILE"/>
+      </appender>
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                               Root Logger                               -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <root level="INFO">
+        <appender-ref ref="ASYNCJSON" />
+        <appender-ref ref="ASYNCFILE" />
+      </root>
+
+      <logger name="com.openexchange.login.internal.LoginPerformer" level="INFO"/>
+      <logger name="com.openexchange.sessiond.impl.SessionHandler" level="INFO"/>
+
+      <logger name="sun.rmi" level="INFO"/>
+      <logger name="org.apache" level="WARN"/>
+      <logger name="com.sun" level="INFO"/>
+      <logger name="javax.management" level="INFO"/>
+      <logger name="javax.jmdns" level="WARN"/>
+      <logger name="org.glassfish.grizzly" level="WARN"/>
+      <logger name="liquibase.ext.logging.slf4j.Slf4jLogger" level="WARN"/>
+
+      <logger name="org.jaudiotagger" level="ERROR"/>
+      <logger name="com.gargoylesoftware.htmlunit" level="WARN"/>
+
+      <logger name="org.docx4j" level="WARN"/>
+      <logger name="org.xlsx4j" level="WARN"/>
+      <logger name="org.pptx4j" level="WARN"/>
+
+      <logger name="com.openexchange.ajax.requesthandler.DispatcherServlet" level="INFO"/>
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                                 Logger                                  -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <logger name="org.apache.cxf" level="WARN"/>
+      <logger name="com.openexchange.soap.cxf.logger" level="WARN"/>
+      <logger name="com.openexchange.documentconverter" level="INFO"/>
+
+    </configuration>
+  dcconfig.properties: |
+    SERVER_NAME=oxserver
+
+    com.openexchange.cookie.hash.salt={{ COOKIE_HASH_SALT }}
+    com.openexchange.sessiond.encryptionKey={{ SHARE_CRYPT_KEY }}
+    com.openexchange.share.cryptKey={{ SESSIOND_ENCRYPTION_KEY }}
+
+    com.openexchange.rest.services.basic-auth.login={{ OX_BASIC_AUTH_LOGIN }}
+    com.openexchange.rest.services.basic-auth.password={{ OX_BASIC_AUTH_PASSWORD }}
+
+    com.openexchange.connector.networkListenerHost=0.0.0.0
+    com.openexchange.connector.networkListenerPort=8008
+    com.openexchange.connector.networkSslListenerPort=8011
+    com.openexchange.connector.livenessPort=8017
+    JMXPort=9998
+
+    com.openexchange.hazelcast.enabled=false
+
+    com.openexchange.redis.hosts=redis-master:6379
+    com.openexchange.redis.username=
+    com.openexchange.redis.password=9d50d5fc28caacbce89e81b9d88d78e23da19c08
+    com.openexchange.redis.mode=standalone
+    com.openexchange.redis.ssl=false
+
+    com.openexchange.documentconverter.cacheDir=/var/spool/open-xchange/documentconverter/cache
+    com.openexchange.documentconverter.scratchDir=/var/spool/open-xchange/documentconverter/scratch
+
+    com.openexchange.documentconverter.blacklistFile=/opt/open-xchange/etc/readerengine.blacklist
+    com.openexchange.documentconverter.whitelistFile=/opt/open-xchange/etc/readerengine.whitelist
+    com.openexchange.documentconverter.useCool=false
+    com.openexchange.documentconverter.coolUrl=http://open-xchange-collabora-online.tn-openbsw-opendesk.svc.cluster.local:9980
+
+    com.openexchange.documentconverter.jobProcessorCount=3
+    com.openexchange.documentconverter.jobExecutionTimeoutMilliseconds=60000
+    com.openexchange.documentconverter.jobQueueCountLimitHigh=40
+    com.openexchange.documentconverter.jobQueueCountLimitLow=30
+    com.openexchange.documentconverter.jobQueueTimeoutSeconds=300
+    com.openexchange.documentconverter.jobAsyncQueueCountLimitHigh=2048
+
+    com.openexchange.documentconverter.maxCacheEntries=4000000
+    com.openexchange.documentconverter.maxCacheSizeMB=-1
+    com.openexchange.documentconverter.cacheEntryTimeoutSeconds=2592000
+    com.openexchange.documentconverter.minFreeVolumeSizeMB=1024
+    com.openexchange.documentconverter.cacheCleanupPeriodSeconds=300
+
+    com.openexchange.documentconverter.probe.liveness.periodSeconds=10
+    com.openexchange.documentconverter.probe.readiness.periodSeconds=5
+    com.openexchange.documentconverter.probe.readiness.downAfterUsedServiceUnavailabilitySeconds=300
+    com.openexchange.documentconverter.probe.liveness.downAfterReadinessDownSeconds=15
+    com.openexchange.documentconverter.probe.readiness.upRecoveryPeriodSeconds=20
+  readerengine.blacklist: |
+    .*
+  readerengine.whitelist: |
+    file:///opt/readerengine/share/gallery/.*
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-imageconverter/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-imageconverter-ic-configmap
+data:
+  configdb.properties: |
+    readDriverClass=com.mysql.cj.jdbc.Driver
+    readUrl=jdbc:mysql://mariadb:3306/configdb
+    readProperty.1=user=root
+    readProperty.2=password=6c3e5177d1196ce1c7e94a3ed70d4536916bc46b
+
+    writeDriverClass=com.mysql.cj.jdbc.Driver
+    writeUrl=jdbc:mysql://mariadb:3306/configdb
+    writeProperty.1=user=root
+    writeProperty.2=password=6c3e5177d1196ce1c7e94a3ed70d4536916bc46b
+
+    cleanerInterval=10000
+    maxIdle=-1
+    maxIdleTime=60000
+    maxActive=100
+    maxWait=10000
+    maxLifeTime=600000
+    exhaustedAction=BLOCK
+    testOnActivate=false
+    testOnDeactivate=true
+    testOnIdle=false
+    testThreads=false
+    com.openexchange.database.replicationMonitor=true
+    com.openexchange.database.checkWriteCons=false
+  logback.xml: |
+    <?xml version="1.0" encoding="UTF-8" ?>
+    <configuration debug="true">
+
+      <property scope="context" name="com.openexchange.logging.filter.loggerWhitelist" value="com.openexchange" />
+      <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator"/>
+      <define name="syslogPatternLayoutActivator" class="com.openexchange.logback.extensions.SyslogPatternLayoutActivator" />
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                              JSON Appender                              -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="com.openexchange.logback.json.extensions.ExtendedJsonLayout">
+                <jsonFormatter class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter">
+                    <prettyPrint>false</prettyPrint>
+                </jsonFormatter>
+                <timestampFormat>yyyy-MM-dd'T'HH:mm:ss.SSSZ</timestampFormat>
+                <timestampFormatTimezoneId>Etc/UTC</timestampFormatTimezoneId>
+                <includeReadableTimestamp>false</includeReadableTimestamp>
+                <includeLogLevelName>false</includeLogLevelName>
+                <appendLineSeparator>true</appendLineSeparator>
+            </layout>
+        </encoder>
+      </appender>
+
+      <appender name="ASYNCJSON" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+        <appender-ref ref="JSON"/>
+      </appender>
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                            Logstash Appender                            -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                             Syslog Appender                             -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                              File Appender                              -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/open-xchange/imageconverter/imageconverter.log.0</file>
+        <rollingPolicy class="com.openexchange.logback.extensions.policies.FixedWindowRollingPolicy">
+          <fileNamePattern>/var/log/open-xchange/imageconverter/imageconverter.log.%i</fileNamePattern>
+          <minIndex>1</minIndex>
+          <maxIndex>5</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+          <maxFileSize>2MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder class="com.openexchange.logback.extensions.encoders.ExtendedPatternLayoutEncoder">
+          <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss,SSSZ"} %-5level [%thread] %class.%method\(%class{0}.java:%line\)%n%sanitisedMessage%n%lmdc%exception{full}</pattern>
+        </encoder>
+      </appender>
+
+      <appender name="ASYNCFILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+        <appender-ref ref="FILE"/>
+      </appender>
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                               Root Logger                               -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <root level="INFO">
+        <appender-ref ref="ASYNCJSON" />
+        <appender-ref ref="ASYNCFILE" />
+      </root>
+
+      <logger name="com.openexchange.login.internal.LoginPerformer" level="INFO"/>
+      <logger name="com.openexchange.sessiond.impl.SessionHandler" level="INFO"/>
+
+      <logger name="sun.rmi" level="INFO"/>
+      <logger name="org.apache" level="WARN"/>
+      <logger name="com.sun" level="INFO"/>
+      <logger name="javax.management" level="INFO"/>
+      <logger name="javax.jmdns" level="WARN"/>
+      <logger name="org.glassfish.grizzly" level="WARN"/>
+      <logger name="liquibase.ext.logging.slf4j.Slf4jLogger" level="WARN"/>
+
+      <logger name="org.jaudiotagger" level="ERROR"/>
+      <logger name="com.gargoylesoftware.htmlunit" level="WARN"/>
+
+      <logger name="org.docx4j" level="WARN"/>
+      <logger name="org.xlsx4j" level="WARN"/>
+      <logger name="org.pptx4j" level="WARN"/>
+
+      <logger name="com.openexchange.ajax.requesthandler.DispatcherServlet" level="INFO"/>
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                                 Logger                                  -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <logger name="org.apache.cxf" level="WARN"/>
+      <logger name="com.openexchange.soap.cxf.logger" level="WARN"/>
+      <logger name="com.openexchange.imageconverter" level="INFO"/>
+      <logger name="com.openexchange.objectcache" level="INFO"/>
+
+    </configuration>
+  icconfig.properties: |
+    SERVER_NAME=oxserver
+
+    com.openexchange.cookie.hash.salt={{ COOKIE_HASH_SALT }}
+    com.openexchange.sessiond.encryptionKey={{ SESSIOND_ENCRYPTION_KEY }}
+    com.openexchange.share.cryptKey={{ SHARE_CRYPT_KEY }}
+
+    com.openexchange.rest.services.basic-auth.login={{ OX_BASIC_AUTH_LOGIN }}
+    com.openexchange.rest.services.basic-auth.password={{ OX_BASIC_AUTH_PASSWORD }}
+
+    com.openexchange.connector.networkListenerHost=0.0.0.0
+    com.openexchange.connector.networkListenerPort=8005
+    com.openexchange.connector.networkSslListenerPort=8014
+    com.openexchange.connector.livenessPort=8018
+    com.openexchange.rmi.port=1095
+    JMXPort=9995
+
+    com.openexchange.hazelcast.enabled=false
+
+    com.openexchange.redis.hosts=redis-master:6379
+    com.openexchange.redis.username=
+    com.openexchange.redis.password=9d50d5fc28caacbce89e81b9d88d78e23da19c08
+    com.openexchange.redis.mode=standalone
+    com.openexchange.redis.ssl=false
+
+    com.openexchange.objectcache.database.host=mariadb
+    com.openexchange.objectcache.database.port=3306
+    com.openexchange.objectcache.database.schema=configdb
+    com.openexchange.objectcache.database.user=root
+    com.openexchange.objectcache.database.password=6c3e5177d1196ce1c7e94a3ed70d4536916bc46b
+
+    com.openexchange.objectcache.objectstore.s3.-1.endpoint=.
+    com.openexchange.objectcache.objectstore.s3.-1.region=eu-central-1
+    com.openexchange.objectcache.objectstore.s3.-1.bucketName=objectcache
+    com.openexchange.objectcache.objectstore.s3.-1.accessKey=.
+    com.openexchange.objectcache.objectstore.s3.-1.secretKey=.
+
+    com.openexchange.objectcache.objectStoreIds={{ OXENV_OBJECTSTOREID }}, s3:-1,
+
+    com.openexchange.imageconverter.convertTimeoutMillis=20000
+    com.openexchange.imageconverter.queueLength=512
+    com.openexchange.imageconverter.asyncQueueLength=486
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
+# as-config-configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-mw-as-config-configmap
+data:
+  as-config.yml: |
+    default:
+      host: all
+      oidcLogin: true
+      oidcPath: /oidc
+      pageHeaderPrefix: as8.souvap App Suite
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
+# contextsets-configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-mw-contextsets-configmap
+data:
+  context-sets-overrides.yaml: |
+    {}
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
+# etc-files-configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-mw-etc-files-configmap
+data: {}
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
+# hook-before-apply-configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-mw-hook-before-apply-configmap
+data: {}
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
+# hook-before-appsuite-start-configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-mw-hook-before-appsuite-start-configmap
+data:
+  create-guard-dir.sh: |
+    mkdir -p /opt/open-xchange/guard-files
+    chown open-xchange:open-xchange /opt/open-xchange/guard-files
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
+# hook-start-configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-mw-hook-start-configmap
+data: {}
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
+# meta-configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-mw-meta-configmap
+data:
+  meta-overrides.yaml: |
+    {}
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
+# properties-configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-mw-default-properties-configmap
+data:
+  998_properties.yaml: |
+    anywhere:
+      ENABLE_INTERNAL_USER_EDIT: "false"
+      com.openexchange.IPCheck: "false"
+      com.openexchange.UIWebPath: /appsuite/
+      com.openexchange.admin.bypassAccessCombinationChecks: "true"
+      com.openexchange.authentication.oauth.clientId: opendesk-oxappsuite
+      com.openexchange.authentication.oauth.clientSecret: adaccb19f9bde8c0a161b522e3a22c0f8788f7ce
+      com.openexchange.authentication.oauth.tokenEndpoint: https://id.opendesk.apps.digilab.network/realms/opendesk/protocol/openid-connect/token
+      com.openexchange.capability.client-onboarding: "true"
+      com.openexchange.capability.document_preview: "true"
+      com.openexchange.capability.dynamic-theme: "true"
+      com.openexchange.capability.filestorage_nextcloud: "true"
+      com.openexchange.capability.filestorage_nextcloud_oauth: "true"
+      com.openexchange.capability.guard: "true"
+      com.openexchange.capability.guard-mail: "true"
+      com.openexchange.capability.invite_guests: "false"
+      com.openexchange.capability.mail_export_pdf: "true"
+      com.openexchange.capability.public-sector: "true"
+      com.openexchange.capability.public-sector-element: "true"
+      com.openexchange.capability.public-sector-navigation: "true"
+      com.openexchange.capability.share_links: "false"
+      com.openexchange.capability.smime: "true"
+      com.openexchange.conference.element.enabled: "true"
+      com.openexchange.conference.element.matrixLoginUrl: http://opendesk-synapse-web:8008/_matrix/client/v3/login
+      com.openexchange.conference.element.matrixUuidClaimName: opendesk_useruuid
+      com.openexchange.conference.element.meetingHostUrl: http://matrix-neodatefix-bot
+      com.openexchange.connector.networkListenerHost: '*'
+      com.openexchange.contacts.ldap.accounts: opendesk,other,functional
+      com.openexchange.cookie.hash: remember
+      com.openexchange.file.storage.nextcloud.oauth.url: http://opendesk-nextcloud-aio/
+      com.openexchange.file.storage.nextcloud.oauth.webdav.username.strategy: user
+      com.openexchange.folderstorage.database.preferDisplayName: "false"
+      com.openexchange.gdpr.dataexport.active: "false"
+      com.openexchange.gdpr.dataexport.enabled: "false"
+      com.openexchange.guard.guestSMTPServer: postfix
+      com.openexchange.guard.storage.file.fileStorageType: file
+      com.openexchange.guard.storage.file.uploadDirectory: /opt/open-xchange/guard-files/
+      com.openexchange.imap.attachmentMarker.enabled: "true"
+      com.openexchange.jolokia.start: "true"
+      com.openexchange.mail.authType: xoauth2
+      com.openexchange.mail.exportpdf.collabora.enabled: "true"
+      com.openexchange.mail.exportpdf.collabora.url: http://collabora:9980
+      com.openexchange.mail.exportpdf.gotenberg.enabled: "true"
+      com.openexchange.mail.exportpdf.gotenberg.url: http://open-xchange-gotenberg:3000
+      com.openexchange.mail.exportpdf.pdfa.collabora.enabled: "true"
+      com.openexchange.mail.filter.credentialSource: mail
+      com.openexchange.mail.filter.loginType: global
+      com.openexchange.mail.filter.preferredSaslMech: XOAUTH2
+      com.openexchange.mail.filter.server: dovecot
+      com.openexchange.mail.loginSource: mail
+      com.openexchange.mail.mailServer: dovecot
+      com.openexchange.mail.mailServerSource: global
+      com.openexchange.mail.secondary.authType: XOAUTH2
+      com.openexchange.mail.transport.authType: xoauth2
+      com.openexchange.mail.transport.secondary.authType: xoauth2
+      com.openexchange.mail.transportServer: postfix
+      com.openexchange.mail.transportServerSource: global
+      com.openexchange.nextcloud.filepicker.includeAccessToken: "false"
+      com.openexchange.oauth.provider.allowedIssuer: https://id.opendesk.apps.digilab.network/realms/opendesk
+      com.openexchange.oauth.provider.contextLookupClaim: context
+      com.openexchange.oauth.provider.contextLookupNamePart: full
+      com.openexchange.oauth.provider.enabled: "true"
+      com.openexchange.oauth.provider.jwt.jwksUri: https://id.opendesk.apps.digilab.network/realms/opendesk/protocol/openid-connect/certs
+      com.openexchange.oauth.provider.mode: expect_jwt
+      com.openexchange.oauth.provider.userLookupClaim: opendesk_username
+      com.openexchange.oauth.provider.userLookupNamePart: full
+      com.openexchange.oidc.autologinCookieMode: ox_direct
+      com.openexchange.oidc.backchannelLogoutEnabled: "true"
+      com.openexchange.oidc.clientId: opendesk-oxappsuite
+      com.openexchange.oidc.clientSecret: adaccb19f9bde8c0a161b522e3a22c0f8788f7ce
+      com.openexchange.oidc.contextLookupClaim: context
+      com.openexchange.oidc.contextLookupNamePart: full
+      com.openexchange.oidc.enabled: "true"
+      com.openexchange.oidc.opAuthorizationEndpoint: https://id.opendesk.apps.digilab.network/realms/opendesk/protocol/openid-connect/auth
+      com.openexchange.oidc.opIssuer: https://id.opendesk.apps.digilab.network/realms/opendesk
+      com.openexchange.oidc.opJwkSetEndpoint: https://id.opendesk.apps.digilab.network/realms/opendesk/protocol/openid-connect/certs
+      com.openexchange.oidc.opLogoutEndpoint: https://id.opendesk.apps.digilab.network/realms/opendesk/protocol/openid-connect/logout
+      com.openexchange.oidc.opTokenEndpoint: https://id.opendesk.apps.digilab.network/realms/opendesk/protocol/openid-connect/token
+      com.openexchange.oidc.rpRedirectURIAuth: https://webmail.opendesk.apps.digilab.network/appsuite/api/oidc/auth
+      com.openexchange.oidc.rpRedirectURILogout: https://portal.opendesk.apps.digilab.network
+      com.openexchange.oidc.rpRedirectURIPostSSOLogout: https://webmail.opendesk.apps.digilab.network/appsuite/api/oidc/logout
+      com.openexchange.oidc.ssoLogout: "true"
+      com.openexchange.oidc.startDefaultBackend: "true"
+      com.openexchange.oidc.userLookupClaim: opendesk_username
+      com.openexchange.oidc.userLookupNamePart: full
+      com.openexchange.secret.secretSource: '"<user-id> + ''@'' + <context-id> + ''/'' +
+        <random>"'
+      com.openexchange.showAdmin: "false"
+      com.openexchange.smime.test: "true"
+      com.openexchange.user.enforceUniqueDisplayName: "false"
+      com.openexchange.usm.ox.url: http://localhost:8009/appsuite/api/
+    /opt/open-xchange/etc/AdminDaemon.properties:
+      MASTER_ACCOUNT_OVERRIDE: "true"
+    /opt/open-xchange/etc/AdminUser.properties:
+      USERNAME_CHANGEABLE: "true"
+    /opt/open-xchange/etc/antivirus.properties:
+      com.openexchange.antivirus.enabled: "true"
+      com.openexchange.antivirus.maxFileSize: "1024"
+      com.openexchange.antivirus.port: "1344"
+      com.openexchange.antivirus.server: clamav-simple
+    /opt/open-xchange/etc/ldapauth.properties:
+      bindDN: uid=ldapsearch_ox,cn=users,dc=swp-ldap,dc=internal
+      bindDNPassword: 7de9d8c513e6e1b619b910722f2b32b2e8836902
+      bindOnly: "false"
+      java.naming.provider.url: ldap://ums-ldap-server:389/dc=swp-ldap,dc=internal
+    /opt/open-xchange/etc/masterpassword-authentication.properties:
+      com.openexchange.authentication.masterpassword.password: 363f07b04db03ce6dd867da311c720f18d44ca95
+    /opt/open-xchange/etc/system.properties:
+      SERVER_NAME: oxserver
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
+# properties-lean-configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-mw-properties-lean-configmap
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-5.9.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-mw
+    version: 8.28.5
+data:
+  logback.xml: |
+    <?xml version="1.0" encoding="UTF-8" ?>
+    <configuration debug="true">
+
+      <property scope="context" name="com.openexchange.logging.filter.loggerWhitelist" value="com.openexchange" />
+      <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator"/>
+      <define name="syslogPatternLayoutActivator" class="com.openexchange.logback.extensions.SyslogPatternLayoutActivator" />
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                              JSON Appender                              -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="com.openexchange.logback.json.extensions.ExtendedJsonLayout">
+                <jsonFormatter class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter">
+                    <prettyPrint>false</prettyPrint>
+                </jsonFormatter>
+                <timestampFormat>yyyy-MM-dd'T'HH:mm:ss.SSSZ</timestampFormat>
+                <timestampFormatTimezoneId>Etc/UTC</timestampFormatTimezoneId>
+                <includeReadableTimestamp>false</includeReadableTimestamp>
+                <includeLogLevelName>false</includeLogLevelName>
+                <appendLineSeparator>true</appendLineSeparator>
+            </layout>
+        </encoder>
+      </appender>
+
+      <appender name="ASYNC_JSON" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+        <appender-ref ref="JSON"/>
+      </appender>
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                               Root Logger                               -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <root level="INFO">
+        <appender-ref ref="ASYNC_JSON" />
+      </root>
+
+      <logger name="com.openexchange.login.internal.LoginPerformer" level="INFO"/>
+      <logger name="com.openexchange.sessiond.impl.SessionHandler" level="INFO"/>
+
+      <logger name="sun.rmi" level="INFO"/>
+      <logger name="org.apache" level="WARN"/>
+      <logger name="com.sun" level="INFO"/>
+      <logger name="javax.management" level="INFO"/>
+      <logger name="javax.jmdns" level="WARN"/>
+      <logger name="org.glassfish.grizzly" level="WARN"/>
+      <logger name="liquibase.ext.logging.slf4j.Slf4jLogger" level="WARN"/>
+
+      <logger name="org.jaudiotagger" level="ERROR"/>
+      <logger name="com.openexchange.documentconverter.impl.Manager" level="WARN"/>
+      <logger name="com.gargoylesoftware.htmlunit" level="WARN"/>
+
+      <logger name="org.docx4j" level="WARN"/>
+      <logger name="org.xlsx4j" level="WARN"/>
+      <logger name="org.pptx4j" level="WARN"/>
+
+      <logger name="com.openexchange.ajax.requesthandler.DispatcherServlet" level="INFO"/>
+
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <!--                                 Logger                                  -->
+      <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+      <logger name="org.apache.cxf" level="WARN"/>
+      <logger name="com.openexchange.soap.cxf.logger" level="WARN"/>
+
+    </configuration>
+  languages.properties: |2-
+
+    io.ox/appsuite/languages/de_DE=Deutsch
+    io.ox/appsuite/languages/en_US=English (US)
+    io.ox/appsuite/languages/es_ES=Español
+    io.ox/appsuite/languages/fr_FR=Français
+    io.ox/appsuite/languages/it_IT=Italiano
+  properties-lean-config.properties: |-
+    ### This file was generated by Helm (core-mw)
+
+    # config/redis.properties
+    com.openexchange.redis.hosts=redis-master:6379
+    com.openexchange.redis.username=
+    com.openexchange.redis.password=9d50d5fc28caacbce89e81b9d88d78e23da19c08
+    com.openexchange.redis.mode=standalone
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
+# properties-overwrite-configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-mw-default-properties-overwrite-configmap
+data:
+  999_properties_overwrite.yaml: |
+    anywhere: {}
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
+# ui-settings-configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-mw-ui-settings-configmap
+data:
+  1999_ui-overrides.yaml: |
+    /opt/open-xchange/etc/settings/overrides.properties:
+      io.ox.nextcloud//server: https://ics.opendesk.apps.digilab.network/fs/
+      io.ox.public-sector//ics/url: https://ics.opendesk.apps.digilab.network/
+      io.ox.public-sector//navigation/oxtabname: tab_groupware
+      io.ox/core//apps/quickLaunchCount: "0"
+      io.ox/core//categories/predefined: |
+        [{ "name": "Predefined", "color": "orange", "icon": "bi/exclamation-circle.svg" }]
+      io.ox/core//coloredIcons: "false"
+      io.ox/core//features/categories: "true"
+      io.ox/core//features/enterprisePicker/enabled: "true"
+      io.ox/core//features/enterprisePicker/showLauncher: "false"
+      io.ox/core//features/enterprisePicker/showTopRightLauncher: "true"
+      io.ox/core//features/managedResources: "true"
+      io.ox/core//features/resourceCalendars: "true"
+      io.ox/core//features/templates: "true"
+      io.ox/dynamic-theme//folderBackground: '#ffffff'
+      io.ox/dynamic-theme//folderHover: '#f5f5f5'
+      io.ox/dynamic-theme//folderSelected: '#87fa94'
+      io.ox/dynamic-theme//listHover: '#f5f5f5'
+      io.ox/dynamic-theme//listSelected: '#87fa94'
+      io.ox/dynamic-theme//logoURL: https://portal.opendesk.apps.digilab.network/univention/portal/icons/logos/domain.svg
+      io.ox/dynamic-theme//logoWidth: "82"
+      io.ox/dynamic-theme//mainColor: '#6af56a'
+      io.ox/dynamic-theme//topbarBackground: '#ffffff'
+      io.ox/dynamic-theme//topbarColor: '#000000'
+      io.ox/dynamic-theme//topbarHover: rgba(0, 0, 0, 0.1)
+      io.ox/mail//contactCollectOnMailTransport: "true"
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
+# yaml-files-configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-mw-yaml-files-configmap
+data:
+  contacts-provider-ldap-mappings.yml: |2
+
+    functional:
+      displayname: oxPersonal,cn,mailPrimaryAddress
+      email1: mailPrimaryAddress
+      file_as: oxPersonal,cn,mailPrimaryAddress
+      objectid: mailPrimaryAddress
+    ucs:
+      anniversary: oxAnniversary
+      birthday: oxBirthday
+      branches: oxBranches
+      cellular_telephone1: mobile
+      city_business: l
+      city_home: oxCityHome
+      city_other: oxCityOther
+      commercial_register: oxCommercialRegister
+      company: oxCompany,o
+      contextid: oxContextIDNum
+      country_business: oxCountryBusiness,country
+      country_home: oxCountryHome
+      country_other: oxCountryOther
+      creationdate: createTimestamp
+      department: oxDepartment,department
+      displayname: oxDisplayName,displayName,name
+      distributionlist: memberUid
+      email1: mailPrimaryAddress
+      email2: oxEmail2
+      email3: oxEmail3
+      employeetype: employeeType
+      fax_business: oxFaxBusiness,facsimileTelehoneNumber
+      fax_home: oxFaxHome
+      fax_other: oxFaxOther
+      file_as: oxDisplayName,displayName,name
+      givenname: givenName
+      image1: jpegPhoto
+      instant_messenger1: oxInstantMessenger1
+      instant_messenger2: oxInstantMessenger2
+      internal_userid: uid;logininfo
+      lastmodified: modifyTimestamp
+      manager_name: secretary,oxManagerName
+      marital_status: oxMaritalStatus
+      markasdistributionlist: objectClass=posixGroup
+      middle_name: oxMiddleName,middleName
+      nickname: oxNickName
+      note: oxNote,description
+      number_of_children: oxNumOfChildren
+      number_of_employee: employeeNumber
+      number_of_images: jpegPhoto=*
+      objectid: uidNumber,gidNumber
+      position: oxPosition
+      postal_code_business: postalCode
+      postal_code_home: oxPostalCodeHome
+      postal_code_other: oxPostalCodeOther
+      profession: oxProfession
+      room_number: roomNumber
+      sales_volume: oxSalesVolume
+      spouse_name: oxSpouseName
+      state_business: oxStateBusiness,st
+      state_home: oxStateHome
+      state_other: oxStateOther
+      street_business: streetAddress
+      street_home: oxStreetHome
+      street_other: oxStreetOther
+      suffix: oxSuffix
+      surname: sn
+      tax_id: oxTaxId
+      telephone_assistant: oxTelephoneAssistant
+      telephone_business1: oxTelephoneBusiness1,telephoneNumber
+      telephone_business2: oxTelephoneBusiness2
+      telephone_car: oxTelephoneCar
+      telephone_company: oxTelephoneCompany
+      telephone_home1: oxTelephoneHome1,homePhone
+      telephone_home2: oxTelephoneHome2
+      telephone_ip: oxTelephoneIp
+      telephone_isdn: internationaliSDNNumber
+      telephone_other: oxTelephoneOther
+      telephone_pager: oxTelephonePager,pager
+      telephone_telex: oxTelephoneTelex,telexNumber
+      telephone_ttytdd: oxTelephoneTtydd
+      title: title
+      url: oxUrl,wWWHome
+      userfield01: oxUserfiels01
+      userfield02: oxUserfiels02
+      userfield03: oxUserfiels03
+      userfield04: oxUserfiels04
+      userfield05: oxUserfiels05
+      userfield06: oxUserfiels06
+      userfield07: oxUserfiels07
+      userfield08: oxUserfiels08
+      userfield09: oxUserfiels09
+      userfield10: oxUserfiels10
+      userfield11: oxUserfiels11
+      userfield12: oxUserfiels12
+      userfield13: oxUserfiels13
+      userfield14: oxUserfiels14
+      userfield15: oxUserfiels15
+      userfield16: oxUserfiels16
+      userfield17: oxUserfiels17
+      userfield18: oxUserfiels18
+      userfield19: oxUserfiels19
+      userfield20: oxUserfiels20
+
+  contacts-provider-ldap.yml: |2
+
+    functional:
+      folders:
+        mode: static
+        shownInTree:
+          defaultValue: true
+          protected: false
+        static:
+          commonContactFilter: (univentionObjectType=oxmail/functional_account)
+          folders:
+          - contactFilter: (univentionObjectType=oxmail/functional_account)
+            name: Funktionale Postfächer
+        usedForSync:
+          defaultValue: false
+          protected: true
+        usedInPicker:
+          defaultValue: true
+          protected: false
+      ldapClientId: contactsLdapClient
+      mappings: functional
+      name: Functional mailboxes
+    opendesk:
+      cache:
+        useCache: false
+      folders:
+        dynamicAttributes:
+          attributeName: o
+          contactFilterTemplate: (&(univentionObjectType=users/user)(isOxUser=OK)(o=[value]))
+          contactSearchScope: sub
+          refreshInterval: 5m
+          sortOrder: ascending
+        fixedAttributes:
+          attributeValues:
+          - Janitorial
+          - Product Development
+          - Management
+          - Human Resources
+          contactFilterTemplate: (&(|(objectClass=person)(objectClass=groupOfNames))(ou=[value]))
+          contactSearchScope: sub
+        mode: dynamicAttributes
+        shownInTree:
+          defaultValue: true
+          protected: false
+        static:
+          commonContactFilter: (|(objectClass=person)(objectClass=groupOfNames))
+          commonContactSearchScope: sub
+          folders:
+          - contactFilter: (&(|(objectClass=person)(objectClass=groupOfNames))(l=Cupertino))
+            contactSearchScope: sub
+            name: Cupertino
+          - contactFilter: (&(|(objectClass=person)(objectClass=groupOfNames))(l=San Mateo))
+            contactSearchScope: sub
+            name: San Mateo
+          - contactFilter: (&(|(objectClass=person)(objectClass=groupOfNames))(l=Redwood
+              Shores))
+            contactSearchScope: sub
+            name: Redwood Shores
+          - contactFilter: (&(|(objectClass=person)(objectClass=groupOfNames))(l=Armonk))
+            contactSearchScope: sub
+            name: Armonk
+        usedForSync:
+          defaultValue: false
+          protected: true
+        usedInPicker:
+          defaultValue: true
+          protected: false
+      isDeletedSupport: false
+      ldapClientId: contactsLdapClient
+      mappings: ucs
+      maxPageSize: 500
+      name: Example Address Lists
+    other:
+      folders:
+        mode: static
+        shownInTree:
+          defaultValue: true
+          protected: false
+        static:
+          commonContactFilter: (&(univentionObjectType=users/user)(isOxUser=OK)(!(o=*)))
+          folders:
+          - contactFilter: (&(univentionObjectType=users/user)(isOxUser=OK)(!(o=*)))
+            name: Ohne Organisation
+        usedForSync:
+          defaultValue: false
+          protected: true
+        usedInPicker:
+          defaultValue: true
+          protected: false
+      ldapClientId: contactsLdapClient
+      mappings: ucs
+      name: Other contacts
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ui-middleware-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-xchange-core-ui-middleware
+data:
+  config.yaml: |
+    baseUrls:
+      - http://open-xchange-core-ui/manifest.json
+      - http://open-xchange-core-guidedtours/manifest.json
+      - http://open-xchange-guard-ui/manifest.json
+      - http://open-xchange-nextcloud-integration-ui/manifest.json
+      - http://open-xchange-public-sector-ui/manifest.json
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: open-xchange-core-mw
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-5.9.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-mw
+    version: 8.28.5
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  - secrets
+  - services
+  verbs:
+  - get
+  - list
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: open-xchange-core-mw
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-5.9.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-mw
+    version: 8.28.5
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: open-xchange-core-mw
+subjects:
+- kind: ServiceAccount
+  name: open-xchange-core-mw
+  namespace: tn-openbsw-opendesk
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-documentconverter/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-documentconverter
+  labels:
+    app.kubernetes.io/name: core-documentconverter
+    helm.sh/chart: core-documentconverter-2.26.2
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-documentconverter
+    version: 8.28.0
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8008
+    targetPort: 8008
+    protocol: TCP
+    name: http
+  - port: 8011
+    targetPort: 8011
+    protocol: TCP
+    name: https
+  - port: 8017
+    targetPort: 8017
+    protocol: TCP
+    name: http-live
+  selector:
+    app.kubernetes.io/name: core-documentconverter
+    app.kubernetes.io/instance: open-xchange
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-guidedtours/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-guidedtours
+  labels:
+    app.kubernetes.io/name: core-guidedtours
+    helm.sh/chart: core-guidedtours-2.6.7
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-guidedtours
+    version: 8.6.6
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: core-guidedtours
+    app.kubernetes.io/instance: open-xchange
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-imageconverter/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-imageconverter
+  labels:
+    app.kubernetes.io/name: core-imageconverter
+    helm.sh/chart: core-imageconverter-2.27.4
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-imageconverter
+    version: 8.28.0
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8005
+    targetPort: 8005
+    protocol: TCP
+    name: http
+  - port: 8014
+    targetPort: 8014
+    protocol: TCP
+    name: https
+  - port: 8018
+    targetPort: 8018
+    protocol: TCP
+    name: http-live
+
+  selector:
+    app.kubernetes.io/name: core-imageconverter
+    app.kubernetes.io/instance: open-xchange
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/charts/gotenberg/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-gotenberg
+  labels:
+    helm.sh/chart: gotenberg-1.1.0
+    app.kubernetes.io/name: gotenberg
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/version: 8.1.0
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: gotenberg
+    app.kubernetes.io/instance: open-xchange
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-mw-hazelcast-headless
+  labels:
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-5.9.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-mw
+    version: 8.28.5
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: tcp-hazelcast
+    port: 5701
+  selector:
+    app.kubernetes.io/name: core-mw
+    app.kubernetes.io/instance: open-xchange
+    roles.middleware.open-xchange.com/hazelcast-data-holding: 'true'
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-mw-http-api
+  labels:
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-5.9.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-mw
+    version: 8.28.5
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: core-mw
+    app.kubernetes.io/instance: open-xchange
+    roles.middleware.open-xchange.com/http-api: 'true'
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-mw-sync
+  labels:
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-5.9.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-mw
+    version: 8.28.5
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: core-mw
+    app.kubernetes.io/instance: open-xchange
+    roles.middleware.open-xchange.com/sync: 'true'
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-mw-admin
+  labels:
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-5.9.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-mw
+    version: 8.28.5
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: core-mw
+    app.kubernetes.io/instance: open-xchange
+    roles.middleware.open-xchange.com/admin: 'true'
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-mw-businessmobility
+  labels:
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-5.9.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-mw
+    version: 8.28.5
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: core-mw
+    app.kubernetes.io/instance: open-xchange
+    roles.middleware.open-xchange.com/businessmobility: 'true'
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-mw-request-analyzer
+  labels:
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-5.9.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-mw
+    version: 8.28.5
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: core-mw
+    app.kubernetes.io/instance: open-xchange
+    roles.middleware.open-xchange.com/request-analyzer: 'true'
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-ui-middleware/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-ui-middleware
+  labels:
+    grafana.ox.io/service-monitor-implementation: default
+    app.kubernetes.io/name: core-ui-middleware
+    helm.sh/chart: core-ui-middleware-3.0.10
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-ui-middleware
+    version: 2.0.4
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: tcp-monitoring
+    protocol: TCP
+    name: monitoring
+  selector:
+    app.kubernetes.io/name: core-ui-middleware
+    app.kubernetes.io/instance: open-xchange
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-ui/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-ui
+  labels:
+    app.kubernetes.io/name: core-ui
+    helm.sh/chart: core-ui-2.30.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-ui
+    version: 8.28.0
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: core-ui
+    app.kubernetes.io/instance: open-xchange
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-user-guide/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-user-guide
+  labels:
+    app.kubernetes.io/name: core-user-guide
+    helm.sh/chart: core-user-guide-2.28.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-user-guide
+    version: 8.28.0
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: core-user-guide
+    app.kubernetes.io/instance: open-xchange
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/guard-ui/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-guard-ui
+  labels:
+    app.kubernetes.io/name: guard-ui
+    helm.sh/chart: guard-ui-2.5.2
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: guard-ui
+    version: 8.28.0
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: guard-ui
+    app.kubernetes.io/instance: open-xchange
+---
+# Source: appsuite-public-sector/charts/nextcloud-integration-ui/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-nextcloud-integration-ui
+  labels:
+    app.kubernetes.io/name: nextcloud-integration-ui
+    helm.sh/chart: nextcloud-integration-ui-1.2.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: nextcloud-integration-ui
+    version: 1.2.0
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: nextcloud-integration-ui
+    app.kubernetes.io/instance: open-xchange
+---
+# Source: appsuite-public-sector/charts/public-sector-ui/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-public-sector-ui
+  labels:
+    app.kubernetes.io/name: public-sector-ui
+    helm.sh/chart: public-sector-ui-2.3.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: public-sector-ui
+    version: 2.3.0
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: public-sector-ui
+    app.kubernetes.io/instance: open-xchange
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-documentconverter/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-xchange-core-documentconverter
+  labels:
+    app.kubernetes.io/name: core-documentconverter
+    helm.sh/chart: core-documentconverter-2.26.2
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-documentconverter
+    version: 8.28.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: core-documentconverter
+      app.kubernetes.io/instance: open-xchange
+  template:
+    metadata:
+      annotations:
+        commit.open-xchange.com/backend: 8e83ad228c912acbdb927f7a0aced02cc6ec7a39
+        commit.open-xchange.com/documentconverter: b6b2cf3606537205c59a1d245067212ccffb3426
+        commit.open-xchange.com/documentconverter-api: eac2c9cf393a5e33f1a13c5b8544c207226f86a6
+        logging.open-xchange.com/format: appsuite-json
+        checksum/commonEnv: 6a6e279f6d52a7570f0f7adad6cb64b0c20eed94472865dad4a1803d138b5a60
+      labels:
+        app.kubernetes.io/name: core-documentconverter
+        app.kubernetes.io/instance: open-xchange
+        app: core-documentconverter
+        version: 8.28.0
+    spec:
+      imagePullSecrets: []
+      serviceAccountName: default
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
+      containers:
+      - name: main
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 987
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/documentconverter:8.28.49@sha256:0b45243cb2b6453b4073f4b80f205873fff49d8ed93f05c55971d728aa957e07
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: CONSOLELOG
+          value: /dev/tty
+        - name: DC_JVM_HEAP_SIZE_MB
+          value: '768'
+        - name: DC_JVM_HEAP_MIN_RAM_PERCENTAGE
+          value:
+        - name: DC_JVM_HEAP_MAX_RAM_PERCENTAGE
+          value:
+        - name: RELEASE_NAMESPACE
+          value: open-xchange
+        - name: OX_BLACKLISTED_PACKAGES
+          value: none
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        envFrom:
+        - secretRef:
+            name: open-xchange-common-env
+        - secretRef:
+            name: open-xchange-core-documentconverter-envvars
+        ports:
+        - name: http
+          containerPort: 8008
+          protocol: TCP
+        - name: https
+          containerPort: 8011
+          protocol: TCP
+        - name: http-live
+          containerPort: 8017
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /live
+            port: http-live
+          failureThreshold: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /documentconverterws
+            port: http
+          failureThreshold: 2
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /live
+            port: http-live
+          failureThreshold: 30
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.25
+            memory: 1.25Gi
+        volumeMounts:
+        - name: db-config
+          mountPath: /opt/open-xchange/etc/configdb.properties
+          subPath: configdb.properties
+        - name: log-config
+          mountPath: /opt/open-xchange/etc/logback.xml
+          subPath: logback.xml
+        - name: dc-config
+          mountPath: /opt/open-xchange/etc2/dcconfig.properties
+          subPath: dcconfig.properties
+        - name: dc-logs
+          mountPath: /var/log/open-xchange/documentconverter
+        - name: dc-spool
+          mountPath: /var/spool/open-xchange
+        - name: dc-urlallow
+          mountPath: /opt/open-xchange/etc/readerengine.whitelist
+          subPath: readerengine.whitelist
+        - name: dc-urldeny
+          mountPath: /opt/open-xchange/etc/readerengine.blacklist
+          subPath: readerengine.blacklist
+      volumes:
+      - name: db-config
+        configMap:
+          name: open-xchange-core-documentconverter-dc-configmap
+          items:
+          - key: configdb.properties
+            path: configdb.properties
+      - name: log-config
+        configMap:
+          name: open-xchange-core-documentconverter-dc-configmap
+          items:
+          - key: logback.xml
+            path: logback.xml
+      - name: dc-config
+        configMap:
+          name: open-xchange-core-documentconverter-dc-configmap
+          items:
+          - key: dcconfig.properties
+            path: dcconfig.properties
+      - name: dc-logs
+        emptyDir: {}
+      - name: dc-spool
+        emptyDir: {}
+      - name: dc-urlallow
+        configMap:
+          name: open-xchange-core-documentconverter-dc-configmap
+          items:
+          - key: readerengine.whitelist
+            path: readerengine.whitelist
+      - name: dc-urldeny
+        configMap:
+          name: open-xchange-core-documentconverter-dc-configmap
+          items:
+          - key: readerengine.blacklist
+            path: readerengine.blacklist
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-guidedtours/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-xchange-core-guidedtours
+  labels:
+    app.kubernetes.io/name: core-guidedtours
+    helm.sh/chart: core-guidedtours-2.6.7
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-guidedtours
+    version: 8.6.6
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: core-guidedtours
+      app.kubernetes.io/instance: open-xchange
+  template:
+    metadata:
+      annotations:
+        commit.open-xchange.com/core-guidedtours: ae6b84c50b8de374b3b61033c26047d82a25d7fb
+      labels:
+        app.kubernetes.io/name: core-guidedtours
+        helm.sh/chart: core-guidedtours-2.6.7
+        app.kubernetes.io/instance: open-xchange
+        app.kubernetes.io/managed-by: Helm
+        app: core-guidedtours
+        version: 8.6.6
+    spec:
+      imagePullSecrets: []
+      serviceAccountName: default
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
+      containers:
+      - name: main
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-guidedtours:8.6.6@sha256:3082f3259a03025c03f6b9b77fafcd5b9e391ae5ac4a47b47d5f546d4f1534ee
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          failureThreshold: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          failureThreshold: 2
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
+          requests:
+            cpu: 0.01
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-imageconverter/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-xchange-core-imageconverter
+  labels:
+    app.kubernetes.io/name: core-imageconverter
+    helm.sh/chart: core-imageconverter-2.27.4
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-imageconverter
+    version: 8.28.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: core-imageconverter
+      app.kubernetes.io/instance: open-xchange
+  template:
+    metadata:
+      annotations:
+        commit.open-xchange.com/backend: 8e83ad228c912acbdb927f7a0aced02cc6ec7a39
+        commit.open-xchange.com/imageconverter: cdaef07dec56eb2762baac82dc7a9e7ed0d05e29
+        logging.open-xchange.com/format: appsuite-json
+        checksum/commonEnv: ce5f68442ff7e4d6508b346db82ab342b351cbdef35982c9e6429a9d231af4e7
+      labels:
+        app.kubernetes.io/name: core-imageconverter
+        app.kubernetes.io/instance: open-xchange
+        app: core-imageconverter
+        version: 8.28.0
+    spec:
+      imagePullSecrets: []
+      serviceAccountName: default
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
+      containers:
+      - name: main
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 987
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/imageconverter:8.28.49@sha256:90d2f7defae974d115654986acb2035e38bb16a9daa9b2bf15078d48c0c24366
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: CONSOLELOG
+          value: /dev/tty
+        - name: IC_JVM_HEAP_SIZE_MB
+          value: '1024'
+        - name: RELEASE_NAMESPACE
+          value: open-xchange
+        - name: OX_BLACKLISTED_PACKAGES
+          value: none
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: OXENV_OBJECTSTOREID
+          value:
+        envFrom:
+        - secretRef:
+            name: open-xchange-common-env
+        - secretRef:
+            name: open-xchange-core-imageconverter-envvars
+        ports:
+        - name: http
+          containerPort: 8005
+          protocol: TCP
+        - name: https
+          containerPort: 8014
+          protocol: TCP
+        - name: http-live
+          containerPort: 8018
+          protocol: TCP
+        startupProbe:
+          httpGet:
+            path: /live
+            port: http-live
+          failureThreshold: 30
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /live
+            port: http-live
+          failureThreshold: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /imageconverter
+            port: http
+          failureThreshold: 2
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.5
+            memory: 1.25Gi
+        volumeMounts:
+        - name: db-config
+          mountPath: /opt/open-xchange/etc/configdb.properties
+          subPath: configdb.properties
+        - name: log-config
+          mountPath: /opt/open-xchange/etc/logback.xml
+          subPath: logback.xml
+        - name: ic-config
+          mountPath: /opt/open-xchange/etc2/icconfig.properties
+          subPath: icconfig.properties
+        - name: ic-logs
+          mountPath: /var/log/open-xchange/imageconverter
+        - name: ic-spool
+          mountPath: /var/spool/open-xchange
+      volumes:
+      - name: db-config
+        configMap:
+          name: open-xchange-core-imageconverter-ic-configmap
+          items:
+          - key: configdb.properties
+            path: configdb.properties
+      - name: log-config
+        configMap:
+          name: open-xchange-core-imageconverter-ic-configmap
+          items:
+          - key: logback.xml
+            path: logback.xml
+      - name: ic-config
+        configMap:
+          name: open-xchange-core-imageconverter-ic-configmap
+          items:
+          - key: icconfig.properties
+            path: icconfig.properties
+      - name: ic-logs
+        emptyDir: {}
+      - name: ic-spool
+        emptyDir: {}
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/charts/gotenberg/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-xchange-gotenberg
+  labels:
+    helm.sh/chart: gotenberg-1.1.0
+    app.kubernetes.io/name: gotenberg
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/version: 8.1.0
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gotenberg
+      app.kubernetes.io/instance: open-xchange
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gotenberg
+        app.kubernetes.io/instance: open-xchange
+    spec:
+      serviceAccountName: default
+      securityContext: {}
+      containers:
+      - name: gotenberg
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/gotenberg:8.2.0@sha256:ec5afe8eea496d3bef6c42291fde9c203c20e8a68189a2314ef876e9c0e67680
+        imagePullPolicy: IfNotPresent
+        args:
+        - gotenberg
+        - --api-port=3000
+        - --chromium-disable-javascript
+        - --gotenberg-graceful-shutdown-duration=30s
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+        resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
+          requests:
+            cpu: 0.05
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp-volume
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - emptyDir:
+          medium: Memory
+          sizeLimit: 256Mi
+        name: tmp-volume
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-ui-middleware/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-xchange-core-ui-middleware
+  labels:
+    app.kubernetes.io/name: core-ui-middleware
+    helm.sh/chart: core-ui-middleware-3.0.10
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-ui-middleware
+    version: 2.0.4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: core-ui-middleware
+      app.kubernetes.io/instance: open-xchange
+  template:
+    metadata:
+      annotations:
+        commit.open-xchange.com/core-ui-middleware: 630571ae69f657f8eef6218c5aa2204c33540c32
+        logging.open-xchange.com/format: appsuite-json
+      labels:
+        app.kubernetes.io/name: core-ui-middleware
+        app.kubernetes.io/instance: open-xchange
+        app: core-ui-middleware
+        version: 2.0.4
+    spec:
+      imagePullSecrets: []
+      serviceAccountName: default
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
+      containers:
+      - name: main
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-ui-middleware:2.0.4@sha256:e1d647cca13e7c433a9d643aa1a350197511274b239ead100aa1682ffe2fa116
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: CACHE_TTL
+          value: '30000'
+        - name: LOG_LEVEL
+          value: info
+        - name: APP_ROOT
+          value: /appsuite/
+        - name: COMPRESS_FILE_SIZE
+          value: '600'
+        - name: COMPRESS_FILE_TYPES
+          value: application/javascript application/json application/x-javascript
+            application/xml application/xml+rss text/css text/html text/javascript
+            text/plain text/xml image/svg+xml
+        - name: SLOW_REQUEST_THRESHOLD
+          value: '4000'
+        - name: REDIS_MODE
+          value: standalone
+        - name: REDIS_HOSTS
+          value: redis-master:6379
+        - name: REDIS_DB
+          value: '0'
+        - name: REDIS_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: open-xchange-core-ui-middleware-redis
+              key: username
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: open-xchange-core-ui-middleware-redis
+              key: password
+        - name: REDIS_PREFIX
+          value: ui-middleware
+        - name: REDIS_TLS_ENABLED
+          value: 'false'
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: tcp-monitoring
+          containerPort: 9090
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /live
+            port: 9000
+          failureThreshold: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 9000
+          failureThreshold: 2
+          initialDelaySeconds: 1
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 768Mi
+          requests:
+            cpu: 0.5
+            memory: 192Mi
+        volumeMounts:
+        - name: manifest-config
+          mountPath: /app/config/
+      volumes:
+      - name: manifest-config
+        configMap:
+          name: open-xchange-core-ui-middleware
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-ui-middleware/templates/updater.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-xchange-core-ui-middleware-updater
+  labels:
+    app.kubernetes.io/name: core-ui-middleware
+    helm.sh/chart: core-ui-middleware-3.0.10
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-ui-middleware
+    version: 2.0.4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: core-ui-middleware
+      app.kubernetes.io/instance: open-xchange
+  template:
+    metadata:
+      annotations:
+        commit.open-xchange.com/core-ui-middleware: 630571ae69f657f8eef6218c5aa2204c33540c32
+        logging.open-xchange.com/format: appsuite-json
+      labels:
+        app.kubernetes.io/name: core-ui-middleware
+        app.kubernetes.io/instance: open-xchange
+        app: core-ui-middleware
+        version: 2.0.4
+    spec:
+      imagePullSecrets: []
+      serviceAccountName: default
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
+      containers:
+      - name: main
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-ui-middleware:2.0.4@sha256:e1d647cca13e7c433a9d643aa1a350197511274b239ead100aa1682ffe2fa116
+        command: [/nodejs/bin/node, src/updater.js]
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: CACHE_TTL
+          value: '30000'
+        - name: LOG_LEVEL
+          value: info
+        - name: APP_ROOT
+          value: /appsuite/
+        - name: COMPRESS_FILE_SIZE
+          value: '600'
+        - name: COMPRESS_FILE_TYPES
+          value: application/javascript application/json application/x-javascript
+            application/xml application/xml+rss text/css text/html text/javascript
+            text/plain text/xml image/svg+xml
+        - name: SLOW_REQUEST_THRESHOLD
+          value: '4000'
+        - name: REDIS_MODE
+          value: standalone
+        - name: REDIS_HOSTS
+          value: redis-master:6379
+        - name: REDIS_DB
+          value: '0'
+        - name: REDIS_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: open-xchange-core-ui-middleware-redis
+              key: username
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: open-xchange-core-ui-middleware-redis
+              key: password
+        - name: REDIS_PREFIX
+          value: ui-middleware
+        - name: REDIS_TLS_ENABLED
+          value: 'false'
+        ports:
+        - name: tcp-monitoring
+          containerPort: 9090
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /live
+            port: 9000
+          failureThreshold: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 9000
+          failureThreshold: 2
+          initialDelaySeconds: 1
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 768Mi
+          requests:
+            cpu: 0.5
+            memory: 192Mi
+        volumeMounts:
+        - name: manifest-config
+          mountPath: /app/config/
+      volumes:
+      - name: manifest-config
+        configMap:
+          name: open-xchange-core-ui-middleware
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-ui/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-xchange-core-ui
+  labels:
+    app.kubernetes.io/name: core-ui
+    helm.sh/chart: core-ui-2.30.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-ui
+    version: 8.28.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: core-ui
+      app.kubernetes.io/instance: open-xchange
+  template:
+    metadata:
+      annotations:
+        commit.open-xchange.com/core-ui: 15e1f6d46e3a13af9712fc0d3cf2ad8b49b9aa73
+      labels:
+        app.kubernetes.io/name: core-ui
+        app.kubernetes.io/instance: open-xchange
+        app: core-ui
+        version: 8.28.0
+    spec:
+      imagePullSecrets: []
+      serviceAccountName: default
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
+      containers:
+      - name: main
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-ui:8.28.1@sha256:be9cfb5a1d9389a151b057884857ddebba982cfde621e432c55a17c03fff28d0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
+          requests:
+            cpu: 0.01
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-user-guide/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-xchange-core-user-guide
+  labels:
+    app.kubernetes.io/name: core-user-guide
+    helm.sh/chart: core-user-guide-2.28.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-user-guide
+    version: 8.28.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: core-user-guide
+      app.kubernetes.io/instance: open-xchange
+  template:
+    metadata:
+      annotations:
+        commit.open-xchange.com/core-user-guide: fb5de4583d386e1d1f2dc79d247037a67cefa943
+      labels:
+        app.kubernetes.io/name: core-user-guide
+        app.kubernetes.io/instance: open-xchange
+    spec:
+      imagePullSecrets: []
+      serviceAccountName: default
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
+      containers:
+      - name: main
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-user-guide:8.28.1107609@sha256:96a700ef71b4c723146ed0a274482422e09f5a9ccd035c351e192ea4de81eb9f
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          failureThreshold: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          failureThreshold: 2
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
+          requests:
+            cpu: 0.02
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/guard-ui/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-xchange-guard-ui
+  labels:
+    app.kubernetes.io/name: guard-ui
+    helm.sh/chart: guard-ui-2.5.2
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: guard-ui
+    version: 8.28.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: guard-ui
+      app.kubernetes.io/instance: open-xchange
+  template:
+    metadata:
+      annotations:
+        commit.open-xchange.com/guard-ui: 8adc97b8a855554a4a069ebe43be0c42d5da5acf
+      labels:
+        app.kubernetes.io/name: guard-ui
+        helm.sh/chart: guard-ui-2.5.2
+        app.kubernetes.io/instance: open-xchange
+        app.kubernetes.io/managed-by: Helm
+        app: guard-ui
+        version: 8.28.0
+    spec:
+      imagePullSecrets: []
+      serviceAccountName: default
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
+      containers:
+      - name: guard-ui
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/guard-ui:8.28.0@sha256:950dd4ec4633fb920502392e8e93d9f497eaf920ae4fe79629b53a835f129741
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+        resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
+          requests:
+            cpu: 0.01
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+---
+# Source: appsuite-public-sector/charts/nextcloud-integration-ui/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-xchange-nextcloud-integration-ui
+  labels:
+    app.kubernetes.io/name: nextcloud-integration-ui
+    helm.sh/chart: nextcloud-integration-ui-1.2.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: nextcloud-integration-ui
+    version: 1.2.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nextcloud-integration-ui
+      app.kubernetes.io/instance: open-xchange
+  template:
+    metadata:
+      annotations:
+        commit.open-xchange.com/nextcloud-integration-ui: e1cdf2b55247bf7933b796480b7774298e58e622
+      labels:
+        app.kubernetes.io/name: nextcloud-integration-ui
+        helm.sh/chart: nextcloud-integration-ui-1.2.0
+        app.kubernetes.io/instance: open-xchange
+        app.kubernetes.io/managed-by: Helm
+        app: nextcloud-integration-ui
+        version: 1.2.0
+    spec:
+      imagePullSecrets: []
+      serviceAccountName: default
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
+      containers:
+      - name: main
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/nextcloud-integration-ui:1.2.0@sha256:3d0ef11196f7544a01539e6790e4402ad69e2a501312eb7c7bb128c6563d0a8d
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          failureThreshold: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          failureThreshold: 2
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
+          requests:
+            cpu: 0.01
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+---
+# Source: appsuite-public-sector/charts/public-sector-ui/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-xchange-public-sector-ui
+  labels:
+    app.kubernetes.io/name: public-sector-ui
+    helm.sh/chart: public-sector-ui-2.3.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: public-sector-ui
+    version: 2.3.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: public-sector-ui
+      app.kubernetes.io/instance: open-xchange
+  template:
+    metadata:
+      annotations:
+        commit.open-xchange.com/public-sector-ui: f63b081469eddede5f35c9d05eb2528f41d89d50
+      labels:
+        app.kubernetes.io/name: public-sector-ui
+        helm.sh/chart: public-sector-ui-2.3.0
+        app.kubernetes.io/instance: open-xchange
+        app.kubernetes.io/managed-by: Helm
+        app: public-sector-ui
+        version: 2.3.0
+    spec:
+      imagePullSecrets: []
+      serviceAccountName: default
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
+      containers:
+      - name: main
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/public-sector-ui:2.3.0@sha256:a557816ee55500ecc3b46b60f0440ea66c7f0d90e888ce3b0df8a9acdd72acbe
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          failureThreshold: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          failureThreshold: 2
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
+          requests:
+            cpu: 0.01
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/deployment.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: open-xchange-core-mw-default
+  labels:
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-5.9.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-mw
+    version: 8.28.5
+    roles.middleware.open-xchange.com/hazelcast-data-holding: 'true'
+    roles.middleware.open-xchange.com/http-api: 'true'
+    roles.middleware.open-xchange.com/sync: 'true'
+    roles.middleware.open-xchange.com/admin: 'true'
+    roles.middleware.open-xchange.com/businessmobility: 'true'
+    roles.middleware.open-xchange.com/request-analyzer: 'true'
+
+spec:
+  serviceName: open-xchange-core-mw-hazelcast-headless
+  podManagementPolicy: OrderedReady
+  volumeClaimTemplates: []
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: core-mw
+      app.kubernetes.io/instance: open-xchange
+  template:
+    metadata:
+      annotations:
+
+        commit.open-xchange.com/backend: 8e83ad228c912acbdb927f7a0aced02cc6ec7a39
+        commit.open-xchange.com/documentconverter-api: eac2c9cf393a5e33f1a13c5b8544c207226f86a6
+        commit.open-xchange.com/exchange-interop: b67d1ab1ddc782452678873f9fd2a432529e8bda
+        commit.open-xchange.com/guard: 9625a840ff9ef8a2a262fbfcdf6b390d11f1c55e
+        commit.open-xchange.com/imageconverter: cdaef07dec56eb2762baac82dc7a9e7ed0d05e29
+        commit.open-xchange.com/nextcloud-integration: b1980e5fccade85528d740889971d9cf1120052f
+        commit.open-xchange.com/office: dfa0e72788dcfb6f3327bc655159406bae4d3b62
+        commit.open-xchange.com/public-sector: 5bbe7fd702fbda60bdcb367ec2abf358833cbd7b
+        commit.open-xchange.com/weakforced: d05c7b48f8a3fd2b87ec2074651aa0508d7bfacf
+        logging.open-xchange.com/format: appsuite-json
+        checksum/allConfig: baa789697b1dd10320a0bc7f0c96c81ab21c3b67764da0d092e847ba8e51b31
+        checksum/commonEnv: 0b469be00f5e25cb1605a0c21246d64cd63fa2c7d07a01c5d83b839183663aec
+      labels:
+        app.kubernetes.io/name: core-mw
+        app.kubernetes.io/instance: open-xchange
+        app: core-mw
+        version: 8.28.5
+        roles.middleware.open-xchange.com/hazelcast-data-holding: 'true'
+        roles.middleware.open-xchange.com/http-api: 'true'
+        roles.middleware.open-xchange.com/sync: 'true'
+        roles.middleware.open-xchange.com/admin: 'true'
+        roles.middleware.open-xchange.com/businessmobility: 'true'
+        roles.middleware.open-xchange.com/request-analyzer: 'true'
+
+    spec:
+      imagePullSecrets: []
+      serviceAccountName: open-xchange-core-mw
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
+      terminationGracePeriodSeconds: 120
+      initContainers:
+      - name: init-middleware
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/middleware-public-sector:8.28.50@sha256:38447bd607c497977a5ba9189d957eebe7f82f09fa329ebc38c0785c70b04558
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+        command:
+        - /bin/bash
+        - -c
+        - |2
+
+          echo -e "Checking for the availability of MySQL Server deployment"
+          while ! nc -z -w 5 "${MYSQL_HOST}" "${MYSQL_PORT}"; do
+              printf "-"
+          done
+          echo -e "  >> MySQL Server is up & running"
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: ''
+        - name: HZ_LITE_MEMBER
+          value: 'false'
+        - name: SERVER_NAME
+          value: server
+        - name: RELEASE_NAMESPACE
+          value: tn-openbsw-opendesk
+        - name: OX_LOG_TO_CONSOLE
+          value: 'true'
+        - name: OX_BLACKLISTED_PACKAGES
+          value: open-xchange-admin-autocontextid open-xchange-admin-reseller open-xchange-admin-soap-reseller
+            open-xchange-authentication-database open-xchange-authentication-imap
+            open-xchange-authentication-ldap open-xchange-authentication-masterpassword
+            open-xchange-cassandra open-xchange-dataretention-csv open-xchange-documents-backend
+            open-xchange-eas-provisioning open-xchange-eas-provisioning-mail open-xchange-eas-provisioning-sms
+            open-xchange-hostname-config-cascade open-xchange-hostname-ldap open-xchange-multifactor
+            open-xchange-omf-source open-xchange-omf-source-dualprovisioning open-xchange-omf-source-dualprovisioning-cloudplugins
+            open-xchange-omf-source-guard open-xchange-omf-source-mailfilter open-xchange-parallels
+            open-xchange-passwordchange-script open-xchange-plugins-antiphishing open-xchange-plugins-antiphishing-vadesecure
+            open-xchange-plugins-blackwhitelist open-xchange-plugins-blackwhitelist-sieve
+            open-xchange-plugins-contact-storage-group open-xchange-plugins-contact-whitelist-sync
+            open-xchange-plugins-mx-checker open-xchange-plugins-onboarding-maillogin
+            open-xchange-plugins-trustedidentity open-xchange-plugins-unsubscribe
+            open-xchange-plugins-unsubscribe-vadesecure open-xchange-saml-core open-xchange-sms-sipgate
+            open-xchange-sms-twilio open-xchange-spamhandler-parallels open-xchange-sso
+            open-xchange-weakforced
+        - name: OX_APPSUITE_APPROOT
+          value: /appsuite
+        - name: HZ_SERVICE_DNS
+          value: open-xchange-core-mw-hazelcast-headless.tn-openbsw-opendesk.svc.cluster.local
+        - name: DCS_SERVICENAME
+          value: open-xchange-core-documents-collaboration
+        - name: DC_SERVER_URL
+          value:
+            http://open-xchange-core-documentconverter.tn-openbsw-opendesk.svc.cluster.local:8008/documentconverterws
+        - name: IC_SERVER_URL
+          value:
+            http://open-xchange-core-imageconverter.tn-openbsw-opendesk.svc.cluster.local:8005/imageconverter
+        - name: SPELLCHECK_SERVER_URL
+          value: http://open-xchange-core-spellcheck.tn-openbsw-opendesk.svc.cluster.local:8003
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: HELM_RELEASE_NAME
+          value: open-xchange
+        - name: JAVA_OPTS_MEMORY_MAXHEAP
+          value: -XX:MaxHeapSize=2048M
+        envFrom:
+        - secretRef:
+            name: open-xchange-core-mw-mysql
+        - secretRef:
+            name: open-xchange-common-env
+        - secretRef:
+            name: open-xchange-core-mw-secret-envvars
+        volumeMounts:
+
+        - name: logs-default
+          mountPath: /var/log/open-xchange
+        - name: spool-default
+          mountPath: /var/spool/open-xchange/
+        - name: properties-lean-default
+          mountPath: /opt/open-xchange/etc/logback.xml
+          subPath: logback.xml
+        - name: properties-lean-default
+          mountPath: /opt/open-xchange/etc/languages/appsuite/languages.properties
+          subPath: languages.properties
+        - name: properties-lean-default
+          mountPath: /opt/open-xchange/etc/properties-lean-config.properties
+          subPath: properties-lean-config.properties
+        - name: properties-default
+          mountPath: /injections/configuration/properties
+        - name: properties-overwrite-default
+          mountPath: /injections/configuration/properties-overwrite
+        - name: ui-settings-default
+          mountPath: /injections/configuration/ui-settings
+        - name: meta-default
+          mountPath: /injections/etc/meta/meta
+        - name: etc-files-default
+          mountPath: /injections/etc/etc
+        - name: etc-secrets-default
+          mountPath: /injections/etc/secretEtc
+        - name: yaml-files-default
+          mountPath: /injections/etc/yaml
+        - name: yaml-secrets-default
+          mountPath: /injections/etc/secretYaml
+        - name: as-config-default
+          mountPath: /injections/etc/as-config
+        - name: context-sets-default
+          mountPath: /injections/etc/context-sets/contextSets
+        - name: start-hooks-default
+          mountPath: /hooks/start/helm/
+        - name: before-apply-hooks-default
+          mountPath: /hooks/beforeApply/helm/
+        - name: before-appsuite-start-hooks-default
+          mountPath: /hooks/beforeAppsuiteStart/helm/
+
+      containers:
+      - name: core-mw
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/middleware-public-sector:8.28.50@sha256:38447bd607c497977a5ba9189d957eebe7f82f09fa329ebc38c0785c70b04558
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+        ports:
+        - containerPort: 8009
+          name: http
+        livenessProbe:
+          initialDelaySeconds:
+          periodSeconds: 10
+          failureThreshold: 15
+          timeoutSeconds:
+          httpGet:
+            path: /live
+            port: 8016
+            scheme: HTTP
+        startupProbe:
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 30
+          timeoutSeconds:
+          httpGet:
+            path: /health
+            port: 8009
+            scheme: HTTP
+        readinessProbe:
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          failureThreshold: 2
+          timeoutSeconds: 5
+          httpGet:
+            path: /ready
+            port: 8009
+            scheme: HTTP
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: ''
+        - name: SERVER_NAME
+          value: server
+        - name: RELEASE_NAMESPACE
+          value: tn-openbsw-opendesk
+        - name: OX_LOG_TO_CONSOLE
+          value: 'true'
+        - name: OX_BLACKLISTED_PACKAGES
+          value: open-xchange-admin-autocontextid open-xchange-admin-reseller open-xchange-admin-soap-reseller
+            open-xchange-authentication-database open-xchange-authentication-imap
+            open-xchange-authentication-ldap open-xchange-authentication-masterpassword
+            open-xchange-cassandra open-xchange-dataretention-csv open-xchange-documents-backend
+            open-xchange-eas-provisioning open-xchange-eas-provisioning-mail open-xchange-eas-provisioning-sms
+            open-xchange-hostname-config-cascade open-xchange-hostname-ldap open-xchange-multifactor
+            open-xchange-omf-source open-xchange-omf-source-dualprovisioning open-xchange-omf-source-dualprovisioning-cloudplugins
+            open-xchange-omf-source-guard open-xchange-omf-source-mailfilter open-xchange-parallels
+            open-xchange-passwordchange-script open-xchange-plugins-antiphishing open-xchange-plugins-antiphishing-vadesecure
+            open-xchange-plugins-blackwhitelist open-xchange-plugins-blackwhitelist-sieve
+            open-xchange-plugins-contact-storage-group open-xchange-plugins-contact-whitelist-sync
+            open-xchange-plugins-mx-checker open-xchange-plugins-onboarding-maillogin
+            open-xchange-plugins-trustedidentity open-xchange-plugins-unsubscribe
+            open-xchange-plugins-unsubscribe-vadesecure open-xchange-saml-core open-xchange-sms-sipgate
+            open-xchange-sms-twilio open-xchange-spamhandler-parallels open-xchange-sso
+            open-xchange-weakforced
+        - name: OX_APPSUITE_APPROOT
+          value: /appsuite
+        - name: HZ_SERVICE_DNS
+          value: open-xchange-core-mw-hazelcast-headless.tn-openbsw-opendesk.svc.cluster.local
+        - name: DCS_SERVICENAME
+          value: open-xchange-core-documents-collaboration
+        - name: DC_SERVER_URL
+          value:
+            http://open-xchange-core-documentconverter.tn-openbsw-opendesk.svc.cluster.local:8008/documentconverterws
+        - name: IC_SERVER_URL
+          value:
+            http://open-xchange-core-imageconverter.tn-openbsw-opendesk.svc.cluster.local:8005/imageconverter
+        - name: SPELLCHECK_SERVER_URL
+          value: http://open-xchange-core-spellcheck.tn-openbsw-opendesk.svc.cluster.local:8003
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: HELM_RELEASE_NAME
+          value: open-xchange
+        - name: HZ_LITE_MEMBER
+          value: 'false'
+        - name: JAVA_OPTS_MEMORY_MAXHEAP
+          value: -XX:MaxHeapSize=2048M
+        envFrom:
+        - secretRef:
+            name: open-xchange-core-mw-mysql
+        - secretRef:
+            name: open-xchange-common-env
+        - secretRef:
+            name: open-xchange-core-mw-secret-envvars
+        resources:
+          limits:
+            cpu: 99
+            memory: 8Gi
+          requests:
+            cpu: 1
+            memory: 1.25Gi
+        volumeMounts:
+
+        - name: logs-default
+          mountPath: /var/log/open-xchange
+        - name: spool-default
+          mountPath: /var/spool/open-xchange/
+        - name: properties-lean-default
+          mountPath: /opt/open-xchange/etc/logback.xml
+          subPath: logback.xml
+        - name: properties-lean-default
+          mountPath: /opt/open-xchange/etc/languages/appsuite/languages.properties
+          subPath: languages.properties
+        - name: properties-lean-default
+          mountPath: /opt/open-xchange/etc/properties-lean-config.properties
+          subPath: properties-lean-config.properties
+        - name: properties-default
+          mountPath: /injections/configuration/properties
+        - name: properties-overwrite-default
+          mountPath: /injections/configuration/properties-overwrite
+        - name: ui-settings-default
+          mountPath: /injections/configuration/ui-settings
+        - name: meta-default
+          mountPath: /injections/etc/meta/meta
+        - name: etc-files-default
+          mountPath: /injections/etc/etc
+        - name: etc-secrets-default
+          mountPath: /injections/etc/secretEtc
+        - name: yaml-files-default
+          mountPath: /injections/etc/yaml
+        - name: yaml-secrets-default
+          mountPath: /injections/etc/secretYaml
+        - name: as-config-default
+          mountPath: /injections/etc/as-config
+        - name: context-sets-default
+          mountPath: /injections/etc/context-sets/contextSets
+        - name: start-hooks-default
+          mountPath: /hooks/start/helm/
+        - name: before-apply-hooks-default
+          mountPath: /hooks/beforeApply/helm/
+        - name: before-appsuite-start-hooks-default
+          mountPath: /hooks/beforeAppsuiteStart/helm/
+
+        - name: drive-restricted-config
+          mountPath: /opt/open-xchange/etc/pushClientConfig/drive-restricted-config.yaml
+          readOnly: true
+        - name: drive-restricted-fcm-keystore
+          mountPath: /opt/open-xchange/etc/pushClientConfig/drive-mobile-android
+          readOnly: true
+        - name: mobile-api-facade-restricted-config
+          mountPath: /opt/open-xchange/etc/pushClientConfig/mobile-api-facade-restricted-config.yaml
+          readOnly: true
+
+
+      volumes:
+
+      - name: shared-default
+        emptyDir: {}
+      - name: properties-lean-default
+        configMap:
+          name: open-xchange-core-mw-properties-lean-configmap
+          items:
+          - key: logback.xml
+            path: logback.xml
+          - key: languages.properties
+            path: languages.properties
+          - key: properties-lean-config.properties
+            path: properties-lean-config.properties
+      - name: disabled-bundles-default
+        emptyDir: {}
+      - name: logs-default
+        emptyDir: {}
+      - name: spool-default
+        emptyDir: {}
+      - name: properties-default
+        projected:
+          sources:
+          - secret:
+              name: open-xchange-core-mw-properties-secret
+          - configMap:
+              name: open-xchange-core-mw-default-properties-configmap
+      - name: properties-overwrite-default
+        projected:
+          sources:
+          - configMap:
+              name: open-xchange-core-mw-default-properties-overwrite-configmap
+      - name: ui-settings-default
+        projected:
+          sources:
+          - secret:
+              name: open-xchange-core-mw-ui-settings-secret
+          - configMap:
+              name: open-xchange-core-mw-ui-settings-configmap
+      - name: meta-default
+        projected:
+          sources:
+          - configMap:
+              name: open-xchange-core-mw-meta-configmap
+      - name: etc-files-default
+        projected:
+          sources:
+          - configMap:
+              name: open-xchange-core-mw-etc-files-configmap
+
+      - name: etc-secrets-default
+        projected:
+          sources:
+          - secret:
+              name: open-xchange-core-mw-etc-secrets-secret
+
+      - name: yaml-files-default
+        projected:
+          sources:
+          - configMap:
+              name: open-xchange-core-mw-yaml-files-configmap
+              items:
+
+              - key: contacts-provider-ldap-mappings.yml
+                path: contacts-provider-ldap-mappings.yml
+
+              - key: contacts-provider-ldap.yml
+                path: contacts-provider-ldap.yml
+
+      - name: yaml-secrets-default
+        projected:
+          sources:
+          - secret:
+              name: open-xchange-core-mw-yaml-secrets-secret
+              items:
+
+              - key: ldap-client-config.yml
+                path: ldap-client-config.yml
+
+      - name: context-sets-default
+        projected:
+          sources:
+          - secret:
+              name: open-xchange-core-mw-contextsets-secret
+          - configMap:
+              name: open-xchange-core-mw-contextsets-configmap
+      - name: as-config-default
+        projected:
+          sources:
+          - configMap:
+              name: open-xchange-core-mw-as-config-configmap
+      - name: start-hooks-default
+        configMap:
+          name: open-xchange-core-mw-hook-start-configmap
+      - name: before-apply-hooks-default
+        configMap:
+          name: open-xchange-core-mw-hook-before-apply-configmap
+      - name: before-appsuite-start-hooks-default
+        configMap:
+          name: open-xchange-core-mw-hook-before-appsuite-start-configmap
+
+      - name: drive-restricted-config
+        secret:
+          secretName: drive-restricted-config
+          optional: true
+      - name: drive-restricted-fcm-keystore
+        secret:
+          secretName: drive-restricted-fcm-keystore
+          optional: true
+      - name: mobile-api-facade-restricted-config
+        secret:
+          secretName: mobile-api-facade-restricted-config
+          optional: true
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-appsuite-base
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /appsuite/
+        pathType: Prefix
+        backend:
+          service:
+            name: open-xchange-core-ui-middleware
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-rootredirect
+  annotations:
+    nginx.ingress.kubernetes.io/app-root: /appsuite/
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-ui-middleware
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-rest-routes-admin
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /admin
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-rest-routes-advertisement
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /advertisement
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-rest-routes-chronos
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /chronos
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-rest-routes-preliminary
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /preliminary
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-rest-routes-userfeedback
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /userfeedback
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-static-routes-servlet
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /servlet
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-static-routes-realtime
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /realtime
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-static-routes-infostore
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /infostore
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-static-routes-socket-io
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /socket.io
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-static-routes-webservices
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /webservices
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-drive-client-windows-ox-route
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: //$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: drive-client-windows-ox-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /api/drive/client/windows/ox/install/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-drive-client-windows-ox
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-guard-api-route
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /oxguard/$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: guard-api-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /appsuite/api/oxguard/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-guard-support-api-route
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /guardsupport/$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: guard-support-api-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /appsuite/api/guardsupport/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-guard-pgp-route
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /pgp/$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: guard-pgp-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /pks/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-http-api-routes-api
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /appsuite/api/$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: http-api-routes-api
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /api/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-http-api-routes-ajax
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /appsuite/api/$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: http-api-routes-ajax
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /ajax/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-http-api-routes-appsuite-api
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /appsuite/api/$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: http-api-routes-appsuite-api
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/proxy-body-size: 100M
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '60'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '60'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /appsuite/api/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-rt2-route
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /rt2/$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: rt2-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /appsuite/rt2/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-documents-help-route
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /help-documents/$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: documents-help-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /appsuite/help-documents/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-office-user-guide
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-drive-help-route
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /help/$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: drive-help-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /appsuite/help-drive/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-drive-help
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-core-help-route
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /help/$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: core-help-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /appsuite/help/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-user-guide
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-office-web-route
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /appsuite/$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: office-web-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /appsuite/office/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-ui-middleware
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-caldav-well-known-redirect
+  annotations:
+    nginx.ingress.kubernetes.io/temporal-redirect: /caldav/
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /.well-known/caldav
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-ui-middleware
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-carddav-well-known-redirect
+  annotations:
+    nginx.ingress.kubernetes.io/temporal-redirect: /carddav/
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /.well-known/carddav
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-ui-middleware
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-dav-infostore-route
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: authorization
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /servlet/webdav.infostore/
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-sync
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-dav-root-route
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /servlet/dav//$1
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: dav-root-route
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+spec:
+
+  tls:
+  - hosts:
+    - webmail.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: webmail.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: //(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: open-xchange-core-mw-sync
+            port:
+              number: 80
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-guidedtours/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: open-xchange-core-guidedtours-test-connection
+  labels:
+    helm.sh/chart: core-guidedtours-2.6.7
+    app.kubernetes.io/name: core-guidedtours
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/version: 8.6.6
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: test
+spec:
+  containers:
+  - name: wget
+    image: busybox
+    command: [wget]
+    args: [open-xchange-core-guidedtours:80]
+  restartPolicy: Never
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-ui/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: open-xchange-core-ui-test-connection
+  labels:
+    helm.sh/chart: core-ui-2.30.0
+    app.kubernetes.io/name: core-ui
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/version: 8.28.0
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: test
+spec:
+  containers:
+  - name: wget
+    image: busybox
+    command: [wget]
+    args: [open-xchange-core-ui:80]
+  restartPolicy: Never
+---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-user-guide/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: open-xchange-core-user-guide-test-connection
+  labels:
+    helm.sh/chart: core-user-guide-2.28.0
+    app.kubernetes.io/name: core-user-guide
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/version: 8.28.0
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: test
+spec:
+  containers:
+  - name: wget
+    image: busybox
+    command: [wget]
+    args: [open-xchange-core-user-guide:80]
+  restartPolicy: Never
+---
+# Source: appsuite-public-sector/charts/nextcloud-integration-ui/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: open-xchange-nextcloud-integration-ui-test-connection
+  labels:
+    app.kubernetes.io/name: nextcloud-integration-ui
+    helm.sh/chart: nextcloud-integration-ui-1.2.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: nextcloud-integration-ui
+    version: 1.2.0
+  annotations:
+    helm.sh/hook: test
+spec:
+  containers:
+  - name: wget
+    image: busybox
+    command: [wget]
+    args: [open-xchange-nextcloud-integration-ui:80]
+  restartPolicy: Never
+---
+# Source: appsuite-public-sector/charts/public-sector-ui/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: open-xchange-public-sector-ui-test-connection
+  labels:
+    app.kubernetes.io/name: public-sector-ui
+    helm.sh/chart: public-sector-ui-2.3.0
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: public-sector-ui
+    version: 2.3.0
+  annotations:
+    helm.sh/hook: test
+spec:
+  containers:
+  - name: wget
+    image: busybox
+    command: [wget]
+    args: [open-xchange-public-sector-ui:80]
+  restartPolicy: Never
+---
+# Source: opendesk-open-xchange-bootstrap/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opendesk-open-xchange-bootstrap
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: opendesk-open-xchange-bootstrap
+    helm.sh/chart: opendesk-open-xchange-bootstrap-2.1.2
+    app.kubernetes.io/instance: opendesk-open-xchange-bootstrap
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: opendesk-open-xchange-bootstrap/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: tn-openbsw-opendesk
+  name: opendesk-open-xchange-bootstrap
+rules:
+  # needed to execute commands inside pod
+- apiGroups: ['']
+  resources:
+  - pods
+  resourceNames: [open-xchange-core-mw-default-0]
+  verbs: [get]
+- apiGroups: ['']
+  resources:
+  - pods/exec
+  resourceNames: [open-xchange-core-mw-default-0]
+  verbs: [create]
+  # needed to restart stateful set
+- apiGroups: [apps]
+  resources:
+  - statefulsets
+  resourceNames: [open-xchange-core-mw-default]
+  verbs: [get, patch]
+---
+# Source: opendesk-open-xchange-bootstrap/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: opendesk-open-xchange-bootstrap
+  namespace: tn-openbsw-opendesk
+roleRef: # points to the ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: opendesk-open-xchange-bootstrap
+subjects: # points to the ServiceAccount
+- kind: ServiceAccount
+  name: opendesk-open-xchange-bootstrap
+  namespace: tn-openbsw-opendesk   # ns of service account
+---
+# Source: opendesk-open-xchange-bootstrap/templates/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: opendesk-open-xchange-bootstrap
+  labels:
+    app.kubernetes.io/name: opendesk-open-xchange-bootstrap
+    helm.sh/chart: opendesk-open-xchange-bootstrap-2.1.2
+    app.kubernetes.io/instance: opendesk-open-xchange-bootstrap
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 60
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: opendesk-open-xchange-bootstrap
+        helm.sh/chart: opendesk-open-xchange-bootstrap-2.1.2
+        app.kubernetes.io/instance: opendesk-open-xchange-bootstrap
+        app.kubernetes.io/managed-by: Helm
+      annotations:
+        argocd.argoproj.io/hook: Sync
+        argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    spec:
+      serviceAccountName: opendesk-open-xchange-bootstrap
+      containers:
+      - name: opendesk-open-xchange-bootstrap
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry-1.docker.io/alpine/k8s:1.26.8@sha256:acde24d2a8ebaafda76f464591a5ddc7d0acd08bb38b12560961c1b1c4fc85ec
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 256Mi
+        env:
+        - name: NAMESPACE
+          value: tn-openbsw-opendesk
+        - name: CORE_MIDDLEWARE_STATEFULSET
+          value: open-xchange-core-mw-default
+        - name: CORE_MIDDLEWARE_POD
+          value: open-xchange-core-mw-default-0
+        command:
+        - /bin/bash
+        - -c
+        - >
+          until kubectl exec --namespace="${NAMESPACE}" ${CORE_MIDDLEWARE_POD} -c
+          core-mw
+          -- bash -c 'echo core-mw running...';
+          do
+            echo "waiting for container core-mw to be alive..."
+            sleep 1
+          done
+
+          kubectl exec --namespace="${NAMESPACE}" ${CORE_MIDDLEWARE_POD} -c core-mw
+          -- bash -c
+          "mkdir -p /opt/open-xchange/ox-filestore"
+
+          kubectl exec --namespace="${NAMESPACE}" ${CORE_MIDDLEWARE_POD} -c core-mw
+          -- bash -c
+          '/opt/open-xchange/sbin/initconfigdb
+          --configdb-user "${MYSQL_USER}"
+          --configdb-pass "${MYSQL_PASSWORD}"
+          --configdb-host "${MYSQL_HOST}"
+          --mysql-root-passwd "${MYSQL_PASSWORD}"
+          --configdb-dbname "${MYSQL_DATABASE}"'
+          || echo "error initconfigdb"
+
+          kubectl exec --namespace="${NAMESPACE}" ${CORE_MIDDLEWARE_POD} -c core-mw
+          -- bash -c
+          'until nc -z localhost 8009; do echo "waiting for port 8009"; sleep 5; done'
+
+          kubectl exec --namespace="${NAMESPACE}" ${CORE_MIDDLEWARE_POD} -c core-mw
+          -- bash -c
+          '/opt/open-xchange/sbin/registerfilestore
+          -A "${MASTER_ADMIN_USER}" -P "${MASTER_ADMIN_PW}"
+          -t /opt/open-xchange/ox-filestore
+          -s "100000"'
+          || echo "error: registerfilestore"
+
+          kubectl exec --namespace="${NAMESPACE}" ${CORE_MIDDLEWARE_POD} -c core-mw
+          -- bash -c
+          '/opt/open-xchange/sbin/registerserver
+          -A "${MASTER_ADMIN_USER}" -P "${MASTER_ADMIN_PW}"
+          -n oxserver'
+          || echo "error: registerserver"
+
+          kubectl exec --namespace="${NAMESPACE}" ${CORE_MIDDLEWARE_POD} -c core-mw
+          -- bash -c
+          '/opt/open-xchange/sbin/registerdatabase
+          -A "${MASTER_ADMIN_USER}" -P "${MASTER_ADMIN_PW}"
+          --name "PRIMARYDB"
+          --hostname "${MYSQL_HOST}"
+          --dbuser "${MYSQL_USER}"
+          --dbpasswd "${MYSQL_PASSWORD}"
+          --master true'
+          || echo "error: registerdatabase"
+
+          kubectl --namespace="${NAMESPACE}" rollout restart statefulset ${CORE_MIDDLEWARE_STATEFULSET}
+      restartPolicy: Never
+  backoffLimit: 4
+---
+# Source: ox-connector/templates/serviceaccount.yaml
+# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-FileCopyrightText: 2023 Univention GmbH---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ox-connector
+  labels:
+    app.kubernetes.io/name: ox-connector
+    helm.sh/chart: ox-connector-0.14.5
+    app.kubernetes.io/instance: ox-connector
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: ox-connector/templates/configmap.yaml
+apiVersion: v1
+data:
+  DEFAULT_CONTEXT: '1'
+  DOMAINNAME: opendesk.apps.digilab.network
+  LOCAL_TIMEZONE: Europe/Berlin
+  LOG_LEVEL: INFO
+  MAX_ACKNOWLEDGEMENT_RETRIES: '3'
+  OX_IMAP_SERVER: imap://127.0.0.1:143
+  OX_LANGUAGE: de_DE
+  OX_MASTER_ADMIN: admin
+  OX_MASTER_PASSWORD: a668fd4876523acbfb62b5bd5ff0b6ff5dac6d28
+  OX_SMTP_SERVER: smtp://127.0.0.1:587
+  OX_SOAP_SERVER: https://webmail.opendesk.apps.digilab.network
+  PROVISIONING_API_BASE_URL: http://ums-provisioning-api
+  PROVISIONING_API_USERNAME: ox-connector
+  wait-for-api.sh: |-
+    #!/bin/bash
+    until curl -s ${PROVISIONING_API_BASE_URL} > /dev/null; do
+      echo "Waiting for API"
+      sleep 2
+    done
+
+    echo "Success, the Provisioning API is available"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: ox-connector
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ox-connector
+    helm.sh/chart: ox-connector-0.14.5
+  name: ox-connector
+---
+# Source: ox-connector/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ox-connector
+  labels:
+    app.kubernetes.io/name: ox-connector
+    helm.sh/chart: ox-connector-0.14.5
+    app.kubernetes.io/instance: ox-connector
+    app.kubernetes.io/managed-by: Helm
+spec:
+  serviceName: ox-connector
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ox-connector
+      app.kubernetes.io/instance: ox-connector
+  template:
+    metadata:
+      annotations:
+        checksum/config: a47aaa992203ca9dde0525c543d73c6215c3d794a91016319363a8f957657057
+        checksum/secret: 107fada84d654a45b51e8255a7763dcb4233672a9a049adfc7d18a1c81787d54
+      labels:
+        app.kubernetes.io/name: ox-connector
+        app.kubernetes.io/instance: ox-connector
+    spec:
+      serviceAccountName: ox-connector
+      securityContext: {}
+      initContainers:
+      - name: wait-for-api
+        command: [/bin/bash, /scripts/wait-for-api.sh]
+
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/wait-for-dependency:0.26.0@sha256:a31fde86bf21c597a31356fe492ab7e7a03a89282ca215eb7100763d6eb96b6b
+        imagePullPolicy: IfNotPresent
+
+        envFrom:
+        - configMapRef:
+            name: ox-connector
+        volumeMounts:
+        - name: wait-for-api
+          mountPath: /scripts
+        resources: {}
+      containers:
+      - name: ox-connector
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - CHOWN
+            - DAC_OVERRIDE
+            - FOWNER
+            - FSETID
+            - KILL
+            - SETGID
+            - SETUID
+            - SETPCAP
+            - NET_BIND_SERVICE
+            - SYS_CHROOT
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image:
+          registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ox-connector-standalone:0.14.5@sha256:0b7816e3c8eca1949d3adc8c19d64394a862cbe478a3c51c6d18e546f02aea3d
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: ox-connector
+        - secretRef:
+            name: ox-connector
+        volumeMounts:
+        - name: ox-connector-ox-contexts
+          mountPath: /etc/ox-secrets
+        - name: ox-connector-appcenter
+          mountPath: /var/lib/univention-appcenter/apps/ox-connector
+        resources:
+          limits:
+            cpu: 99
+            memory: 512Mi
+          requests:
+            cpu: 0.1
+            memory: 64Mi
+      volumes:
+      - name: wait-for-api
+        configMap:
+          name: ox-connector
+  volumeClaimTemplates:
+  - metadata:
+      name: ox-connector-ox-contexts
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 1Gi
+  - metadata:
+      name: ox-connector-appcenter
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 1Gi

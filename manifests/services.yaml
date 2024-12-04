@@ -1,0 +1,2517 @@
+# Source: opendesk-home/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opendesk-home
+  labels:
+    app.kubernetes.io/name: opendesk-home
+    helm.sh/chart: opendesk-home-1.0.2
+    app.kubernetes.io/instance: opendesk-home
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ~* "^/$" {
+        return 302 https://portal.opendesk.apps.digilab.network;
+      }
+    nginx.org/server-snippets: |
+      location ~* "^/$" {
+        return 302 https://portal.opendesk.apps.digilab.network;
+      }
+    haproxy.org/request-redirect: https://portal.opendesk.apps.digilab.network
+    haproxy-ingress.github.io/redirect-to: https://portal.opendesk.apps.digilab.network
+spec:
+  tls:
+  - hosts:
+    - opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+  rules:
+  - host: opendesk.apps.digilab.network
+---
+# Source: opendesk-certificates/templates/certificate.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: opendesk-certificates
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    app.kubernetes.io/name: opendesk-certificates
+    helm.sh/chart: opendesk-certificates-2.1.3
+    app.kubernetes.io/instance: opendesk-certificates
+    app.kubernetes.io/managed-by: Helm
+spec:
+  dnsNames:
+  - opendesk.apps.digilab.network
+  - office.opendesk.apps.digilab.network
+  - pad.opendesk.apps.digilab.network
+  - chat.opendesk.apps.digilab.network
+  - ics.opendesk.apps.digilab.network
+  - meet.opendesk.apps.digilab.network
+  - id.opendesk.apps.digilab.network
+  - matrix-neoboard-widget.opendesk.apps.digilab.network
+  - matrix-neochoice-widget.opendesk.apps.digilab.network
+  - matrix-neodatefix-bot.opendesk.apps.digilab.network
+  - matrix-neodatefix-widget.opendesk.apps.digilab.network
+  - objectstore.opendesk.apps.digilab.network
+  - objectstore-ui.opendesk.apps.digilab.network
+  - files.opendesk.apps.digilab.network
+  - portal.opendesk.apps.digilab.network
+  - projects.opendesk.apps.digilab.network
+  - webmail.opendesk.apps.digilab.network
+  - matrix.opendesk.apps.digilab.network
+  - matrix-federation.opendesk.apps.digilab.network
+  - whiteboard.opendesk.apps.digilab.network
+  - wiki.opendesk.apps.digilab.network
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+  secretName: opendesk-certificates-tls
+---
+# Source: redis/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+automountServiceAccountToken: true
+metadata:
+  name: redis
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.6.1
+---
+# Source: redis/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-configuration
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.6.1
+data:
+  redis.conf: |-
+    # User-supplied common configuration:
+    # Enable AOF https://redis.io/topics/persistence#append-only-file
+    appendonly yes
+    # Disable RDB persistence, AOF persistence already enabled.
+    save ""
+    # End of common configuration
+  master.conf: |-
+    dir /data
+    # User-supplied master configuration:
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    # End of master configuration
+  replica.conf: |-
+    dir /data
+    # User-supplied replica configuration:
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    # End of replica configuration
+---
+# Source: redis/templates/health-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-health
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.6.1
+data:
+  ping_readiness_local.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    [[ -n "$REDIS_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_PASSWORD"
+    response=$(
+      timeout -s 15 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_liveness_local.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    [[ -n "$REDIS_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_PASSWORD"
+    response=$(
+      timeout -s 15 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    responseFirstWord=$(echo $response | head -n1 | awk '{print $1;}')
+    if [ "$response" != "PONG" ] && [ "$responseFirstWord" != "LOADING" ] && [ "$responseFirstWord" != "MASTERDOWN" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_readiness_master.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_MASTER_PASSWORD_FILE ]] && export REDIS_MASTER_PASSWORD="$(< "${REDIS_MASTER_PASSWORD_FILE}")"
+    [[ -n "$REDIS_MASTER_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_MASTER_PASSWORD"
+    response=$(
+      timeout -s 15 $1 \
+      redis-cli \
+        -h $REDIS_MASTER_HOST \
+        -p $REDIS_MASTER_PORT_NUMBER \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_liveness_master.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_MASTER_PASSWORD_FILE ]] && export REDIS_MASTER_PASSWORD="$(< "${REDIS_MASTER_PASSWORD_FILE}")"
+    [[ -n "$REDIS_MASTER_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_MASTER_PASSWORD"
+    response=$(
+      timeout -s 15 $1 \
+      redis-cli \
+        -h $REDIS_MASTER_HOST \
+        -p $REDIS_MASTER_PORT_NUMBER \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    responseFirstWord=$(echo $response | head -n1 | awk '{print $1;}')
+    if [ "$response" != "PONG" ] && [ "$responseFirstWord" != "LOADING" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_readiness_local_and_master.sh: |-
+    script_dir="$(dirname "$0")"
+    exit_status=0
+    "$script_dir/ping_readiness_local.sh" $1 || exit_status=$?
+    "$script_dir/ping_readiness_master.sh" $1 || exit_status=$?
+    exit $exit_status
+  ping_liveness_local_and_master.sh: |-
+    script_dir="$(dirname "$0")"
+    exit_status=0
+    "$script_dir/ping_liveness_local.sh" $1 || exit_status=$?
+    "$script_dir/ping_liveness_master.sh" $1 || exit_status=$?
+    exit $exit_status
+---
+# Source: redis/templates/scripts-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-scripts
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.6.1
+data:
+  start-master.sh: |
+    #!/bin/bash
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    if [[ -f /opt/bitnami/redis/mounted-etc/master.conf ]];then
+        cp /opt/bitnami/redis/mounted-etc/master.conf /opt/bitnami/redis/etc/master.conf
+    fi
+    if [[ -f /opt/bitnami/redis/mounted-etc/redis.conf ]];then
+        cp /opt/bitnami/redis/mounted-etc/redis.conf /opt/bitnami/redis/etc/redis.conf
+    fi
+    ARGS=("--port" "${REDIS_PORT}")
+    ARGS+=("--requirepass" "${REDIS_PASSWORD}")
+    ARGS+=("--masterauth" "${REDIS_PASSWORD}")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/master.conf")
+    exec redis-server "${ARGS[@]}"
+---
+# Source: redis/templates/headless-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-headless
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.6.1
+  annotations:
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: tcp-redis
+    port: 6379
+    targetPort: redis
+  selector:
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/name: redis
+---
+# Source: redis/templates/master/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-master
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.6.1
+    app.kubernetes.io/component: master
+spec:
+  type: ClusterIP
+  internalTrafficPolicy: Cluster
+  sessionAffinity: None
+  ports:
+  - name: tcp-redis
+    port: 6379
+    targetPort: redis
+    nodePort:
+  selector:
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: master
+---
+# Source: redis/templates/master/application.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-master
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.6.1
+    app.kubernetes.io/component: master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: redis
+      app.kubernetes.io/name: redis
+      app.kubernetes.io/component: master
+  serviceName: redis-headless
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: redis
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/version: 7.2.3
+        helm.sh/chart: redis-18.6.1
+        app.kubernetes.io/component: master
+      annotations:
+        checksum/configmap: 86bcc953bb473748a3d3dc60b7c11f34e60c93519234d4c37f42e22ada559d47
+        checksum/health: aff24913d801436ea469d8d374b2ddb3ec4c43ee7ab24663d5f8ff1a1b6991a9
+        checksum/scripts: 560c33ff34d845009b51830c332aa05fa211444d1877d3526d3599be7543aaa5
+        checksum/secret: 299c15f62056fd8c3029c700bbfac2d627b8b2972dfe528172e9cd02e8f3b77f
+    spec:
+      securityContext:
+        fsGroup: 1001
+      serviceAccountName: redis
+      automountServiceAccountToken: true
+      affinity:
+        podAffinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: redis
+                  app.kubernetes.io/name: redis
+                  app.kubernetes.io/component: master
+              topologyKey: kubernetes.io/hostname
+            weight: 1
+        nodeAffinity:
+      enableServiceLinks: true
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: redis
+        image: 
+          registry-1.docker.io/bitnami/redis:7.2.3-debian-11-r2@sha256:9ac3bbf7740969d32689e360ddcfa5f672538c47f6f6cf296173c3078de0edf2
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        command:
+        - /bin/bash
+        args:
+        - -c
+        - /opt/bitnami/scripts/start-scripts/start-master.sh
+        env:
+        - name: BITNAMI_DEBUG
+          value: 'false'
+        - name: REDIS_REPLICATION_MODE
+          value: master
+        - name: ALLOW_EMPTY_PASSWORD
+          value: no
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis
+              key: redis-password
+        - name: REDIS_TLS_ENABLED
+          value: no
+        - name: REDIS_PORT
+          value: '6379'
+        ports:
+        - name: redis
+          containerPort: 6379
+        livenessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+            # One second longer than command timeout should prevent generation of zombie processes.
+          timeoutSeconds: 6
+          successThreshold: 1
+          failureThreshold: 5
+          exec:
+            command:
+            - sh
+            - -c
+            - /health/ping_liveness_local.sh 5
+        readinessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 5
+          exec:
+            command:
+            - sh
+            - -c
+            - /health/ping_readiness_local.sh 1
+        resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
+          requests:
+            cpu: 0.1
+            memory: 32Mi
+        volumeMounts:
+        - name: start-scripts
+          mountPath: /opt/bitnami/scripts/start-scripts
+        - name: health
+          mountPath: /health
+        - name: redis-data
+          mountPath: /data
+        - name: config
+          mountPath: /opt/bitnami/redis/mounted-etc
+        - name: redis-tmp-conf
+          mountPath: /opt/bitnami/redis/etc/
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: start-scripts
+        configMap:
+          name: redis-scripts
+          defaultMode: 0755
+      - name: health
+        configMap:
+          name: redis-health
+          defaultMode: 0755
+      - name: config
+        configMap:
+          name: redis-configuration
+      - name: redis-tmp-conf
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: redis-data
+      labels:
+        app.kubernetes.io/instance: redis
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/component: master
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: managed
+---
+# Source: memcached/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+automountServiceAccountToken: true
+metadata:
+  name: memcached
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: memcached
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: memcached
+    app.kubernetes.io/version: 1.6.22
+    helm.sh/chart: memcached-6.7.1
+---
+# Source: memcached/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: memcached
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: memcached
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: memcached
+    app.kubernetes.io/version: 1.6.22
+    helm.sh/chart: memcached-6.7.1
+spec:
+  type: ClusterIP
+  ports:
+  - name: memcache
+    port: 11211
+    targetPort: memcache
+    nodePort:
+  selector:
+    app.kubernetes.io/instance: memcached
+    app.kubernetes.io/name: memcached
+---
+# Source: memcached/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memcached
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: memcached
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: memcached
+    app.kubernetes.io/version: 1.6.22
+    helm.sh/chart: memcached-6.7.1
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: memcached
+      app.kubernetes.io/name: memcached
+  replicas: 1
+  strategy:
+    rollingUpdate: {}
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: memcached
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: memcached
+        app.kubernetes.io/version: 1.6.22
+        helm.sh/chart: memcached-6.7.1
+      annotations:
+    spec:
+      affinity:
+        podAffinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: memcached
+                  app.kubernetes.io/name: memcached
+              topologyKey: kubernetes.io/hostname
+            weight: 1
+        nodeAffinity:
+      securityContext:
+        fsGroup: 1001
+      serviceAccountName: memcached
+      containers:
+      - name: memcached
+        image: 
+          registry-1.docker.io/bitnami/memcached:1.6.21-debian-11-r107@sha256:247ec29efd6030960047a623aef025021154662edf6b6d6e88c97936f164d99d
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        env:
+        - name: BITNAMI_DEBUG
+          value: 'false'
+        - name: MEMCACHED_PORT_NUMBER
+          value: '11211'
+        ports:
+        - name: memcache
+          containerPort: 11211
+        livenessProbe:
+          failureThreshold: 6
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+          tcpSocket:
+            port: memcache
+        readinessProbe:
+          failureThreshold: 6
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 3
+          tcpSocket:
+            port: memcache
+        resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
+          requests:
+            cpu: 0.1
+            memory: 32Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+
+---
+# Source: postgresql/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: postgresql
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-2.1.1
+    app.kubernetes.io/instance: postgresql
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: false
+---
+# Source: postgresql/templates/configmap.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: postgresql
+  labels:
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-2.1.1
+    app.kubernetes.io/instance: postgresql
+    app.kubernetes.io/managed-by: Helm
+data:
+---
+# Source: postgresql/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-2.1.1
+    app.kubernetes.io/instance: postgresql
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+  - name: postgresql
+    port: 5432
+    targetPort: postgresql
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: postgresql
+---
+# Source: postgresql/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-2.1.1
+    app.kubernetes.io/instance: postgresql
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  serviceName: postgresql
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql
+      app.kubernetes.io/instance: postgresql
+  template:
+    metadata:
+      annotations:
+        argocd.argoproj.io/hook: PostSync
+        argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+      labels:
+        app.kubernetes.io/name: postgresql
+        helm.sh/chart: postgresql-2.1.1
+        app.kubernetes.io/instance: postgresql
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: postgresql
+      terminationGracePeriodSeconds: 120
+      hostNetwork: false
+      hostIPC: false
+      containers:
+      - name: postgresql
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image: 
+          registry-1.docker.io/library/postgres:15.4-alpine3.18@sha256:f36c528a2dc8747ea40b4cb8578da69fa75c5063fd6a71dcea3e3b2a6404ff7b
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: POSTGRES_PASSWORD
+          value: a826fedc7de54b7b51fef95697c7161a6cbb223a
+        - name: POSTGRES_USER
+          value: postgres
+        - name: PGPORT
+          value: '5432'
+        - name: PGDATA
+          value: /mnt/postgresql/data
+        ports:
+        - name: postgresql
+          containerPort: 5432
+          protocol: TCP
+        startupProbe:
+          failureThreshold: 15
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
+        livenessProbe:
+          failureThreshold: 6
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
+        readinessProbe:
+          failureThreshold: 6
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: var-run-postgresql
+          mountPath: /var/run/postgresql
+        - name: data
+          mountPath: /mnt/postgresql
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: var-run-postgresql
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: managed
+---
+# Source: postgresql/templates/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgresql-bootstrap
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-2.1.1
+    app.kubernetes.io/instance: postgresql
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 60
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgresql
+        helm.sh/chart: postgresql-2.1.1
+        app.kubernetes.io/instance: postgresql
+        app.kubernetes.io/managed-by: Helm
+      annotations:
+    spec:
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: postgresql
+      containers:
+      - name: psql
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image: 
+          registry-1.docker.io/library/postgres:15.4-alpine3.18@sha256:f36c528a2dc8747ea40b4cb8578da69fa75c5063fd6a71dcea3e3b2a6404ff7b
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - /mnt/bootstrap/init-wait.sh && /mnt/bootstrap/init-user.sh && /mnt/bootstrap/init-db.sh
+        volumeMounts:
+        - mountPath: /mnt/bootstrap/
+          name: bootstrap
+          readOnly: true
+        env:
+        - name: PGHOST
+          value: postgresql
+        - name: PGPORT
+          value: '5432'
+        - name: PGUSER
+          value: postgres
+        - name: PGPASSWORD
+          value: a826fedc7de54b7b51fef95697c7161a6cbb223a
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+      volumes:
+      - name: bootstrap
+        secret:
+          secretName: postgresql-job
+          defaultMode: 0550
+      restartPolicy: Never
+  backoffLimit: 4
+---
+# Source: mariadb/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mariadb
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-2.3.1
+    app.kubernetes.io/instance: mariadb
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: false
+---
+# Source: mariadb/templates/configmap.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: mariadb
+  labels:
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-2.3.1
+    app.kubernetes.io/instance: mariadb
+    app.kubernetes.io/managed-by: Helm
+data:
+---
+# Source: mariadb/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-2.3.1
+    app.kubernetes.io/instance: mariadb
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+  - name: mariadb
+    port: 3306
+    targetPort: mariadb
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: mariadb
+    app.kubernetes.io/instance: mariadb
+---
+# Source: mariadb/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mariadb
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-2.3.1
+    app.kubernetes.io/instance: mariadb
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  serviceName: mariadb
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mariadb
+      app.kubernetes.io/instance: mariadb
+  template:
+    metadata:
+      annotations:
+        argocd.argoproj.io/hook: PostSync
+        argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+      labels:
+        app.kubernetes.io/name: mariadb
+        helm.sh/chart: mariadb-2.3.1
+        app.kubernetes.io/instance: mariadb
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: mariadb
+      terminationGracePeriodSeconds: 120
+      hostNetwork: false
+      hostIPC: false
+      containers:
+      - name: mariadb
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image: 
+          registry-1.docker.io/library/mariadb:10.5@sha256:aa1ccc18000c32d1f39ac0b055117b27bffd93e622ec961d682de40fe2a1a95f
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MARIADB_ROOT_PASSWORD
+          value: 6c3e5177d1196ce1c7e94a3ed70d4536916bc46b
+        ports:
+        - name: mariadb
+          containerPort: 3306
+          protocol: TCP
+        startupProbe:
+          failureThreshold: 15
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - mariadb-admin status -uroot -p"${MARIADB_ROOT_PASSWORD}"
+        livenessProbe:
+          failureThreshold: 6
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - mariadb-admin status -uroot -p"${MARIADB_ROOT_PASSWORD}"
+        readinessProbe:
+          failureThreshold: 6
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - mariadb-admin status -uroot -p"${MARIADB_ROOT_PASSWORD}"
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 384Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: run-mysqld
+          mountPath: /run/mysqld
+        - name: data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: run-mysqld
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: managed
+---
+# Source: mariadb/templates/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mariadb-bootstrap
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-2.3.1
+    app.kubernetes.io/instance: mariadb
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 60
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mariadb
+        helm.sh/chart: mariadb-2.3.1
+        app.kubernetes.io/instance: mariadb
+        app.kubernetes.io/managed-by: Helm
+      annotations:
+    spec:
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: mariadb
+      containers:
+      - name: mariadb
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image: 
+          registry-1.docker.io/library/mariadb:10.5@sha256:aa1ccc18000c32d1f39ac0b055117b27bffd93e622ec961d682de40fe2a1a95f
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/bash
+        - -c
+        - /mnt/bootstrap/init-wait.sh && /mnt/bootstrap/init-user.sh < /mnt/bootstrap/init-user-data.sql
+          && /mnt/bootstrap/init-db.sh
+        volumeMounts:
+        - mountPath: /mnt/bootstrap/
+          name: bootstrap
+          readOnly: true
+        env:
+        - name: MARIADB_HOST
+          value: mariadb
+        - name: MARIADB_ROOT_PASSWORD
+          value: 6c3e5177d1196ce1c7e94a3ed70d4536916bc46b
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 384Mi
+      volumes:
+      - name: bootstrap
+        secret:
+          secretName: mariadb-job
+          defaultMode: 0550
+      restartPolicy: Never
+  backoffLimit: 4
+---
+# Source: postfix/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: postfix
+  labels:
+    app.kubernetes.io/name: postfix
+    helm.sh/chart: postfix-2.3.0
+    app.kubernetes.io/instance: postfix
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: true
+---
+# Source: postfix/templates/configmap-overrides.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: postfix-overrides
+  labels:
+    app.kubernetes.io/name: postfix
+    helm.sh/chart: postfix-2.3.0
+    app.kubernetes.io/instance: postfix
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: postfix
+data:
+  sasl_passwd.map: |
+    :
+---
+# Source: postfix/templates/configmap.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: postfix-config
+  labels:
+    app.kubernetes.io/name: postfix
+    helm.sh/chart: postfix-2.3.0
+    app.kubernetes.io/instance: postfix
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: postfix
+data:
+  master.cf: |
+    # service type  private unpriv  chroot  wakeup  maxproc command + args
+    smtp      inet  n       -       n       -       200       smtpd
+        -o smtpd_client_connection_count_limit=15
+        -o smtpd_proxy_options=speed_adjust
+        -o smtpd_recipient_restrictions=
+        -o smtpd_relay_restrictions=permit_mynetworks,permit_sasl_authenticated,reject_unauth_destination
+        -o smtpd_sender_restrictions=
+        -o smtpd_client_restrictions=
+
+    submission inet n       -       n       -       -       smtpd
+        -o syslog_name=postfix/submission
+        -o smtpd_tls_security_level=encrypt
+        -o smtpd_sasl_auth_enable=yes
+        -o smtpd_reject_unlisted_recipient=no
+        -o smtpd_recipient_restrictions=permit_sasl_authenticated,reject
+        -o smtpd_client_connection_count_limit=15
+        -o smtpd_proxy_options=speed_adjust
+
+    pickup    unix  n       -       n       60      1       pickup
+    cleanup   unix  n       -       n       -       0       cleanup
+    qmgr      unix  n       -       n       300     1       qmgr
+    tlsmgr    unix  -       -       n       1000?   1       tlsmgr
+    rewrite   unix  -       -       n       -       -       trivial-rewrite
+    bounce    unix  -       -       n       -       0       bounce
+    defer     unix  -       -       n       -       0       bounce
+    trace     unix  -       -       n       -       0       bounce
+    verify    unix  -       -       n       -       1       verify
+    flush     unix  n       -       n       1000?   0       flush
+    proxymap  unix  -       -       n       -       -       proxymap
+    proxywrite unix -       -       n       -       1       proxymap
+    smtp      unix  -       -       n       -       -       smtp
+    relay     unix  -       -       n       -       -       smtp
+    showq     unix  n       -       n       -       -       showq
+    error     unix  -       -       n       -       -       error
+    retry     unix  -       -       n       -       -       error
+    discard   unix  -       -       n       -       -       discard
+    local     unix  -       n       n       -       -       local
+    virtual   unix  -       n       n       -       -       virtual
+    lmtp      unix  -       -       n       -       -       lmtp
+    anvil     unix  -       -       n       -       1       anvil
+    scache    unix  -       -       n       -       1       scache
+    postlog   unix-dgram n  -       n       -       1       postlogd
+
+    lmtps     unix  -       -       n       -       -       lmtp
+        -o lmtp_use_tls=yes
+        -o lmtp_enforce_tls=yes
+        -o lmtp_tls_mandatory_protocols=!SSLv2,!SSLv3
+        -o lmtp_tls_protocols=!SSLv2,!SSLv3
+        -o lmtp_tls_mandatory_ciphers=high
+        -o lmtp_tls_ciphers=high
+        -o lmtp_send_xforward_command=yes
+        -o lmtp_tls_security_level=encrypt
+        -o lmtp_tls_note_starttls_offer=yes
+  main.cf: |
+    mydomain = opendesk.apps.digilab.network
+    myhostname = postfix
+    myorigin = $mydomain
+    inet_protocols = ipv4
+
+    # Message size limit
+    message_size_limit = 50000000
+
+    # Relayed networks
+    mynetworks = 127.0.0.1/32 [::1]/128 10.0.0.0/8
+
+    # Empty alias list to override the configuration variable and disable NIS
+    alias_maps =
+
+    # Only accept virtual emails
+    mydestination = $myhostname, localhost.$mydomain, localhost
+
+    # What mechanisms the Postfix lmtp/smtp client uses to look up a host's IP address
+    lmtp_host_lookup = native
+    smtp_host_lookup = native
+
+    # Relayhost if any is configured
+    relayhost = 
+
+    content_filter = 
+
+    smtp_sasl_auth_enable = yes
+    smtp_sasl_password_maps = lmdb:/etc/postfix/sasl_passwd.map
+    smtp_sasl_security_options = 
+    smtp_use_tls = yes
+    smtp_tls_CAfile = 
+    smtp_tls_mandatory_protocols = !SSLv2, !SSLv3
+    smtp_tls_session_cache_database = lmdb:/var/lib/postfix/smtp_scache
+
+    virtual_mailbox_domains = opendesk.apps.digilab.network
+    virtual_transport = lmtps:dovecot:24
+    transport_maps = 
+
+    ###############
+    # Restrictions
+    ###############
+
+    # Delay all rejects until all information can be logged
+    smtpd_delay_reject = yes
+
+    # Allowed senders are: the user or one of the alias destinations
+    smtpd_sender_login_maps = $virtual_alias_maps
+
+    # Helo restrictions are specified for smtp only in master.cf
+    smtpd_helo_required = yes
+
+    # Sender restrictions
+    smtpd_sender_restrictions =
+       permit_mynetworks,
+       reject_non_fqdn_sender,
+       reject_unknown_sender_domain,
+       reject_unlisted_sender,
+       reject_sender_login_mismatch,
+       permit
+
+    # Recipient restrictions:
+    smtpd_recipient_restrictions =
+       reject_unauth_pipelining,
+       reject_non_fqdn_recipient,
+       reject_unknown_recipient_domain,
+       permit_mynetworks,
+       permit
+
+    # Relay restrictions
+    smtpd_relay_restrictions =
+       permit_mynetworks,
+       permit_sasl_authenticated,
+       reject_unauth_destination
+
+    smtpd_sasl_auth_enable = no
+    smtpd_sasl_path = inet:dovecot:3659
+    smtpd_sasl_security_options = noanonymous
+    smtpd_sasl_type = dovecot
+    smtpd_use_tls = yes
+    smtpd_tls_mandatory_protocols = !SSLv2, !SSLv3
+    smtpd_tls_cert_file = /etc/tls/tls.crt
+    smtpd_tls_key_file = /etc/tls/tls.key
+    smtpd_tls_session_cache_database = lmdb:/var/lib/postfix/smtpd_scache
+
+    smtpd_milters = inet:clamav-simple:7357
+    milter_default_action = accept
+
+    ###############
+    # Extra Settings
+    ###############
+    maillog_file = /dev/stdout
+---
+# Source: postfix/templates/persistentvolumeclaim.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postfix
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: managed
+---
+# Source: postfix/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postfix
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: postfix
+    helm.sh/chart: postfix-2.3.0
+    app.kubernetes.io/instance: postfix
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: postfix
+spec:
+  type: ClusterIP
+  ports:
+  - port: 25
+    targetPort: 25
+    protocol: TCP
+    name: smtp
+  - port: 587
+    targetPort: 587
+    protocol: TCP
+    name: smtps
+  selector:
+    app.kubernetes.io/name: postfix
+    app.kubernetes.io/instance: postfix
+---
+# Source: postfix/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postfix
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: postfix
+    helm.sh/chart: postfix-2.3.0
+    app.kubernetes.io/instance: postfix
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: postfix
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postfix
+      app.kubernetes.io/instance: postfix
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        checksum/configmapoverrides: 7e1257ac47b8fe7c551018f2467f85b520ce7a226f73bcf5eb7764899f29cd5b
+        checksum/configmapnamespacewatcherbin: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+      labels:
+        app.kubernetes.io/name: postfix
+        helm.sh/chart: postfix-2.3.0
+        app.kubernetes.io/instance: postfix
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      imagePullSecrets:
+      securityContext:
+        fsGroup: 101
+      serviceAccountName: postfix
+      volumes:
+      - name: tls
+        secret:
+          secretName: opendesk-certificates-tls
+      - name: spool-postfix
+        persistentVolumeClaim:
+          claimName: postfix
+      - name: config-master
+        configMap:
+          name: postfix-config
+          items:
+          - key: master.cf
+            path: master.cf
+      - name: config-main
+        configMap:
+          name: postfix-config
+          items:
+          - key: main.cf
+            path: main.cf
+      - name: overrides
+        configMap:
+          name: postfix-overrides
+      containers:
+      - name: postfix
+        securityContext:
+          allowPrivilegeEscalation: true
+          capabilities: {}
+          privileged: true
+          readOnlyRootFilesystem: false
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image: 
+          registry.opencode.de/bmi/opendesk/components/platform-development/images/postfix:2.0.0@sha256:5b2432dc09318db172a593bca860887ee9d713b9987db64f8b265f3e08a1d374
+        imagePullPolicy: IfNotPresent
+          # for debugging use:
+          #command: ["tail", "-f", "/dev/null"]
+        env:
+        ports:
+        - name: smtp
+          containerPort: 25
+          protocol: TCP
+        - name: smtps
+          containerPort: 587
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 25
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 10
+          successThreshold: 1
+        livenessProbe:
+          tcpSocket:
+            port: 25
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 10
+          successThreshold: 1
+        resources:
+          limits:
+            cpu: 99
+            memory: 128Mi
+          requests:
+            cpu: 0.1
+            memory: 16Mi
+        volumeMounts:
+        - name: config-master
+          mountPath: /etc/postfix/master.cf
+          subPath: master.cf
+        - name: config-main
+          mountPath: /etc/postfix/main.cf
+          subPath: main.cf
+        - name: tls
+          mountPath: /etc/tls
+        - name: spool-postfix
+          mountPath: /var/spool/postfix
+        - name: overrides
+          mountPath: /overrides
+---
+# Source: clamav-simple/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: clamav-simple
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: clamav-simple
+    helm.sh/chart: clamav-simple-4.0.6
+    app.kubernetes.io/instance: clamav-simple
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: false
+---
+# Source: clamav-simple/templates/configmap.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: clamav-simple
+  labels:
+    app.kubernetes.io/name: clamav-simple
+    helm.sh/chart: clamav-simple-4.0.6
+    app.kubernetes.io/instance: clamav-simple
+    app.kubernetes.io/managed-by: Helm
+data:
+  clamd.conf: |
+    DatabaseDirectory /var/lib/clamav
+    LogFileUnlock no
+    LogFileMaxSize 1M
+    LogTime no
+    LogVerbose no
+    LogSyslog yes
+    LogFacility LOG_LOCAL6
+    LogRotate no
+    LogClean no
+    PreludeEnable no
+    PreludeAnalyzerName ClamAV
+    ExtendedDetectionInfo yes
+    PidFile /tmp/clamd.pid
+    TemporaryDirectory /var/tmp
+    OfficialDatabaseOnly no
+    LocalSocket /tmp/clamd.sock
+    LocalSocketMode 660
+    FixStaleSocket yes
+    TCPSocket 3310
+    TCPAddr 0.0.0.0
+    MaxConnectionQueueLength 200
+    StreamMaxLength 100M
+    StreamMinPort 1024
+    StreamMaxPort 2048
+    MaxThreads 10
+    ReadTimeout 120
+    CommandReadTimeout 30
+    SendBufTimeout 500
+    MaxQueue 100
+    IdleTimeout 30
+    MaxDirectoryRecursion 15
+    FollowDirectorySymlinks no
+    FollowFileSymlinks no
+    CrossFilesystems yes
+    SelfCheck 120
+    ConcurrentDatabaseReload yes
+    VirusEvent no
+    User clamav
+    ExitOnOOM yes
+    Foreground yes
+    Debug no
+    LeaveTemporaryFiles no
+    GenerateMetadataJson yes
+    AllowAllMatchScan yes
+    DetectPUA no
+    ForceToDisk yes
+    DisableCache no
+    HeuristicAlerts yes
+    HeuristicScanPrecedence no
+    AlertBrokenExecutables yes
+    AlertBrokenMedia yes
+    AlertEncrypted no
+    AlertEncryptedArchive no
+    AlertEncryptedDoc no
+    AlertOLE2Macros no
+    AlertPhishingSSLMismatch no
+    AlertPhishingCloak no
+    AlertPartitionIntersection no
+    ScanPE yes
+    DisableCertCheck no
+    ScanELF yes
+    ScanOLE2 yes
+    ScanPDF yes
+    ScanSWF yes
+    ScanXMLDOCS yes
+    ScanHWP3 yes
+    ScanMail yes
+    ScanPartialMessages no
+    PhishingSignatures yes
+    PhishingScanURLs yes
+    StructuredDataDetection no
+    StructuredMinCreditCardCount 3
+    StructuredCCOnly no
+    StructuredMinSSNCount 3
+    StructuredSSNFormatNormal yes
+    StructuredSSNFormatStripped no
+    ScanHTML yes
+    ScanArchive yes
+    MaxScanTime 120000
+    MaxScanSize 400M
+    MaxFileSize 100M
+    MaxRecursion 17
+    MaxFiles 10000
+    MaxEmbeddedPE 40M
+    MaxHTMLNormalize 40M
+    MaxHTMLNoTags 8M
+    MaxScriptNormalize 20M
+    MaxZipTypeRcg 1M
+    MaxPartitions 50
+    MaxIconsPE 100
+    MaxRecHWP3 16
+    PCREMatchLimit 100000
+    PCRERecMatchLimit 2000
+    PCREMaxFileSize 100M
+    AlertExceedsMax no
+    OnAccessMaxFileSize 5M
+    OnAccessMaxThreads 5
+    OnAccessCurlTimeout 5000
+    OnAccessDisableDDD no
+    OnAccessPrevention no
+    OnAccessDenyOnError no
+    OnAccessExtraScanning no
+    OnAccessExcludeRootUID no
+    OnAccessExcludeUname no
+    Bytecode yes
+    BytecodeSecurity TrustSigned
+    BytecodeUnsigned no
+    BytecodeTimeout 10000
+
+  freshclam.conf: |
+    DatabaseDirectory /var/lib/clamav
+    LogFileMaxSize 1M
+    LogTime no
+    LogVerbose no
+    LogSyslog yes
+    LogFacility LOG_LOCAL6
+    LogRotate no
+    DatabaseOwner clamav
+    MaxAttempts 3
+    ScriptedUpdates yes
+    CompressLocalDatabase no
+    NotifyClamd no
+    Foreground yes
+    Debug no
+    ConnectTimeout 30
+    ReceiveTimeout 60
+    Bytecode yes
+    Checks 12
+    DatabaseMirror https://clamavdb.c3sl.ufpr.br
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/badmacro.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/blurl.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/bofhland_cracked_URL.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/bofhland_malware_attach.hdb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/bofhland_malware_URL.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/bofhland_phishing_URL.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/foxhole_filename.cdb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/foxhole_generic.cdb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/foxhole_js.cdb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/foxhole_js.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/hackingteam.hsb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/junk.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/jurlbl.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/jurlbla.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/lott.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/malwarehash.hsb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/phish.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/phishtank.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/porcupine.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/rogue.hdb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/scam.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/shelter.ldb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/spamattach.hdb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/spamimg.hdb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/spear.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/spearl.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/winnow.attachments.hdb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/winnow_bad_cw.hdb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/winnow_extended_malware.hdb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/winnow_extended_malware_links.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/winnow_malware.hdb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/winnow_malware_links.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/winnow_phish_complete_url.ndb
+    DatabaseCustomURL https://ftp.swin.edu.au/sanesecurity/winnow_spam_complete.ndb
+    DatabaseCustomURL https://urlhaus.abuse.ch/downloads/urlhaus.ndb
+
+  clamav-milter.conf: |
+    MilterSocket inet:7357
+    FixStaleSocket yes
+    User clamav
+    ReadTimeout 120
+    Foreground yes
+    TemporaryDirectory /tmp
+    ClamdSocket unix:/tmp/clamd.sock
+    MaxFileSize 25M
+    OnClean Accept
+    OnInfected Quarantine
+    OnFail Defer
+    AddHeader no
+    LogFileUnlock no
+    LogFileMaxSize 1M
+    LogTime no
+    LogVerbose no
+    LogSyslog yes
+    LogFacility LOG_LOCAL6
+    LogRotate no
+    SupportMultipleRecipients yes
+  c-icap.conf: |
+    PidFile /run/c-icap/c-icap.pid
+    acl all src 0.0.0.0/0.0.0.0
+    icap_access allow all
+    client_access allow all
+    Port 1344
+    Timeout 300
+    MaxKeepAliveRequests 100
+    KeepAliveTimeout 600
+    StartServers 1
+    MaxServers 4
+    MinSpareThreads 10
+    MaxSpareThreads 20
+    ThreadsPerChild 10
+    ServerAdmin c-icap-admin
+    ServerName c-icap
+    TmpDir /var/tmp
+    MaxMemObject 131072
+    DebugLevel 1
+    Pipelining on
+    SupportBuggyClients off
+    RemoteProxyUsers off
+    ServerLog /dev/stdout
+    AccessLog /dev/stdout
+    ModulesDir /var/lib/clamav/lib/c_icap
+    ServicesDir /var/lib/clamav/lib/c_icap
+    TemplateDir /var/lib/clamav/share/c_icap/templates/
+    TemplateDefaultLanguage en
+    LoadMagicFile /var/lib/clamav/etc/c-icap.magic
+    RemoteProxyUsers off
+    RemoteProxyUserHeader X-Authenticated-User
+    RemoteProxyUserHeaderEncoded on
+    Service echo srv_echo.so
+    Include virus_scan.conf
+  virus_scan.conf: |
+    Service antivirus_module virus_scan.so
+    ServiceAlias avscan virus_scan?allow204=on&sizelimit=off&mode=simple
+    virus_scan.Allow204Responces on
+    virus_scan.ScanFileTypes TEXT DATA EXECUTABLE ARCHIVE GIF JPEG MSOFFICE
+    virus_scan.SendPercentData 5
+    virus_scan.StartSendPercentDataAfter 2M
+    virus_scan.MaxObjectSize 500M
+    Include clamd_mod.conf
+  clamd_mod.conf: |
+    Module common clamd_mod.so
+    clamd_mod.ClamdSocket /tmp/clamd.sock
+---
+# Source: clamav-simple/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: clamav-simple
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: clamav-simple
+    helm.sh/chart: clamav-simple-4.0.6
+    app.kubernetes.io/instance: clamav-simple
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+  - name: clamd
+    port: 3310
+    targetPort: 3310
+    protocol: TCP
+  - name: icap
+    port: 1344
+    targetPort: 1344
+    protocol: TCP
+  - name: milter
+    port: 7357
+    targetPort: 7357
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: clamav-simple
+    app.kubernetes.io/instance: clamav-simple
+---
+# Source: clamav-simple/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: clamav-simple
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/name: clamav-simple
+    helm.sh/chart: clamav-simple-4.0.6
+    app.kubernetes.io/instance: clamav-simple
+    app.kubernetes.io/managed-by: Helm
+spec:
+  serviceName: clamav-simple
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clamav-simple
+      app.kubernetes.io/instance: clamav-simple
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: f140466c45580b59c5bb65ebdbc7126f93642bb7e6c6406adf40e003032a3586
+      labels:
+        app.kubernetes.io/name: clamav-simple
+        helm.sh/chart: clamav-simple-4.0.6
+        app.kubernetes.io/instance: clamav-simple
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      securityContext:
+        fsGroup: 101
+        fsGroupChangePolicy: Always
+      serviceAccountName: clamav-simple
+      initContainers:
+      - name: chown
+        image: 
+          registry-1.docker.io/clamav/clamav:1.1.1-10_base@sha256:aed8d5a3ef58352c862028fae44241215a50eae0b9acb7ba8892b1edc0a6598f
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: false
+          seccompProfile:
+            type: RuntimeDefault
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - chown -R clamav:clamav /var/lib/clamav
+        volumeMounts:
+        - name: clamav-database
+          mountPath: /var/lib/clamav/
+        resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
+          requests:
+            cpu: 0.1
+            memory: 1.5Gi
+      containers:
+      - name: clamav
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 100
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image: 
+          registry-1.docker.io/clamav/clamav:1.1.1-10_base@sha256:aed8d5a3ef58352c862028fae44241215a50eae0b9acb7ba8892b1edc0a6598f
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: CLAMAV_NO_CLAMD
+          value: 'false'
+        - name: CLAMAV_NO_FRESHCLAMD
+          value: 'false'
+        - name: CLAMAV_NO_MILTERD
+          value: 'false'
+        ports:
+        - name: clamd
+          containerPort: 3310
+          protocol: TCP
+        - name: milter
+          containerPort: 7357
+          protocol: TCP
+        livenessProbe:
+          tcpSocket:
+            port: clamd
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 10
+          successThreshold: 1
+        readinessProbe:
+          tcpSocket:
+            port: clamd
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 10
+          successThreshold: 1
+        resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
+          requests:
+            cpu: 0.1
+            memory: 1.5Gi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/clamav
+        - name: clamav-database
+          mountPath: /var/lib/clamav/
+        - name: tmpfs-run-clamav
+          mountPath: /run/clamav
+        - name: tmpfs-run-lock
+          mountPath: /run/lock
+        - name: tmpfs-var-lock
+          mountPath: /var/lock
+        - name: tmpfs-var-log-clamav-log
+          mountPath: /var/log/clamav/
+        - name: tmpfs-tmp-dir
+          mountPath: /var/tmp
+        - name: tmpfs-tmp
+          mountPath: /tmp
+      - name: icap
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 100
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        image: 
+          registry.opencode.de/bmi/opendesk/components/platform-development/images/clamav-icap:0.5.10@sha256:891f267a6b2a304616854ad2f013dc5d23f6f6c84d535c8b46e76d124fe39b6a
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - |
+          while ! nc -z 127.0.0.1 3310; do
+            echo 'Clamd not responding, please check if clamd is running';
+            sleep 5;
+          done;
+          /var/lib/clamav/bin/c-icap -N -D;
+        env:
+        ports:
+        - name: icap
+          containerPort: 1344
+          protocol: TCP
+        livenessProbe:
+          tcpSocket:
+            port: icap
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 10
+          successThreshold: 1
+        readinessProbe:
+          tcpSocket:
+            port: icap
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 10
+          successThreshold: 1
+        resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
+          requests:
+            cpu: 0.1
+            memory: 1.5Gi
+        volumeMounts:
+        - name: c-icap
+          mountPath: /var/lib/clamav/etc/c-icap.conf
+          subPath: c-icap.conf
+        - name: virus-scan
+          mountPath: /var/lib/clamav/etc/virus_scan.conf
+          subPath: virus_scan.conf
+        - name: clamd-mod
+          mountPath: /var/lib/clamav/etc/clamd_mod.conf
+          subPath: clamd_mod.conf
+        - name: tmpfs-var-run
+          mountPath: /var/run/c-icap
+        - name: tmpfs-tmp
+          mountPath: /tmp
+        - name: tmpfs-tmp-dir
+          mountPath: /var/tmp
+      volumes:
+      - name: config
+        configMap:
+          name: clamav-simple
+      - name: c-icap
+        configMap:
+          name: clamav-simple
+          items:
+          - key: c-icap.conf
+            path: c-icap.conf
+      - name: virus-scan
+        configMap:
+          name: clamav-simple
+          items:
+          - key: virus_scan.conf
+            path: virus_scan.conf
+      - name: clamd-mod
+        configMap:
+          name: clamav-simple
+          items:
+          - key: clamd_mod.conf
+            path: clamd_mod.conf
+      - name: tmpfs-run-clamav
+        emptyDir: {}
+      - name: tmpfs-run-lock
+        emptyDir: {}
+      - name: tmpfs-var-lock
+        emptyDir: {}
+      - name: tmpfs-var-log-clamav-log
+        emptyDir: {}
+      - name: tmpfs-var-run
+        emptyDir:
+      - name: tmpfs-tmp
+        emptyDir:
+      - name: tmpfs-tmp-dir
+        emptyDir:
+          sizeLimit: 1Gi
+  volumeClaimTemplates:
+  - metadata:
+      name: clamav-database
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: managed
+---
+# Source: minio/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: minio
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2023.12.20
+    helm.sh/chart: minio-12.10.11
+automountServiceAccountToken: true
+secrets:
+- name: minio
+---
+# Source: minio/templates/provisioning-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minio-provisioning
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2023.12.20
+    helm.sh/chart: minio-12.10.11
+    app.kubernetes.io/component: minio-provisioning
+data:
+  policy-migrations-bucket-policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": ["s3:*"],
+          "Resource": ["arn:aws:s3:::migrations"]
+        },
+        {
+          "Effect": "Allow",
+          "Action": ["s3:*"],
+          "Resource": ["arn:aws:s3:::migrations/*"]
+        }
+      ]
+    }
+  policy-nextcloud-bucket-policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": ["s3:*"],
+          "Resource": ["arn:aws:s3:::nextcloud"]
+        },
+        {
+          "Effect": "Allow",
+          "Action": ["s3:*"],
+          "Resource": ["arn:aws:s3:::nextcloud/*"]
+        }
+      ]
+    }
+  policy-openproject-bucket-policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": ["s3:*"],
+          "Resource": ["arn:aws:s3:::openproject"]
+        },
+        {
+          "Effect": "Allow",
+          "Action": ["s3:*"],
+          "Resource": ["arn:aws:s3:::openproject/*"]
+        }
+      ]
+    }
+  policy-ums-bucket-policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": ["s3:*"],
+          "Resource": ["arn:aws:s3:::ums"]
+        },
+        {
+          "Effect": "Allow",
+          "Action": ["s3:*"],
+          "Resource": ["arn:aws:s3:::ums/*"]
+        }
+      ]
+    }
+---
+# Source: minio/templates/pvc.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: minio
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2023.12.20
+    helm.sh/chart: minio-12.10.11
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: managed
+---
+# Source: minio/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2023.12.20
+    helm.sh/chart: minio-12.10.11
+spec:
+  type: ClusterIP
+  ports:
+  - name: minio-api
+    port: 9000
+    targetPort: minio-api
+    nodePort:
+  - name: minio-console
+    port: 9001
+    targetPort: minio-console
+    nodePort:
+  selector:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/name: minio
+---
+# Source: minio/templates/standalone/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2023.12.20
+    helm.sh/chart: minio-12.10.11
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: minio
+      app.kubernetes.io/name: minio
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: minio
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: minio
+        app.kubernetes.io/version: 2023.12.20
+        helm.sh/chart: minio-12.10.11
+      annotations:
+        checksum/credentials-secret: ec25b05261cecae27fc418c9d23b0552f02758d5156bf4adac90a1e7476e8792
+    spec:
+      serviceAccountName: minio
+      affinity:
+        podAffinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: minio
+                  app.kubernetes.io/name: minio
+              topologyKey: kubernetes.io/hostname
+            weight: 1
+        nodeAffinity:
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+      - name: minio
+        image: 
+          registry-1.docker.io/bitnami/minio:2023@sha256:bced4f2f9fc48b755ebb3e1b35e76195a978d4331bf2d0c6699dab412d3c0be7
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 0
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
+        env:
+        - name: BITNAMI_DEBUG
+          value: 'false'
+        - name: MINIO_SCHEME
+          value: http
+        - name: MINIO_FORCE_NEW_KEYS
+          value: no
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: minio
+              key: root-user
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: minio
+              key: root-password
+        - name: MINIO_DEFAULT_BUCKETS
+          value: openproject,openxchange,ums,nextcloud
+        - name: MINIO_BROWSER
+          value: on
+        - name: MINIO_PROMETHEUS_AUTH_TYPE
+          value: public
+        - name: MINIO_CONSOLE_PORT_NUMBER
+          value: '9001'
+        envFrom:
+        ports:
+        - name: minio-api
+          containerPort: 9000
+          protocol: TCP
+        - name: minio-console
+          containerPort: 9001
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /minio/health/live
+            port: minio-api
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 5
+        readinessProbe:
+          tcpSocket:
+            port: minio-api
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 5
+        startupProbe:
+          tcpSocket:
+            port: minio-console
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 60
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.25
+            memory: 256Mi
+        volumeMounts:
+        - name: data
+          mountPath: /bitnami/minio/data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: minio
+---
+# Source: minio/templates/api-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-api
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2023.12.20
+    helm.sh/chart: minio-12.10.11
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 4G
+    nginx.org/client-max-body-size: 4G
+spec:
+  rules:
+  - host: objectstore.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: minio
+            port:
+              name: minio-api
+  tls:
+  - hosts:
+    - objectstore.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+# Source: minio/templates/provisioning-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-provisioning
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2023.12.20
+    helm.sh/chart: minio-12.10.11
+    app.kubernetes.io/component: minio-provisioning
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  ttlSecondsAfterFinished: 60
+  parallelism: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/version: 2023.12.20
+        helm.sh/chart: minio-12.10.11
+        app.kubernetes.io/component: minio-provisioning
+    spec:
+      restartPolicy: OnFailure
+      terminationGracePeriodSeconds: 0
+      securityContext:
+        fsGroup: 1001
+      serviceAccountName: minio
+      initContainers:
+      - name: wait-for-available-minio
+        image: 
+          registry-1.docker.io/bitnami/minio:2023@sha256:bced4f2f9fc48b755ebb3e1b35e76195a978d4331bf2d0c6699dab412d3c0be7
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1001
+          seccompProfile:
+            type: RuntimeDefault
+        command:
+        - /bin/bash
+        - -c
+        - |-
+          set -e;
+          echo "Waiting for Minio";
+          wait-for-port \
+            --host=minio \
+            --state=inuse \
+            --timeout=120 \
+            9000;
+          echo "Minio is available";
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.25
+            memory: 256Mi
+      containers:
+      - name: minio
+        image: 
+          registry-1.docker.io/bitnami/minio:2023@sha256:bced4f2f9fc48b755ebb3e1b35e76195a978d4331bf2d0c6699dab412d3c0be7
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1001
+          seccompProfile:
+            type: RuntimeDefault
+        command:
+        - /bin/bash
+        - -c
+        - >-
+          set -e;
+          echo "Start Minio provisioning";
+
+          function attachPolicy() {
+            local tmp=$(mc admin $1 info provisioning $2 | sed -n -e 's/^Policy.*:
+          \(.*\)$/\1/p');
+            IFS=',' read -r -a CURRENT_POLICIES <<< "$tmp";
+            if [[ ! "${CURRENT_POLICIES[*]}" =~ "$3" ]]; then
+              mc admin policy attach provisioning $3 --$1=$2;
+            fi;
+          };
+
+          function detachDanglingPolicies() {
+            local tmp=$(mc admin $1 info provisioning $2 | sed -n -e 's/^Policy.*:
+          \(.*\)$/\1/p');
+            IFS=',' read -r -a CURRENT_POLICIES <<< "$tmp";
+            IFS=',' read -r -a DESIRED_POLICIES <<< "$3";
+            for current in "${CURRENT_POLICIES[@]}"; do
+              if [[ ! "${DESIRED_POLICIES[*]}" =~ "${current}" ]]; then
+                mc admin policy detach provisioning $current --$1=$2;
+              fi;
+            done;
+          }
+
+          function addUsersFromFile() {
+            local username=$(grep -oP '^username=\K.+' $1);
+            local password=$(grep -oP '^password=\K.+' $1);
+            local disabled=$(grep -oP '^disabled=\K.+' $1);
+            local policies_list=$(grep -oP '^policies=\K.+' $1);
+            local set_policies=$(grep -oP '^setPolicies=\K.+' $1);
+
+            mc admin user add provisioning "${username}" "${password}";
+
+            IFS=',' read -r -a POLICIES <<< "${policies_list}";
+            for policy in "${POLICIES[@]}"; do
+              attachPolicy user "${username}" "${policy}";
+            done;
+            if [ "${set_policies}" == "true" ]; then
+              detachDanglingPolicies user "${username}" "${policies_list}";
+            fi;
+
+            local user_status="enable";
+            if [[ "${disabled}" != "" && "${disabled,,}" == "true" ]]; then
+              user_status="disable";
+            fi;
+
+            mc admin user "${user_status}" provisioning "${username}";
+          };
+          mc alias set provisioning $MINIO_SCHEME://minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD;
+
+          mc admin service restart provisioning;
+          mc admin policy create provisioning migrations-bucket-policy /etc/ilm/policy-migrations-bucket-policy.json;
+          mc admin policy create provisioning nextcloud-bucket-policy /etc/ilm/policy-nextcloud-bucket-policy.json;
+          mc admin policy create provisioning openproject-bucket-policy /etc/ilm/policy-openproject-bucket-policy.json;
+          mc admin policy create provisioning ums-bucket-policy /etc/ilm/policy-ums-bucket-policy.json;
+          mc admin user add provisioning migration_user 1ec1787c2808bfe372500d7baf02a6f22d818c30;
+          attachPolicy user migration_user migrations-bucket-policy;
+          detachDanglingPolicies user migration_user "migrations-bucket-policy";
+          mc admin user enable provisioning migration_user;
+          mc admin user add provisioning nextcloud_user b2f7bbbbf78ace98fb9499e1ff1ca3067e72deca;
+          attachPolicy user nextcloud_user nextcloud-bucket-policy;
+          detachDanglingPolicies user nextcloud_user "nextcloud-bucket-policy";
+          mc admin user enable provisioning nextcloud_user;
+          mc admin user add provisioning openproject_user 72c7ef3354e43700c2890d6d53cff57e7371e968;
+          attachPolicy user openproject_user openproject-bucket-policy;
+          detachDanglingPolicies user openproject_user "openproject-bucket-policy";
+          mc admin user enable provisioning openproject_user;
+          mc admin user add provisioning ums_user ad54fe032f857f96b22a1546105235881fddafb0;
+          attachPolicy user ums_user ums-bucket-policy;
+          detachDanglingPolicies user ums_user "ums-bucket-policy";
+          mc admin user enable provisioning ums_user;
+          mc mb provisioning/migrations --ignore-existing  ;
+          mc mb provisioning/nextcloud --ignore-existing  ;
+          mc mb provisioning/openproject --ignore-existing  ;
+          mc mb provisioning/ums --ignore-existing  ;
+
+          mc anonymous set download provisioning/ums/portal-assets;
+
+          echo "End Minio provisioning";
+        env:
+        - name: MINIO_SCHEME
+          value: http
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: minio
+              key: root-user
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: minio
+              key: root-password
+        envFrom:
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.25
+            memory: 256Mi
+        volumeMounts:
+        - name: minio-provisioning
+          mountPath: /etc/ilm
+      volumes:
+      - name: minio-provisioning
+        configMap:
+          name: minio-provisioning
+
