@@ -1,0 +1,84 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    app.kubernetes.io/instance: opendesk-certificates
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-certificates
+    helm.sh/chart: opendesk-certificates-3.1.0
+  name: opendesk-certificates
+spec:
+  dnsNames:
+  - apps.digilab.network
+  - office.apps.digilab.network
+  - pad.apps.digilab.network
+  - chat.apps.digilab.network
+  - ics.apps.digilab.network
+  - meet.apps.digilab.network
+  - id.apps.digilab.network
+  - matrix-neoboard-widget.apps.digilab.network
+  - matrix-neochoice-widget.apps.digilab.network
+  - matrix-neodatefix-bot.apps.digilab.network
+  - matrix-neodatefix-widget.apps.digilab.network
+  - objectstore.apps.digilab.network
+  - objectstore-ui.apps.digilab.network
+  - files.apps.digilab.network
+  - portal.apps.digilab.network
+  - projects.apps.digilab.network
+  - webmail.apps.digilab.network
+  - matrix.apps.digilab.network
+  - matrix-federation.apps.digilab.network
+  - whiteboard.apps.digilab.network
+  - wiki.apps.digilab.network
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+  secretName: opendesk-certificates-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ums-ecdsa-ca-cert
+spec:
+  commonName: apps.digilab.network
+  dnsNames:
+  - apps.digilab.network
+  duration: 87600h0m0s
+  isCA: true
+  issuerRef:
+    kind: Issuer
+    name: ums-ecdsa-ss-issuer
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  renewBefore: 78840h0m0s
+  secretName: ums-ecdsa-ca-secret
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ums-saml
+spec:
+  dnsNames:
+  - ums-umc-server
+  - ums-umc-server.tn-openbsw-opendesk.svc.cluster.local
+  duration: 87600h0m0s
+  issuerRef:
+    kind: Issuer
+    name: ums-ca-issuer
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  renewBefore: 78840h0m0s
+  secretName: ums-saml-tls
+  subject:
+    organizations:
+    - apps.digilab.network
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth

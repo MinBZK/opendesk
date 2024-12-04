@@ -1,0 +1,1682 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.6.1
+  name: redis-headless
+  namespace: tn-openbsw-opendesk
+spec:
+  clusterIP: None
+  ports:
+  - name: tcp-redis
+    port: 6379
+    targetPort: redis
+  selector:
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/name: redis
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: master
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.6.1
+  name: redis-master
+  namespace: tn-openbsw-opendesk
+spec:
+  internalTrafficPolicy: Cluster
+  ports:
+  - name: tcp-redis
+    nodePort: null
+    port: 6379
+    targetPort: redis
+  selector:
+    app.kubernetes.io/component: master
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/name: redis
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: memcached
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: memcached
+    app.kubernetes.io/version: 1.6.22
+    helm.sh/chart: memcached-6.7.1
+  name: memcached
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: memcache
+    nodePort: null
+    port: 11211
+    targetPort: memcache
+  selector:
+    app.kubernetes.io/instance: memcached
+    app.kubernetes.io/name: memcached
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: postgresql
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-2.1.1
+  name: postgresql
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: postgresql
+    port: 5432
+    protocol: TCP
+    targetPort: postgresql
+  selector:
+    app.kubernetes.io/instance: postgresql
+    app.kubernetes.io/name: postgresql
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: mariadb
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-3.0.3
+  name: mariadb
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: mariadb
+    port: 3306
+    protocol: TCP
+    targetPort: mariadb
+  selector:
+    app.kubernetes.io/instance: mariadb
+    app.kubernetes.io/name: mariadb
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: postfix
+    app.kubernetes.io/instance: postfix
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: postfix
+    helm.sh/chart: postfix-2.3.0
+  name: postfix
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: smtp
+    port: 25
+    protocol: TCP
+    targetPort: 25
+  - name: smtps
+    port: 587
+    protocol: TCP
+    targetPort: 587
+  selector:
+    app.kubernetes.io/instance: postfix
+    app.kubernetes.io/name: postfix
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: clamav-simple
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: clamav-simple
+    helm.sh/chart: clamav-simple-4.0.6
+  name: clamav-simple
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: clamd
+    port: 3310
+    protocol: TCP
+    targetPort: 3310
+  - name: icap
+    port: 1344
+    protocol: TCP
+    targetPort: 1344
+  - name: milter
+    port: 7357
+    protocol: TCP
+    targetPort: 7357
+  selector:
+    app.kubernetes.io/instance: clamav-simple
+    app.kubernetes.io/name: clamav-simple
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2023.12.20
+    helm.sh/chart: minio-12.10.11
+  name: minio
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: minio-api
+    nodePort: null
+    port: 9000
+    targetPort: minio-api
+  - name: minio-console
+    nodePort: null
+    port: 9001
+    targetPort: minio-console
+  selector:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/name: minio
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: keycloak
+    helm.sh/chart: keycloak-0.5.2
+  name: ums-keycloak
+  namespace: tn-openbsw-opendesk
+spec:
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: http
+  - name: https
+    port: 8443
+    protocol: TCP
+    targetPort: https
+  - name: ispn
+    port: 7800
+    protocol: TCP
+    targetPort: ispn
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: keycloak
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ums-guardian-authorization-api
+    app.kubernetes.io/version: 2.0.0
+    helm.sh/chart: nubusGuardian-0.14.0
+  name: ums-guardian-authorization-api
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: ums-guardian-authorization-api
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ums-guardian-management-api
+    app.kubernetes.io/version: 2.0.0
+    helm.sh/chart: nubusGuardian-0.14.0
+  name: ums-guardian-management-api
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: ums-guardian-management-api
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ums-guardian-management-ui
+    app.kubernetes.io/version: 2.0.0
+    helm.sh/chart: nubusGuardian-0.14.0
+  name: ums-guardian-management-ui
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: ums-guardian-management-ui
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ums-guardian-open-policy-agent
+    app.kubernetes.io/version: 2.0.0
+    helm.sh/chart: nubusGuardian-0.14.0
+  name: ums-guardian-open-policy-agent
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: ums-guardian-open-policy-agent
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ums-keycloak-extensions-proxy
+    app.kubernetes.io/version: 21.0.1
+    helm.sh/chart: nubusKeycloakExtensions-0.11.0
+  name: ums-keycloak-extensions-proxy
+spec:
+  ports:
+  - name: http
+    port: 8181
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: ums-keycloak-extensions-proxy
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ldap-notifier
+    app.kubernetes.io/version: 14.0.4
+    helm.sh/chart: nubusLdapNotifier-0.25.2
+  name: ums-ldap-notifier
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: notifier
+    port: 6669
+    protocol: TCP
+    targetPort: notifier
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: ldap-notifier
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-ldap-server
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ldap-server
+    helm.sh/chart: nubusLdapServer-0.25.2
+  name: ums-ldap-server-primary
+  namespace: tn-openbsw-opendesk
+spec:
+  clusterIP: None
+  ports:
+  - name: ldap
+    port: 389
+    protocol: TCP
+    targetPort: ldap
+  - name: ldaps
+    port: 636
+    protocol: TCP
+    targetPort: ldaps
+  publishNotReadyAddresses: false
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: ldap-server
+    ldap-server-type: primary
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-ldap-server
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ldap-server
+    helm.sh/chart: nubusLdapServer-0.25.2
+  name: ums-ldap-server-secondary
+  namespace: tn-openbsw-opendesk
+spec:
+  clusterIP: None
+  ports:
+  - name: ldap
+    port: 389
+    protocol: TCP
+    targetPort: ldap
+  - name: ldaps
+    port: 636
+    protocol: TCP
+    targetPort: ldaps
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: ldap-server
+    ldap-server-type: secondary
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-ldap-server
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ldap-server
+    helm.sh/chart: nubusLdapServer-0.25.2
+  name: ums-ldap-server
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: ldap
+    port: 389
+    protocol: TCP
+    targetPort: ldap
+  - name: ldaps
+    port: 636
+    protocol: TCP
+    targetPort: ldaps
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: ldap-server
+    ldap-server-type: primary
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-notifications-api
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: notifications-api
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nubusNotificationsApi-0.42.2
+  name: ums-notifications-api
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: notifications-api
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-portal-frontend
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: portal-frontend
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nubusPortalFrontend-0.42.2
+  name: ums-portal-frontend
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: portal-frontend
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-portal-server
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: portal-server
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nubusPortalServer-0.42.2
+  name: ums-portal-server
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: portal-server
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-provisioning-nats
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: provisioning-nats
+    helm.sh/chart: nats-0.1.2
+  name: ums-provisioning-nats
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: client
+    port: 4222
+    protocol: TCP
+    targetPort: client
+  - name: cluster
+    port: 6222
+    protocol: TCP
+    targetPort: cluster
+  - name: monitor
+    port: 8222
+    protocol: TCP
+    targetPort: monitor
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: provisioning-nats
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-provisioning-nats
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: provisioning-nats
+    helm.sh/chart: nats-0.1.2
+  name: ums-provisioning-nats-headless
+  namespace: tn-openbsw-opendesk
+spec:
+  clusterIP: None
+  ports:
+  - name: client
+    port: 4222
+    protocol: TCP
+    targetPort: client
+  - name: cluster
+    port: 6222
+    protocol: TCP
+    targetPort: cluster
+  - name: monitor
+    port: 8222
+    protocol: TCP
+    targetPort: monitor
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: provisioning-nats
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ums-provisioning-api
+    helm.sh/chart: nubusProvisioning-0.44.0
+  name: ums-provisioning-api
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: ums-provisioning-api
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-udm-rest-api
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: udm-rest-api
+    app.kubernetes.io/version: 12.0.7
+    helm.sh/chart: nubusUdmRestApi-0.25.1
+  name: ums-udm-rest-api
+  namespace: tn-openbsw-opendesk
+spec:
+  clusterIP: None
+  ports:
+  - name: http
+    port: 9979
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: udm-rest-api
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: umc-gateway
+    app.kubernetes.io/version: 12.0.29
+    helm.sh/chart: nubusUmcGateway-0.34.1
+  name: ums-umc-gateway
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: umc-gateway
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-umc-server
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ums-umc-server-proxy
+    app.kubernetes.io/version: 12.0.29
+    helm.sh/chart: nubusUmcServer-0.34.1
+  name: ums-umc-server
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: ums-umc-server-proxy
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-umc-server
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: umc-server
+    app.kubernetes.io/version: 12.0.29
+    helm.sh/chart: nubusUmcServer-0.34.1
+  name: ums-umc-server-0
+  namespace: tn-openbsw-opendesk
+spec:
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8090
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/name: umc-server
+    statefulset.kubernetes.io/pod-name: ums-umc-server-0
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: intercom-service
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: intercom-service
+    app.kubernetes.io/version: '1.4'
+    helm.sh/chart: intercom-service-2.4.0
+  name: intercom-service
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 8008
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: intercom-service
+    app.kubernetes.io/name: intercom-service
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    app.kubernetes.io/component: dovecot
+    app.kubernetes.io/instance: dovecot
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: dovecot
+    helm.sh/chart: dovecot-1.4.0
+  name: dovecot-external
+spec:
+  ports:
+  - name: imaps
+    port: 993
+    protocol: TCP
+    targetPort: 993
+  - name: pop3s
+    port: 995
+    protocol: TCP
+    targetPort: 995
+  selector:
+    app.kubernetes.io/instance: dovecot
+    app.kubernetes.io/name: dovecot
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: dovecot
+    app.kubernetes.io/instance: dovecot
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: dovecot
+    helm.sh/chart: dovecot-1.4.0
+  name: dovecot
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: auth
+    port: 3659
+    protocol: TCP
+    targetPort: 3659
+  - name: doveadm
+    port: 9000
+    protocol: TCP
+    targetPort: 9000
+  - name: doveadm2
+    port: 9200
+    protocol: TCP
+    targetPort: 9200
+  - name: doveadmhttp
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  - name: imap
+    port: 143
+    protocol: TCP
+    targetPort: 143
+  - name: imaps
+    port: 993
+    protocol: TCP
+    targetPort: 993
+  - name: lmpt
+    port: 24
+    protocol: TCP
+    targetPort: 24
+  - name: managasieve
+    port: 4190
+    protocol: TCP
+    targetPort: 4190
+  - name: openmetrics
+    port: 9900
+    protocol: TCP
+    targetPort: 9900
+  - name: pop3
+    port: 110
+    protocol: TCP
+    targetPort: 110
+  - name: pop3s
+    port: 995
+    protocol: TCP
+    targetPort: 995
+  selector:
+    app.kubernetes.io/instance: dovecot
+    app.kubernetes.io/name: dovecot
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: core-documentconverter
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-documentconverter
+    helm.sh/chart: core-documentconverter-2.28.0
+    version: 8.30.0
+  name: open-xchange-core-documentconverter
+spec:
+  ports:
+  - name: http
+    port: 8008
+    protocol: TCP
+    targetPort: 8008
+  - name: https
+    port: 8011
+    protocol: TCP
+    targetPort: 8011
+  - name: http-live
+    port: 8017
+    protocol: TCP
+    targetPort: 8017
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: core-documentconverter
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: core-guidedtours
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-guidedtours
+    helm.sh/chart: core-guidedtours-2.6.10
+    version: 8.6.9
+  name: open-xchange-core-guidedtours
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: core-guidedtours
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: core-imageconverter
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-imageconverter
+    helm.sh/chart: core-imageconverter-2.29.0
+    version: 8.30.0
+  name: open-xchange-core-imageconverter
+spec:
+  ports:
+  - name: http
+    port: 8005
+    protocol: TCP
+    targetPort: 8005
+  - name: https
+    port: 8014
+    protocol: TCP
+    targetPort: 8014
+  - name: http-live
+    port: 8018
+    protocol: TCP
+    targetPort: 8018
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: core-imageconverter
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: gotenberg
+    app.kubernetes.io/version: 8.1.0
+    helm.sh/chart: gotenberg-1.1.0
+  name: open-xchange-gotenberg
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: gotenberg
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: core-mw
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-6.0.3
+    version: 8.30.63
+  name: open-xchange-core-mw-http-api
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: core-mw
+    roles.middleware.open-xchange.com/http-api: 'true'
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: core-mw
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-6.0.3
+    version: 8.30.63
+  name: open-xchange-core-mw-sync
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: core-mw
+    roles.middleware.open-xchange.com/sync: 'true'
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: core-mw
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-6.0.3
+    version: 8.30.63
+  name: open-xchange-core-mw-admin
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: core-mw
+    roles.middleware.open-xchange.com/admin: 'true'
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: core-mw
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-6.0.3
+    version: 8.30.63
+  name: open-xchange-core-mw-businessmobility
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: core-mw
+    roles.middleware.open-xchange.com/businessmobility: 'true'
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: core-mw
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-6.0.3
+    version: 8.30.63
+  name: open-xchange-core-mw-request-analyzer
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: core-mw
+    roles.middleware.open-xchange.com/request-analyzer: 'true'
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: core-mw
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-6.0.3
+    version: 8.30.63
+  name: open-xchange-core-mw-hazelcast-headless
+spec:
+  clusterIP: None
+  ports:
+  - name: tcp-hazelcast
+    port: 5701
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: core-mw
+    roles.middleware.open-xchange.com/documents: 'true'
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: core-ui-middleware
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-ui-middleware
+    grafana.ox.io/service-monitor-implementation: default
+    helm.sh/chart: core-ui-middleware-3.2.0
+    version: 2.1.0
+  name: open-xchange-core-ui-middleware
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - name: monitoring
+    port: 9090
+    protocol: TCP
+    targetPort: tcp-monitoring
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: core-ui-middleware
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: core-ui
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-ui
+    helm.sh/chart: core-ui-2.32.1
+    version: 8.30.1
+  name: open-xchange-core-ui
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: core-ui
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: core-user-guide
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-user-guide
+    helm.sh/chart: core-user-guide-2.30.0
+    version: 8.30.0
+  name: open-xchange-core-user-guide
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: core-user-guide
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: guard-ui
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: guard-ui
+    helm.sh/chart: guard-ui-2.6.0
+    version: 8.29.0
+  name: open-xchange-guard-ui
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: guard-ui
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: nextcloud-integration-ui
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nextcloud-integration-ui
+    helm.sh/chart: nextcloud-integration-ui-1.2.0
+    version: 1.2.0
+  name: open-xchange-nextcloud-integration-ui
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: nextcloud-integration-ui
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: public-sector-ui
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: public-sector-ui
+    helm.sh/chart: public-sector-ui-2.3.0
+    version: 2.3.0
+  name: open-xchange-public-sector-ui
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/name: public-sector-ui
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    intents.otterize.com/service-name: opendesk-nextcloud
+  labels:
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: aio
+    helm.sh/chart: aio-3.4.0
+  name: opendesk-nextcloud-aio
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - name: php
+    port: 9000
+    protocol: TCP
+    targetPort: php
+  - name: status
+    port: 8081
+    protocol: TCP
+    targetPort: status
+  selector:
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/name: aio
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: exporter
+    helm.sh/chart: exporter-3.4.0
+  name: opendesk-nextcloud-exporter
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: metrics
+    port: 9205
+    protocol: TCP
+    targetPort: metrics
+  selector:
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/name: exporter
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: collabora-online
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: collabora-online
+    app.kubernetes.io/version: 24.04.7.2.1
+    helm.sh/chart: collabora-online-1.1.21
+    type: main
+  name: collabora
+spec:
+  ports:
+  - name: http
+    port: 9980
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: collabora-online
+    app.kubernetes.io/name: collabora-online
+    type: main
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: cryptpad
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: cryptpad
+    helm.sh/chart: cryptpad-0.0.20
+  name: cryptpad
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - name: ws
+    port: 83
+    protocol: TCP
+    targetPort: ws
+  selector:
+    app.kubernetes.io/instance: cryptpad
+    app.kubernetes.io/name: cryptpad
+  sessionAffinity: ClientIP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: prosody
+    app.kubernetes.io/version: stable-9646
+    helm.sh/chart: prosody-1.4.1
+  name: jitsi-prosody
+spec:
+  ports:
+  - name: tcp-bosh-insecure
+    port: 5280
+    protocol: TCP
+  - name: tcp-bosh-secure
+    port: 5281
+    protocol: TCP
+  - name: tcp-xmpp-component
+    port: 5347
+    protocol: TCP
+  - name: tcp-xmpp-c2
+    port: 5222
+    protocol: TCP
+  - name: tcp-xmpp-s2
+    port: 5269
+    protocol: TCP
+  selector:
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/name: prosody
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: jibri
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: jitsi
+    app.kubernetes.io/version: stable-9646
+    helm.sh/chart: jitsi-1.4.1
+  name: jitsi-jibri
+spec:
+  ports:
+  - name: http-internal
+    port: 3333
+    protocol: TCP
+    targetPort: 3333
+  - name: http-api
+    port: 2222
+    protocol: TCP
+    targetPort: 2222
+  selector:
+    app.kubernetes.io/component: jibri
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/name: jitsi
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/component: jvb
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: jitsi
+    app.kubernetes.io/version: stable-9646
+    helm.sh/chart: jitsi-1.4.1
+  name: jitsi-jvb
+spec:
+  externalTrafficPolicy: null
+  ports:
+  - name: rtp-udp
+    port: 10000
+    protocol: UDP
+  selector:
+    app.kubernetes.io/component: jvb
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/name: jitsi
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: web
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: jitsi
+    app.kubernetes.io/version: stable-9646
+    helm.sh/chart: jitsi-1.4.1
+  name: jitsi-web
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+  selector:
+    app.kubernetes.io/component: web
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/name: jitsi
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-jitsi
+    helm.sh/chart: opendesk-jitsi-2.0.3
+  name: jitsi-keycloak-adapter
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: adapter
+    port: 9000
+    protocol: TCP
+    targetPort: 9000
+  selector:
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/name: opendesk-jitsi
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-element
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-element
+    helm.sh/chart: opendesk-element-3.4.1
+  name: opendesk-element
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: element
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/instance: opendesk-element
+    app.kubernetes.io/name: opendesk-element
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-well-known
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-well-known
+    helm.sh/chart: opendesk-well-known-3.4.1
+  name: opendesk-well-known
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: well-known
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/instance: opendesk-well-known
+    app.kubernetes.io/name: opendesk-well-known
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-synapse-web
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-synapse-web
+    helm.sh/chart: opendesk-synapse-web-3.4.1
+  name: opendesk-synapse-web
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: web
+    port: 8008
+    protocol: TCP
+    targetPort: 8008
+  selector:
+    app.kubernetes.io/instance: opendesk-synapse-web
+    app.kubernetes.io/name: opendesk-synapse-web
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-synapse
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-synapse
+    helm.sh/chart: opendesk-synapse-3.4.1
+  name: opendesk-synapse
+  namespace: tn-openbsw-opendesk
+spec:
+  clusterIP: None
+  ports:
+  - name: synapse-health
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  - name: synapse-http
+    port: 8008
+    protocol: TCP
+    targetPort: 8008
+  - name: synapse-metrics
+    port: 9001
+    protocol: TCP
+    targetPort: 9001
+  - name: synapse-repl
+    port: 9093
+    protocol: TCP
+    targetPort: 9093
+  selector:
+    app.kubernetes.io/instance: opendesk-synapse
+    app.kubernetes.io/name: opendesk-synapse
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-synapse
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-synapse
+    helm.sh/chart: opendesk-synapse-3.4.1
+  name: opendesk-synapse-federation
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: federation
+    port: 8448
+    protocol: TCP
+    targetPort: 8448
+  selector:
+    app.kubernetes.io/instance: opendesk-synapse
+    app.kubernetes.io/name: opendesk-synapse
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: opendesk-matrix-user-verification-service
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-matrix-user-verification-service
+    helm.sh/chart: opendesk-matrix-user-verification-service-3.4.0
+  name: opendesk-matrix-user-verification-service
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: opendesk-matrix-user-verification-service
+    app.kubernetes.io/name: opendesk-matrix-user-verification-service
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: matrix-neoboard-widget
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matrix-neoboard-widget
+    helm.sh/chart: matrix-neoboard-widget-3.5.0
+  name: matrix-neoboard-widget
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: matrix-neoboard-widget
+    app.kubernetes.io/name: matrix-neoboard-widget
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: matrix-neochoice-widget
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matrix-neochoice-widget
+    helm.sh/chart: matrix-neochoice-widget-3.5.0
+  name: matrix-neochoice-widget
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: matrix-neochoice-widget
+    app.kubernetes.io/name: matrix-neochoice-widget
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: matrix-neodatefix-widget
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matrix-neodatefix-widget
+    helm.sh/chart: matrix-neodatefix-widget-3.5.0
+  name: matrix-neodatefix-widget
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: matrix-neodatefix-widget
+    app.kubernetes.io/name: matrix-neodatefix-widget
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: matrix-neodatefix-bot
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matrix-neodatefix-bot
+    helm.sh/chart: matrix-neodatefix-bot-3.5.0
+  name: matrix-neodatefix-bot
+  namespace: tn-openbsw-opendesk
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: matrix-neodatefix-bot
+    app.kubernetes.io/name: matrix-neodatefix-bot
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: openproject
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: openproject
+    app.kubernetes.io/version: 14.6.3
+    helm.sh/chart: openproject-8.3.2
+  name: openproject
+spec:
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/instance: openproject
+    app.kubernetes.io/name: openproject
+    openproject/process: web
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: xwiki
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: xwiki
+    helm.sh/chart: xwiki-1.4.0
+  name: xwiki
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/instance: xwiki
+    app.kubernetes.io/name: xwiki
+  sessionAffinity: ClientIP
+  type: ClusterIP

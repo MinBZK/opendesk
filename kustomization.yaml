@@ -2,3 +2,20 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: tn-openbsw-opendesk
+
+resources:
+  - certificates.yaml
+  - deployments.yaml
+  - jobs.yaml
+  - rolebindings.yaml
+  - serviceaccounts.yaml
+  - configmaps.yaml
+  - ingresss.yaml
+  - persistentvolumeclaims.yaml
+  - roles.yaml
+  - services.yaml
+  - cronjobs.yaml
+  - issuers.yaml
+  - pods.yaml
+  - secrets.yaml
+  - statefulsets.yaml

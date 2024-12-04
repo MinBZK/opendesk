@@ -1,0 +1,113 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-migrations-pre
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-migrations
+    helm.sh/chart: opendesk-migrations-1.3.5
+  name: opendesk-migrations-pre
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: opendesk-migrations-pre
+subjects:
+- kind: ServiceAccount
+  name: opendesk-migrations-pre
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: core-mw
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-6.0.3
+    version: 8.30.63
+  name: open-xchange-core-mw
+  namespace: tn-openbsw-opendesk
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: open-xchange-core-mw
+subjects:
+- kind: ServiceAccount
+  name: open-xchange-core-mw
+  namespace: tn-openbsw-opendesk
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: opendesk-open-xchange-bootstrap
+  namespace: tn-openbsw-opendesk
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: opendesk-open-xchange-bootstrap
+subjects:
+- kind: ServiceAccount
+  name: opendesk-open-xchange-bootstrap
+  namespace: tn-openbsw-opendesk
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-jitsi
+    helm.sh/chart: opendesk-jitsi-2.0.3
+  name: jitsi-opendesk-jitsi
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: jitsi-opendesk-jitsi
+subjects:
+- kind: ServiceAccount
+  name: jitsi-opendesk-jitsi
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: opendesk-matrix-user-verification-service-bootstrap
+  namespace: tn-openbsw-opendesk
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: opendesk-matrix-user-verification-service-bootstrap
+subjects:
+- kind: ServiceAccount
+  name: opendesk-matrix-user-verification-service-bootstrap
+  namespace: tn-openbsw-opendesk
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: matrix-neodatefix-bot-bootstrap
+  namespace: tn-openbsw-opendesk
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: matrix-neodatefix-bot-bootstrap
+subjects:
+- kind: ServiceAccount
+  name: matrix-neodatefix-bot-bootstrap
+  namespace: tn-openbsw-opendesk
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-migrations-post
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-migrations
+    helm.sh/chart: opendesk-migrations-1.3.5
+  name: opendesk-migrations-post
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: opendesk-migrations-post
+subjects:
+- kind: ServiceAccount
+  name: opendesk-migrations-post

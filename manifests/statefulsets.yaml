@@ -1,0 +1,4036 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/component: master
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.6.1
+  name: redis-master
+  namespace: tn-openbsw-opendesk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: master
+      app.kubernetes.io/instance: redis
+      app.kubernetes.io/name: redis
+  serviceName: redis-headless
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: 86bcc953bb473748a3d3dc60b7c11f34e60c93519234d4c37f42e22ada559d47
+        checksum/health: aff24913d801436ea469d8d374b2ddb3ec4c43ee7ab24663d5f8ff1a1b6991a9
+        checksum/scripts: 560c33ff34d845009b51830c332aa05fa211444d1877d3526d3599be7543aaa5
+        checksum/secret: 78e73ca40e13c1a9e15b858c9fba8cca66cd890a846fdca241b1338ab54f94d2
+      labels:
+        app.kubernetes.io/component: master
+        app.kubernetes.io/instance: redis
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/version: 7.2.3
+        helm.sh/chart: redis-18.6.1
+    spec:
+      affinity:
+        nodeAffinity: null
+        podAffinity: null
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: master
+                  app.kubernetes.io/instance: redis
+                  app.kubernetes.io/name: redis
+              topologyKey: kubernetes.io/hostname
+            weight: 1
+      automountServiceAccountToken: true
+      containers:
+      - args:
+        - -c
+        - /opt/bitnami/scripts/start-scripts/start-master.sh
+        command:
+        - /bin/bash
+        env:
+        - name: BITNAMI_DEBUG
+          value: 'false'
+        - name: REDIS_REPLICATION_MODE
+          value: master
+        - name: ALLOW_EMPTY_PASSWORD
+          value: 'no'
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: redis-password
+              name: redis
+        - name: REDIS_TLS_ENABLED
+          value: 'no'
+        - name: REDIS_PORT
+          value: '6379'
+        image: registry-1.docker.io/bitnami/redis:7.2.3-debian-11-r2@sha256:9ac3bbf7740969d32689e360ddcfa5f672538c47f6f6cf296173c3078de0edf2
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - /health/ping_liveness_local.sh 5
+          failureThreshold: 5
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 6
+        name: redis
+        ports:
+        - containerPort: 6379
+          name: redis
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - /health/ping_readiness_local.sh 1
+          failureThreshold: 5
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 2
+        resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
+          requests:
+            cpu: 0.1
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /opt/bitnami/scripts/start-scripts
+          name: start-scripts
+        - mountPath: /health
+          name: health
+        - mountPath: /data
+          name: redis-data
+        - mountPath: /opt/bitnami/redis/mounted-etc
+          name: config
+        - mountPath: /opt/bitnami/redis/etc/
+          name: redis-tmp-conf
+        - mountPath: /tmp
+          name: tmp
+      enableServiceLinks: true
+      securityContext:
+        fsGroup: 1001
+      serviceAccountName: redis
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 493
+          name: redis-scripts
+        name: start-scripts
+      - configMap:
+          defaultMode: 493
+          name: redis-health
+        name: health
+      - configMap:
+          name: redis-configuration
+        name: config
+      - emptyDir: {}
+        name: redis-tmp-conf
+      - emptyDir: {}
+        name: tmp
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      labels:
+        app.kubernetes.io/component: master
+        app.kubernetes.io/instance: redis
+        app.kubernetes.io/name: redis
+      name: redis-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: postgresql
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-2.1.1
+  name: postgresql
+  namespace: tn-openbsw-opendesk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: postgresql
+      app.kubernetes.io/name: postgresql
+  serviceName: postgresql
+  template:
+    metadata:
+      annotations:
+        argocd.argoproj.io/hook: PostSync
+        argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+      labels:
+        app.kubernetes.io/instance: postgresql
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: postgresql
+        helm.sh/chart: postgresql-2.1.1
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_PASSWORD
+          value: b20a9e9dce16e5a4da2b59b6f265e9055f6bc9b9
+        - name: POSTGRES_USER
+          value: postgres
+        - name: PGPORT
+          value: '5432'
+        - name: PGDATA
+          value: /mnt/postgresql/data
+        image: registry-1.docker.io/library/postgres:15.4-alpine3.18@sha256:f36c528a2dc8747ea40b4cb8578da69fa75c5063fd6a71dcea3e3b2a6404ff7b
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
+          failureThreshold: 6
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: postgresql
+        ports:
+        - containerPort: 5432
+          name: postgresql
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
+          failureThreshold: 6
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
+          failureThreshold: 15
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /var/run/postgresql
+          name: var-run-postgresql
+        - mountPath: /mnt/postgresql
+          name: data
+      hostIPC: false
+      hostNetwork: false
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: postgresql
+      terminationGracePeriodSeconds: 120
+      volumes:
+      - emptyDir: {}
+        name: tmp
+      - emptyDir: {}
+        name: var-run-postgresql
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: mariadb
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-3.0.3
+  name: mariadb
+  namespace: tn-openbsw-opendesk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: mariadb
+      app.kubernetes.io/name: mariadb
+  serviceName: mariadb
+  template:
+    metadata:
+      annotations:
+        argocd.argoproj.io/hook: PostSync
+        argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+      labels:
+        app.kubernetes.io/instance: mariadb
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: mariadb
+        helm.sh/chart: mariadb-3.0.3
+    spec:
+      containers:
+      - env:
+        - name: MARIADB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: rootPassword
+              name: mariadb
+        image: registry-1.docker.io/library/mariadb:10.5@sha256:aa1ccc18000c32d1f39ac0b055117b27bffd93e622ec961d682de40fe2a1a95f
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - mariadb-admin status -uroot -p"${MARIADB_ROOT_PASSWORD}"
+          failureThreshold: 6
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: mariadb
+        ports:
+        - containerPort: 3306
+          name: mariadb
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - mariadb-admin status -uroot -p"${MARIADB_ROOT_PASSWORD}"
+          failureThreshold: 6
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 384Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - mariadb-admin status -uroot -p"${MARIADB_ROOT_PASSWORD}"
+          failureThreshold: 15
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /run/mysqld
+          name: run-mysqld
+        - mountPath: /var/lib/mysql
+          name: data
+      hostIPC: false
+      hostNetwork: false
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: mariadb
+      terminationGracePeriodSeconds: 120
+      volumes:
+      - emptyDir: {}
+        name: tmp
+      - emptyDir: {}
+        name: run-mysqld
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: clamav-simple
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: clamav-simple
+    helm.sh/chart: clamav-simple-4.0.6
+  name: clamav-simple
+  namespace: tn-openbsw-opendesk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: clamav-simple
+      app.kubernetes.io/name: clamav-simple
+  serviceName: clamav-simple
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: f140466c45580b59c5bb65ebdbc7126f93642bb7e6c6406adf40e003032a3586
+      labels:
+        app.kubernetes.io/instance: clamav-simple
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: clamav-simple
+        helm.sh/chart: clamav-simple-4.0.6
+    spec:
+      containers:
+      - env:
+        - name: CLAMAV_NO_CLAMD
+          value: 'false'
+        - name: CLAMAV_NO_FRESHCLAMD
+          value: 'false'
+        - name: CLAMAV_NO_MILTERD
+          value: 'false'
+        image: registry-1.docker.io/clamav/clamav:1.1.1-10_base@sha256:aed8d5a3ef58352c862028fae44241215a50eae0b9acb7ba8892b1edc0a6598f
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          successThreshold: 1
+          tcpSocket:
+            port: clamd
+          timeoutSeconds: 5
+        name: clamav
+        ports:
+        - containerPort: 3310
+          name: clamd
+          protocol: TCP
+        - containerPort: 7357
+          name: milter
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          successThreshold: 1
+          tcpSocket:
+            port: clamd
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
+          requests:
+            cpu: 0.1
+            memory: 1.5Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 100
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /etc/clamav
+          name: config
+        - mountPath: /var/lib/clamav/
+          name: clamav-database
+        - mountPath: /run/clamav
+          name: tmpfs-run-clamav
+        - mountPath: /run/lock
+          name: tmpfs-run-lock
+        - mountPath: /var/lock
+          name: tmpfs-var-lock
+        - mountPath: /var/log/clamav/
+          name: tmpfs-var-log-clamav-log
+        - mountPath: /var/tmp
+          name: tmpfs-tmp-dir
+        - mountPath: /tmp
+          name: tmpfs-tmp
+      - command:
+        - /bin/sh
+        - -c
+        - "while ! nc -z 127.0.0.1 3310; do\n  echo 'Clamd not responding, please\
+          \ check if clamd is running';\n  sleep 5;\ndone;\n/var/lib/clamav/bin/c-icap\
+          \ -N -D;\n"
+        env: null
+        image: registry.opencode.de/bmi/opendesk/components/platform-development/images/clamav-icap:0.5.10@sha256:891f267a6b2a304616854ad2f013dc5d23f6f6c84d535c8b46e76d124fe39b6a
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          successThreshold: 1
+          tcpSocket:
+            port: icap
+          timeoutSeconds: 5
+        name: icap
+        ports:
+        - containerPort: 1344
+          name: icap
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          successThreshold: 1
+          tcpSocket:
+            port: icap
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
+          requests:
+            cpu: 0.1
+            memory: 1.5Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 100
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /var/lib/clamav/etc/c-icap.conf
+          name: c-icap
+          subPath: c-icap.conf
+        - mountPath: /var/lib/clamav/etc/virus_scan.conf
+          name: virus-scan
+          subPath: virus_scan.conf
+        - mountPath: /var/lib/clamav/etc/clamd_mod.conf
+          name: clamd-mod
+          subPath: clamd_mod.conf
+        - mountPath: /var/run/c-icap
+          name: tmpfs-var-run
+        - mountPath: /tmp
+          name: tmpfs-tmp
+        - mountPath: /var/tmp
+          name: tmpfs-tmp-dir
+      initContainers:
+      - command:
+        - /bin/sh
+        - -c
+        - chown -R clamav:clamav /var/lib/clamav
+        image: registry-1.docker.io/clamav/clamav:1.1.1-10_base@sha256:aed8d5a3ef58352c862028fae44241215a50eae0b9acb7ba8892b1edc0a6598f
+        imagePullPolicy: IfNotPresent
+        name: chown
+        resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
+          requests:
+            cpu: 0.1
+            memory: 1.5Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: false
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /var/lib/clamav/
+          name: clamav-database
+      securityContext:
+        fsGroup: 101
+        fsGroupChangePolicy: Always
+      serviceAccountName: clamav-simple
+      volumes:
+      - configMap:
+          name: clamav-simple
+        name: config
+      - configMap:
+          items:
+          - key: c-icap.conf
+            path: c-icap.conf
+          name: clamav-simple
+        name: c-icap
+      - configMap:
+          items:
+          - key: virus_scan.conf
+            path: virus_scan.conf
+          name: clamav-simple
+        name: virus-scan
+      - configMap:
+          items:
+          - key: clamd_mod.conf
+            path: clamd_mod.conf
+          name: clamav-simple
+        name: clamd-mod
+      - emptyDir: {}
+        name: tmpfs-run-clamav
+      - emptyDir: {}
+        name: tmpfs-run-lock
+      - emptyDir: {}
+        name: tmpfs-var-lock
+      - emptyDir: {}
+        name: tmpfs-var-log-clamav-log
+      - emptyDir: null
+        name: tmpfs-var-run
+      - emptyDir: null
+        name: tmpfs-tmp
+      - emptyDir:
+          sizeLimit: 1Gi
+        name: tmpfs-tmp-dir
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      name: clamav-database
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: keycloak
+    helm.sh/chart: keycloak-0.5.2
+  name: ums-keycloak
+  namespace: tn-openbsw-opendesk
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: ums
+      app.kubernetes.io/name: keycloak
+  serviceName: ums-keycloak
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: 67f729e9f4b9dcea9589ea70c630443f08b340a8d92c03c30fd41306b5515611
+        intents.otterize.com/service-name: ums-keycloak
+      labels:
+        app.kubernetes.io/instance: ums
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: keycloak
+        helm.sh/chart: keycloak-0.5.2
+    spec:
+      containers:
+      - args:
+        - start
+        - --features=admin-fine-grained-authz,token-exchange
+        - --metrics-enabled=true
+        env:
+        - name: KEYCLOAK_ADMIN
+          value: kcadmin
+        - name: KEYCLOAK_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: admin_password
+              name: ums-opendesk-keycloak-credentials
+        - name: KC_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: keycloakDatabasePassword
+              name: ums-keycloak-postgresql-opendesk-credentials
+        - name: UNIVENTION_META_JSON
+          value: https://portal.apps.digilab.network/univention/meta.json
+        envFrom:
+        - configMapRef:
+            name: ums-keycloak
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/keycloak-keycloak:25.0.1-ucs1@sha256:61cb3e703672f6d8806af41bec8056ca84e295bbeb546fdb5349322d1174a43d
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /realms/master
+            port: 8080
+          initialDelaySeconds: 1
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 2
+        name: keycloak
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        - containerPort: 7800
+          name: ispn
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /realms/master
+            port: 8080
+          initialDelaySeconds: 1
+          periodSeconds: 1
+          successThreshold: 1
+          timeoutSeconds: 2
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /realms/master
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 5
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: Always
+      serviceAccountName: ums-keycloak
+      terminationGracePeriodSeconds: 5
+  updateStrategy:
+    type: RollingUpdate
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ldap-notifier
+    app.kubernetes.io/version: 14.0.4
+    helm.sh/chart: nubusLdapNotifier-0.25.2
+  name: ums-ldap-notifier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: ums
+      app.kubernetes.io/name: ldap-notifier
+  serviceName: ums-ldap-notifier
+  template:
+    metadata:
+      annotations:
+        checksum/config: df27c37dc7344932f3ea420217d2771b2521185f9bfda51b0ef9727c1c777d51
+        intents.otterize.com/service-name: ums-ldap-notifier
+      labels:
+        app.kubernetes.io/instance: ums
+        app.kubernetes.io/name: ldap-notifier
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: ldap-server-type
+                operator: In
+                values:
+                - primary
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: ums-ldap-notifier
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ldap-notifier:0.25.2@sha256:9e29c7fb5c609d7e597f27e0384c4f932e6962cdf64012154d7b7c076755d86c
+        imagePullPolicy: IfNotPresent
+        name: ldap-notifier
+        ports:
+        - containerPort: 6669
+          name: notifier
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /var/lib/univention-ldap
+          name: shared-data
+        - mountPath: /var/run/slapd
+          name: shared-run
+        - mountPath: /run
+          name: run
+      securityContext:
+        fsGroup: 102
+        fsGroupChangePolicy: Always
+      volumes:
+      - emptyDir:
+          medium: Memory
+        name: run
+      - name: shared-data
+        persistentVolumeClaim:
+          claimName: shared-data-ums-ldap-server-primary-0
+      - name: shared-run
+        persistentVolumeClaim:
+          claimName: shared-run-ums-ldap-server-primary-0
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-ldap-server
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ldap-server
+    helm.sh/chart: nubusLdapServer-0.25.2
+    ldap-server-type: primary
+  name: ums-ldap-server-primary
+  namespace: tn-openbsw-opendesk
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: ums
+      app.kubernetes.io/name: ldap-server
+      ldap-server-type: primary
+  serviceName: ums-ldap-server-primary
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: d7d4bafa2b955d657e9cb9a161bd7de8bef666818d29e139e2add788ba77355b
+        checksum/configmap-primary: 374833154a7e3c1730768cba717380fa3123d1fe5753de09d88171fe7b5ef26d
+      labels:
+        app.kubernetes.io/instance: ums
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: ldap-server
+        helm.sh/chart: nubusLdapServer-0.25.2
+        ldap-server-type: primary
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: ldap-server-type
+                  operator: In
+                  values:
+                  - primary
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      containers:
+      - env:
+        - name: SYNC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: adminPassword
+              name: ums-ldap-server-credentials
+        - name: LDAP_CN_ADMIN_PW
+          valueFrom:
+            secretKeyRef:
+              key: adminPassword
+              name: ums-ldap-server-credentials
+        envFrom:
+        - configMapRef:
+            name: ums-ldap-server
+        - configMapRef:
+            name: ums-ldap-server-primary
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ldap-server:0.25.2@sha256:2b9d53f93a93d0f3a659c81c0e44596da8941bd83c8e1f7301a24e46ca06dba2
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          successThreshold: 1
+          tcpSocket:
+            port: 389
+          timeoutSeconds: 5
+        name: openldap
+        ports:
+        - containerPort: 389
+          name: ldap
+          protocol: TCP
+        - containerPort: 636
+          name: ldaps
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - -c
+            - '/scripts/is_active_master.sh
+
+              '
+          failureThreshold: 1
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 288
+            memory: 1Gi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          successThreshold: 1
+          tcpSocket:
+            port: 389
+          timeoutSeconds: 5
+        volumeMounts:
+        - mountPath: /var/lib/univention-ldap/slapd-sock
+          name: slapd-overlay-unix-socket-volume
+        - mountPath: /usr/share/univention-ldap
+          name: usr-share-univention-ldap-volume
+        - mountPath: /usr/share/saml
+          name: usr-share-saml-volume
+        - mountPath: /etc/ldap
+          name: etc-ldap-volume
+        - mountPath: /etc/univention
+          name: etc-univention-volume
+        - mountPath: /config/templates
+          name: primary-config-templates-volume
+        - mountPath: /entrypoint.d/90-append-slapd-conf.sh
+          name: primary-scripts-volume
+          subPath: append-slapd.conf.sh
+        - mountPath: /entrypoint.d/91-init-internal-database.sh
+          name: scripts-volume
+          subPath: init-internal-database.sh
+        - mountPath: /scripts
+          name: scripts-volume
+        - mountPath: /var/lib/univention-ldap-local/local-schema
+          name: plugin-targets
+          subPath: ldap-schema
+        - mountPath: /etc/univention/templates/files/etc/ldap/slapd.conf.d
+          name: plugin-targets
+          subPath: ldap-acls
+        - mountPath: /var/run/slapd
+          name: shared-run
+        - mountPath: /etc/univention/base.conf
+          name: config-map-ucr
+          subPath: base.conf
+        - mountPath: /etc/univention/base-defaults.conf
+          name: config-map-ucr
+          subPath: base-defaults.conf
+        - mountPath: /var/lib/univention-ldap
+          name: shared-data
+        - mountPath: /entrypoint.d/30-purge.sh
+          name: migration-scripts
+          subPath: 30-purge.sh
+        - mountPath: /entrypoint.d/95-slapadd-24-ldiff.sh
+          name: migration-scripts
+          subPath: 95-slapadd-24-ldif.sh
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - cp -a /usr/share/univention-ldap/* /target/usr/share/univention-ldap/; cp
+          -a /etc/ldap/* /target/etc/ldap/; cp -a /etc/univention/* /target/etc/univention/
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ldap-server:0.25.2@sha256:2b9d53f93a93d0f3a659c81c0e44596da8941bd83c8e1f7301a24e46ca06dba2
+        imagePullPolicy: IfNotPresent
+        name: univention-compatibility
+        resources:
+          limits:
+            cpu: 288
+            memory: 1Gi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target/usr/share/univention-ldap
+          name: usr-share-univention-ldap-volume
+        - mountPath: /target/etc/ldap
+          name: etc-ldap-volume
+        - mountPath: /target/etc/univention
+          name: etc-univention-volume
+      - command:
+        - sh
+        - -c
+        - 'cp -av /var/lib/univention-ldap-local/local-schema /target/ldap-schema
+
+          cp -av /etc/univention/templates/files/etc/ldap/slapd.conf.d /target/ldap-acls
+
+          '
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ldap-server:0.25.2@sha256:2b9d53f93a93d0f3a659c81c0e44596da8941bd83c8e1f7301a24e46ca06dba2
+        imagePullPolicy: IfNotPresent
+        name: load-internal-plugins
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/portal-extension:0.38.0@sha256:aa6ec6b99810e05655d98fa1192bc2eabb855335f7a04aa4cd96ed5b5645d736
+        imagePullPolicy: IfNotPresent
+        name: load-portal-extension
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ox-extension:0.11.0@sha256:2cb5a9683b6ff81b995a5c71da52c2ff8177b662bb0be8f11e9cd0c6b48d8a11
+        imagePullPolicy: IfNotPresent
+        name: load-ox-extension
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - image: registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nubus:1.7.5@sha256:cc38d339abea18dc3644b7764d7be13798956161d1c87e34b26b5d8b7a11edc6
+        imagePullPolicy: IfNotPresent
+        name: load-opendesk-extension
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - command:
+        - /bin/bash
+        - /scripts/wait-for-saml-metadata.sh
+        envFrom:
+        - configMapRef:
+            name: ums-ldap-server
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/wait-for-dependency:0.26.0@sha256:a31fde86bf21c597a31356fe492ab7e7a03a89282ca215eb7100763d6eb96b6b
+        imagePullPolicy: IfNotPresent
+        name: wait-for-saml-metadata
+        resources:
+          limits:
+            cpu: 288
+            memory: 1Gi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /scripts
+          name: scripts-volume
+        - mountPath: /etc/univention/base.conf
+          name: config-map-ucr
+          subPath: base.conf
+        - mountPath: /etc/univention/base-defaults.conf
+          name: config-map-ucr
+          subPath: base-defaults.conf
+      securityContext:
+        fsGroup: 102
+        fsGroupChangePolicy: Always
+        sysctls:
+        - name: net.ipv4.ip_unprivileged_port_start
+          value: '1'
+      serviceAccountName: ums-ldap-server
+      terminationGracePeriodSeconds: 5
+      volumes:
+      - emptyDir: {}
+        name: slapd-overlay-unix-socket-volume
+      - emptyDir: {}
+        name: usr-share-univention-ldap-volume
+      - emptyDir: {}
+        name: usr-share-saml-volume
+      - emptyDir: {}
+        name: etc-ldap-volume
+      - emptyDir: {}
+        name: etc-univention-volume
+      - configMap:
+          defaultMode: 365
+          name: ums-ldap-server-primary-scripts
+        name: primary-scripts-volume
+      - configMap:
+          name: ums-ldap-server-primary-config-templates
+        name: primary-config-templates-volume
+      - configMap:
+          defaultMode: 365
+          name: ums-ldap-server-scripts
+        name: scripts-volume
+      - emptyDir: {}
+        name: plugin-targets
+      - configMap:
+          name: ums-stack-data-ums-ucr
+        name: config-map-ucr
+      - name: migration-scripts
+        secret:
+          defaultMode: 365
+          secretName: ums-ldap-server-migration
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      name: shared-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  - metadata:
+      name: shared-run
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-ldap-server
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ldap-server
+    helm.sh/chart: nubusLdapServer-0.25.2
+    ldap-server-type: secondary
+  name: ums-ldap-server-secondary
+  namespace: tn-openbsw-opendesk
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: ums
+      app.kubernetes.io/name: ldap-server
+      ldap-server-type: secondary
+  serviceName: ums-ldap-server-secondary
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: d7d4bafa2b955d657e9cb9a161bd7de8bef666818d29e139e2add788ba77355b
+        checksum/configmap-secondary: cd3607462e65135c3b04ce316104c3955fd43dc12f2f9aaaeab00bef9c177f36
+      labels:
+        app.kubernetes.io/instance: ums
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: ldap-server
+        helm.sh/chart: nubusLdapServer-0.25.2
+        ldap-server-type: secondary
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: ldap-server-type
+                  operator: In
+                  values:
+                  - secondary
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      containers:
+      - env:
+        - name: SYNC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: adminPassword
+              name: ums-ldap-server-credentials
+        - name: LDAP_CN_ADMIN_PW
+          valueFrom:
+            secretKeyRef:
+              key: adminPassword
+              name: ums-ldap-server-credentials
+        envFrom:
+        - configMapRef:
+            name: ums-ldap-server
+        - configMapRef:
+            name: ums-ldap-server-secondary
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ldap-server:0.25.2@sha256:2b9d53f93a93d0f3a659c81c0e44596da8941bd83c8e1f7301a24e46ca06dba2
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          successThreshold: 1
+          tcpSocket:
+            port: 389
+          timeoutSeconds: 5
+        name: openldap
+        ports:
+        - containerPort: 389
+          name: ldap
+          protocol: TCP
+        - containerPort: 636
+          name: ldaps
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          successThreshold: 1
+          tcpSocket:
+            port: 389
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 288
+            memory: 1Gi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          successThreshold: 1
+          tcpSocket:
+            port: 389
+          timeoutSeconds: 5
+        volumeMounts:
+        - mountPath: /usr/share/univention-ldap
+          name: usr-share-univention-ldap-volume
+        - mountPath: /usr/share/saml
+          name: usr-share-saml-volume
+        - mountPath: /etc/ldap
+          name: etc-ldap-volume
+        - mountPath: /etc/univention
+          name: etc-univention-volume
+        - mountPath: /config/templates
+          name: secondary-config-templates-volume
+        - mountPath: /entrypoint.d/90-append-slapd-conf.sh
+          name: secondary-scripts-volume
+          subPath: append-slapd.conf.sh
+        - mountPath: /entrypoint.d/91-init-internal-database.sh
+          name: scripts-volume
+          subPath: init-internal-database.sh
+        - mountPath: /var/lib/univention-ldap-local/local-schema
+          name: plugin-targets
+          subPath: ldap-schema
+        - mountPath: /etc/univention/templates/files/etc/ldap/slapd.conf.d
+          name: plugin-targets
+          subPath: ldap-acls
+        - mountPath: /var/run/slapd
+          name: shared-run
+        - mountPath: /etc/univention/base.conf
+          name: config-map-ucr
+          subPath: base.conf
+        - mountPath: /etc/univention/base-defaults.conf
+          name: config-map-ucr
+          subPath: base-defaults.conf
+        - mountPath: /var/lib/univention-ldap
+          name: shared-data
+        - mountPath: /entrypoint.d/30-purge.sh
+          name: migration-scripts
+          subPath: 30-purge.sh
+        - mountPath: /entrypoint.d/95-slapadd-24-ldiff.sh
+          name: migration-scripts
+          subPath: 95-slapadd-24-ldif.sh
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - cp -a /usr/share/univention-ldap/* /target/usr/share/univention-ldap/; cp
+          -a /etc/ldap/* /target/etc/ldap/; cp -a /etc/univention/* /target/etc/univention/
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ldap-server:0.25.2@sha256:2b9d53f93a93d0f3a659c81c0e44596da8941bd83c8e1f7301a24e46ca06dba2
+        imagePullPolicy: IfNotPresent
+        name: univention-compatibility
+        resources:
+          limits:
+            cpu: 288
+            memory: 1Gi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target/usr/share/univention-ldap
+          name: usr-share-univention-ldap-volume
+        - mountPath: /target/etc/ldap
+          name: etc-ldap-volume
+        - mountPath: /target/etc/univention
+          name: etc-univention-volume
+      - command:
+        - sh
+        - -c
+        - 'cp -av /var/lib/univention-ldap-local/local-schema /target/ldap-schema
+
+          cp -av /etc/univention/templates/files/etc/ldap/slapd.conf.d /target/ldap-acls
+
+          '
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ldap-server:0.25.2@sha256:2b9d53f93a93d0f3a659c81c0e44596da8941bd83c8e1f7301a24e46ca06dba2
+        imagePullPolicy: IfNotPresent
+        name: load-internal-plugins
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/portal-extension:0.38.0@sha256:aa6ec6b99810e05655d98fa1192bc2eabb855335f7a04aa4cd96ed5b5645d736
+        imagePullPolicy: IfNotPresent
+        name: load-portal-extension
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ox-extension:0.11.0@sha256:2cb5a9683b6ff81b995a5c71da52c2ff8177b662bb0be8f11e9cd0c6b48d8a11
+        imagePullPolicy: IfNotPresent
+        name: load-ox-extension
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - image: registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nubus:1.7.5@sha256:cc38d339abea18dc3644b7764d7be13798956161d1c87e34b26b5d8b7a11edc6
+        imagePullPolicy: IfNotPresent
+        name: load-opendesk-extension
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - command:
+        - /bin/bash
+        - /scripts/wait-for-saml-metadata.sh
+        envFrom:
+        - configMapRef:
+            name: ums-ldap-server
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/wait-for-dependency:0.26.0@sha256:a31fde86bf21c597a31356fe492ab7e7a03a89282ca215eb7100763d6eb96b6b
+        imagePullPolicy: IfNotPresent
+        name: wait-for-saml-metadata
+        resources:
+          limits:
+            cpu: 288
+            memory: 1Gi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /scripts
+          name: scripts-volume
+        - mountPath: /etc/univention/base.conf
+          name: config-map-ucr
+          subPath: base.conf
+        - mountPath: /etc/univention/base-defaults.conf
+          name: config-map-ucr
+          subPath: base-defaults.conf
+      - command:
+        - bash
+        - -c
+        - /scripts-secondary/wait-for-primary.sh
+        env:
+        - name: SYNC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: adminPassword
+              name: ums-ldap-server-credentials
+        - name: LDAP_CN_ADMIN_PW
+          valueFrom:
+            secretKeyRef:
+              key: adminPassword
+              name: ums-ldap-server-credentials
+        envFrom:
+        - configMapRef:
+            name: ums-ldap-server
+        - configMapRef:
+            name: ums-ldap-server-secondary
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ldap-server:0.25.2@sha256:2b9d53f93a93d0f3a659c81c0e44596da8941bd83c8e1f7301a24e46ca06dba2
+        imagePullPolicy: IfNotPresent
+        name: wait-for-primary
+        resources:
+          limits:
+            cpu: 288
+            memory: 1Gi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 102
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /scripts-secondary
+          name: secondary-scripts-volume
+      securityContext:
+        fsGroup: 102
+        fsGroupChangePolicy: Always
+        sysctls:
+        - name: net.ipv4.ip_unprivileged_port_start
+          value: '1'
+      serviceAccountName: ums-ldap-server
+      terminationGracePeriodSeconds: 5
+      volumes:
+      - emptyDir: {}
+        name: usr-share-univention-ldap-volume
+      - emptyDir: {}
+        name: usr-share-saml-volume
+      - emptyDir: {}
+        name: etc-ldap-volume
+      - emptyDir: {}
+        name: etc-univention-volume
+      - configMap:
+          defaultMode: 365
+          name: ums-ldap-server-secondary-scripts
+        name: secondary-scripts-volume
+      - configMap:
+          name: ums-ldap-server-secondary-config-templates
+        name: secondary-config-templates-volume
+      - configMap:
+          defaultMode: 365
+          name: ums-ldap-server-scripts
+        name: scripts-volume
+      - emptyDir: {}
+        name: plugin-targets
+      - configMap:
+          name: ums-stack-data-ums-ucr
+        name: config-map-ucr
+      - name: migration-scripts
+        secret:
+          defaultMode: 365
+          secretName: ums-ldap-server-migration
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      name: shared-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  - metadata:
+      name: shared-run
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: portal-consumer
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nubusPortalConsumer-0.42.2
+  name: ums-portal-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: ums
+      app.kubernetes.io/name: portal-consumer
+  serviceName: ums-portal-consumer
+  template:
+    metadata:
+      annotations:
+        checksum/config: 254bb865f036bd782ca2783338e0fc1ed7bd949bcb85c54e318e82e11e168c3e
+        checksum/secret: cc0e74cd1e0f5ec42421d3f6947df220f75fc3048fba5a8e6831551ba98cc5de
+        intents.otterize.com/service-name: ums-portal-consumer
+      labels:
+        app.kubernetes.io/instance: ums
+        app.kubernetes.io/name: portal-consumer
+    spec:
+      containers:
+      - env:
+        - name: OBJECT_STORAGE_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              key: accessKey
+              name: ums-portal-consumer-minio-credentials
+        - name: OBJECT_STORAGE_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secretKey
+              name: ums-portal-consumer-minio-credentials
+        - name: PROVISIONING_API_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: PROVISIONING_API_PASSWORD
+              name: ums-portal-consumer-credentials
+        envFrom:
+        - configMapRef:
+            name: ums-portal-consumer-common
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/portal-consumer:0.42.2@sha256:5afee47e4d3d5f8bf51ffca66578a98318f49ee41e8f4b306cb75826b66a1804
+        imagePullPolicy: IfNotPresent
+        name: portal-consumer
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /usr/share/univention-group-membership-cache/caches
+          name: group-membership-cache
+        - mountPath: /var/secrets/machine_secret
+          name: ums-portal-consumer-ldap-credentials-volume
+          readOnly: true
+          subPath: machine.secret
+        - mountPath: /var/secrets/ca_cert
+          name: ums-portal-consumer-ldap-tls-volume
+          readOnly: true
+          subPath: ca.crt
+        - mountPath: /var/secrets/cert_pem
+          name: ums-portal-consumer-ldap-tls-volume
+          readOnly: true
+          subPath: tls.crt
+        - mountPath: /var/secrets/private_key
+          name: ums-portal-consumer-ldap-tls-volume
+          readOnly: true
+          subPath: tls.key
+      initContainers:
+      - command:
+        - /bin/bash
+        - /scripts/wait-for-ldap.sh
+        env: null
+        envFrom:
+        - configMapRef:
+            name: ums-portal-consumer-common
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/wait-for-dependency:0.26.0@sha256:a31fde86bf21c597a31356fe492ab7e7a03a89282ca215eb7100763d6eb96b6b
+        imagePullPolicy: IfNotPresent
+        name: wait-for-ldap
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /scripts
+          name: scripts
+        - mountPath: /var/secrets/machine_secret
+          name: ums-portal-consumer-ldap-credentials-volume
+          readOnly: true
+          subPath: machine.secret
+        - mountPath: /var/secrets/ca_cert
+          name: ums-portal-consumer-ldap-tls-volume
+          readOnly: true
+          subPath: ca.crt
+        - mountPath: /var/secrets/cert_pem
+          name: ums-portal-consumer-ldap-tls-volume
+          readOnly: true
+          subPath: tls.crt
+        - mountPath: /var/secrets/private_key
+          name: ums-portal-consumer-ldap-tls-volume
+          readOnly: true
+          subPath: tls.key
+      - command:
+        - /bin/bash
+        - /scripts/wait-for-udm.sh
+        env: null
+        envFrom:
+        - configMapRef:
+            name: ums-portal-consumer-common
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/wait-for-dependency:0.26.0@sha256:a31fde86bf21c597a31356fe492ab7e7a03a89282ca215eb7100763d6eb96b6b
+        imagePullPolicy: IfNotPresent
+        name: wait-for-udm
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /scripts
+          name: scripts
+        - mountPath: /var/secrets/machine_secret
+          name: ums-portal-consumer-ldap-credentials-volume
+          readOnly: true
+          subPath: machine.secret
+        - mountPath: /var/secrets/ca_cert
+          name: ums-portal-consumer-ldap-tls-volume
+          readOnly: true
+          subPath: ca.crt
+        - mountPath: /var/secrets/cert_pem
+          name: ums-portal-consumer-ldap-tls-volume
+          readOnly: true
+          subPath: tls.crt
+        - mountPath: /var/secrets/private_key
+          name: ums-portal-consumer-ldap-tls-volume
+          readOnly: true
+          subPath: tls.key
+      - command:
+        - /usr/bin/python3
+        - /scripts/wait-for-object-store.py
+        env:
+        - name: OBJECT_STORAGE_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              key: accessKey
+              name: ums-portal-consumer-minio-credentials
+        - name: OBJECT_STORAGE_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secretKey
+              name: ums-portal-consumer-minio-credentials
+        envFrom:
+        - configMapRef:
+            name: ums-portal-consumer-common
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/portal-consumer:0.42.2@sha256:5afee47e4d3d5f8bf51ffca66578a98318f49ee41e8f4b306cb75826b66a1804
+        imagePullPolicy: IfNotPresent
+        name: wait-for-object-storage
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /scripts
+          name: scripts
+      - command:
+        - /bin/bash
+        - /scripts/wait-for-provisioning-api.sh
+        env:
+        - name: PROVISIONING_API_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: PROVISIONING_API_PASSWORD
+              name: ums-portal-consumer-credentials
+        envFrom:
+        - configMapRef:
+            name: ums-portal-consumer-common
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/wait-for-dependency:0.26.0@sha256:a31fde86bf21c597a31356fe492ab7e7a03a89282ca215eb7100763d6eb96b6b
+        imagePullPolicy: IfNotPresent
+        name: wait-for-provisioning-api
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /scripts
+          name: scripts
+      securityContext: {}
+      terminationGracePeriodSeconds: 5
+      volumes:
+      - configMap:
+          defaultMode: 365
+          name: ums-portal-consumer-scripts
+        name: scripts
+      - name: ums-portal-consumer-ldap-credentials-volume
+        secret:
+          secretName: ums-portal-consumer-ldap-credentials
+      - name: ums-portal-consumer-ldap-tls-volume
+        secret:
+          secretName: ums-portal-consumer-ldap-tls
+  volumeClaimTemplates:
+  - metadata:
+      name: group-membership-cache
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-provisioning-nats
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: provisioning-nats
+    helm.sh/chart: nats-0.1.2
+  name: ums-provisioning-nats
+  namespace: tn-openbsw-opendesk
+spec:
+  podManagementPolicy: Parallel
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: ums
+      app.kubernetes.io/name: provisioning-nats
+  serviceName: ums-provisioning-nats-headless
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: e3f6dffb47e09edad8dad33fa1b831b3ec846bf2fb15cb908527d44a8e48a3b6
+      labels:
+        app.kubernetes.io/instance: ums
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: provisioning-nats
+        helm.sh/chart: nats-0.1.2
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                - nats
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - args:
+        - --config
+        - /etc/nats-config/nats.conf
+        env:
+        - name: SERVER_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: CLUSTER_ADVERTISE
+          value: $(SERVER_NAME).nats.$(NAMESPACE).svc.cluster.local
+        - name: CLUSTER_NAME
+          value: ums-provisioning-nats
+        - name: NATS_USER
+          value: admin
+        - name: NATS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: admin_password
+              name: ums-provisioning-nats-credentials
+        - name: NATS_API_USER
+          valueFrom:
+            secretKeyRef:
+              key: NATS_USER
+              name: ums-provisioning-api-credentials
+        - name: NATS_API_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NATS_PASSWORD
+              name: ums-provisioning-api-credentials
+        - name: NATS_DISPATCHER_USER
+          valueFrom:
+            secretKeyRef:
+              key: NATS_USER
+              name: ums-provisioning-dispatcher-credentials
+        - name: NATS_DISPATCHER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NATS_PASSWORD
+              name: ums-provisioning-dispatcher-credentials
+        - name: NATS_UDM_TRANSFORMER_USER
+          valueFrom:
+            secretKeyRef:
+              key: NATS_USER
+              name: ums-provisioning-udm-transformer-credentials
+        - name: NATS_UDM_TRANSFORMER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NATS_PASSWORD
+              name: ums-provisioning-udm-transformer-credentials
+        - name: NATS_PREFILL_USER
+          valueFrom:
+            secretKeyRef:
+              key: NATS_USER
+              name: ums-provisioning-prefill-credentials
+        - name: NATS_PREFILL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NATS_PASSWORD
+              name: ums-provisioning-prefill-credentials
+        - name: NATS_UDMLISTENER_USER
+          valueFrom:
+            secretKeyRef:
+              key: NATS_USER
+              name: ums-provisioning-udm-listener-credentials
+        - name: NATS_UDMLISTENER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NATS_PASSWORD
+              name: ums-provisioning-udm-listener-credentials
+        image: registry-1.docker.io/library/nats:2.10.10@sha256:fa26beda8a3187ccefa47afcfe9ea6d0e2f40a57c8f64d70bd63c792d7973938
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - nats-server
+              - -sl=ldm=/var/run/nats.pid
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz?js-enabled-only=true
+            port: monitor
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: nats
+        ports:
+        - containerPort: 4222
+          name: client
+          protocol: TCP
+        - containerPort: 6222
+          name: cluster
+          protocol: TCP
+        - containerPort: 8222
+          name: monitor
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz?js-enabled-only=true
+            port: monitor
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 90
+          httpGet:
+            path: /healthz?js-enabled-only=true
+            port: monitor
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        volumeMounts:
+        - mountPath: /var/run
+          name: var-run-volume
+        - mountPath: /etc/nats-config
+          name: config-volume
+        - mountPath: /data
+          name: nats-data
+      - args:
+        - -pid
+        - /var/run/nats.pid
+        - -config
+        - /etc/nats-config/nats.conf
+        env:
+        - name: SERVER_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        image: registry-1.docker.io/natsio/nats-server-config-reloader:0.14.1@sha256:77dd4c60001ffbf442c6b25592e73b4fca06ea9406c677607192788d80453783
+        imagePullPolicy: IfNotPresent
+        name: reloader
+        resources:
+          limits:
+            cpu: 288
+            memory: 1Gi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /etc/nats-config
+          name: config-volume
+        - mountPath: /var/run
+          name: var-run-volume
+      - args:
+        - sh
+        - -c
+        - trap true INT TERM; sleep infinity & wait
+        env:
+        - name: SERVER_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NATS_USER
+          value: admin
+        - name: NATS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: admin_password
+              name: ums-provisioning-nats-credentials
+        - name: NATS_API_USER
+          valueFrom:
+            secretKeyRef:
+              key: NATS_USER
+              name: ums-provisioning-api-credentials
+        - name: NATS_API_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NATS_PASSWORD
+              name: ums-provisioning-api-credentials
+        - name: NATS_DISPATCHER_USER
+          valueFrom:
+            secretKeyRef:
+              key: NATS_USER
+              name: ums-provisioning-dispatcher-credentials
+        - name: NATS_DISPATCHER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NATS_PASSWORD
+              name: ums-provisioning-dispatcher-credentials
+        - name: NATS_UDM_TRANSFORMER_USER
+          valueFrom:
+            secretKeyRef:
+              key: NATS_USER
+              name: ums-provisioning-udm-transformer-credentials
+        - name: NATS_UDM_TRANSFORMER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NATS_PASSWORD
+              name: ums-provisioning-udm-transformer-credentials
+        - name: NATS_PREFILL_USER
+          valueFrom:
+            secretKeyRef:
+              key: NATS_USER
+              name: ums-provisioning-prefill-credentials
+        - name: NATS_PREFILL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NATS_PASSWORD
+              name: ums-provisioning-prefill-credentials
+        - name: NATS_UDMLISTENER_USER
+          valueFrom:
+            secretKeyRef:
+              key: NATS_USER
+              name: ums-provisioning-udm-listener-credentials
+        - name: NATS_UDMLISTENER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NATS_PASSWORD
+              name: ums-provisioning-udm-listener-credentials
+        - name: NATS_URL
+          value: nats://$(SERVER_NAME).ums-provisioning-nats-headless.$(NAMESPACE).svc.cluster.local:4222
+        image: registry-1.docker.io/natsio/nats-box:0.14.2@sha256:c9b8ebaabb2ca4c227feb4f6b856dc72d4775ac3d71f80d2c65aa82303079011
+        imagePullPolicy: IfNotPresent
+        name: nats-box
+        resources:
+          limits:
+            cpu: 288
+            memory: 1Gi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts: null
+        workingDir: /home/nats
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: Always
+        sysctls:
+        - name: net.ipv4.ip_unprivileged_port_start
+          value: '1'
+      serviceAccountName: ums-provisioning-nats
+      volumes:
+      - emptyDir: {}
+        name: var-run-volume
+      - configMap:
+          defaultMode: 420
+          name: ums-provisioning-nats-config
+        name: config-volume
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      name: nats-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: provisioning-listener
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nubusUdmListener-0.44.0
+  name: ums-provisioning-listener
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: ums
+      app.kubernetes.io/name: provisioning-listener
+  serviceName: ums-provisioning-listener
+  template:
+    metadata:
+      annotations:
+        checksum/config: fbca70d171c30a4df2e6316a63e4abcf4b830b523b81f7e907be932a85e6e7d4
+        checksum/secret: b62cc2b618b70c5b69eaba4010994ba4af90f8aff1f6b8268f553a356a8b489b
+      labels:
+        app.kubernetes.io/instance: ums
+        app.kubernetes.io/name: provisioning-listener
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - '/usr/sbin/univention-directory-listener \
+
+          -F \
+
+          -x \
+
+          -d "${DEBUG_LEVEL}" \
+
+          -b "${LDAP_BASE_DN}" \
+
+          -D "cn=admin,${LDAP_BASE_DN}" \
+
+          -n "${NOTIFIER_SERVER}" \
+
+          -m "/usr/lib/univention-directory-listener/system" \
+
+          -c "/var/lib/univention-directory-listener" \
+
+          -y "${LDAP_PASSWORD_FILE}" -Z
+
+          '
+        env:
+        - name: NATS_USER
+          value: udmlistener
+        - name: NATS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: NATS_PASSWORD
+              name: ums-provisioning-udm-listener-credentials
+        - name: EVENTS_USERNAME_UDM
+          valueFrom:
+            secretKeyRef:
+              key: EVENTS_USERNAME_UDM
+              name: ums-provisioning-udm-listener-credentials
+        - name: EVENTS_PASSWORD_UDM
+          valueFrom:
+            secretKeyRef:
+              key: EVENTS_PASSWORD_UDM
+              name: ums-provisioning-udm-listener-credentials
+        envFrom:
+        - configMapRef:
+            name: ums-provisioning-listener
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/provisioning-udm-listener:0.44.0@sha256:03c8f03ca0fab92ecd3234d1f3fad3293629feae0123134641dad243f3ca328c
+        imagePullPolicy: IfNotPresent
+        name: udm-listener
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 65534
+          runAsNonRoot: true
+          runAsUser: 102
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /etc/univention
+          name: config-files
+        - mountPath: /etc/ldap/ldap.conf
+          name: config-files
+          subPath: ldap.conf
+        - mountPath: /var/secrets/ldap_secret
+          name: ums-provisioning-udm-listener-ldap-credentials-volume
+          readOnly: true
+          subPath: ldap.secret
+        - mountPath: /var/secrets/machine_secret
+          name: ums-provisioning-udm-listener-ldap-credentials-volume
+          readOnly: true
+          subPath: machine.secret
+        - mountPath: /var/secrets/ca_cert
+          name: ums-provisioning-udm-listener-ldap-tls-volume
+          readOnly: true
+          subPath: ca.crt
+        - mountPath: /var/lib/univention-directory-listener
+          name: data
+        - mountPath: /var/lib/univention-ldap/schema/id
+          name: data
+        - mountPath: /var/log/univention
+          name: data
+      securityContext:
+        fsGroup: 65534
+        fsGroupChangePolicy: Always
+        sysctls: []
+      serviceAccountName: ums-provisioning-listener
+      terminationGracePeriodSeconds: 5
+      volumes:
+      - configMap:
+          name: ums-provisioning-listener-files
+        name: config-files
+      - name: ums-provisioning-udm-listener-ldap-credentials-volume
+        secret:
+          secretName: ums-provisioning-udm-listener-ldap-credentials
+      - name: ums-provisioning-udm-listener-ldap-tls-volume
+        secret:
+          secretName: ums-provisioning-udm-listener-ldap-tls
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-umc-server
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: umc-server
+    app.kubernetes.io/version: 12.0.29
+    helm.sh/chart: nubusUmcServer-0.34.1
+  name: ums-umc-server
+  namespace: tn-openbsw-opendesk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: ums
+      app.kubernetes.io/name: umc-server
+  strategy: null
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: 5abd26e5cc09d30a27276c0dee2d6d4eb52a815dc37e2fb41760560ae6bdb657
+      labels:
+        app.kubernetes.io/instance: ums
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: umc-server
+        app.kubernetes.io/version: 12.0.29
+        helm.sh/chart: nubusUmcServer-0.34.1
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - '/usr/sbin/univention-management-console-server \
+
+          --no-daemonize-module-processes \
+
+          --log-file stdout
+
+          '
+        env:
+        - name: SELF_SERVICE_DB_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: umcServerDatabasePassword
+              name: ums-umc-server-postgresql-opendesk-credentials
+        - name: SELF_SERVICE_MEMCACHED_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: umcServerMemcachedPassword
+              name: ums-umc-server-memcached-opendesk-credentials
+        - name: PYTHONDONTWRITEBYTECODE
+          value: '1'
+        envFrom:
+        - configMapRef:
+            name: ums-umc-server
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/umc-server:0.34.1@sha256:4addb518b7b622f0e82dbdde30bbb8d8da6cc197528268d2ad856635f3bbe64a
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          successThreshold: 1
+          tcpSocket:
+            port: http
+          timeoutSeconds: 3
+        name: umc-server
+        ports:
+        - containerPort: 8090
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 30
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: http
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /etc/ldap
+          name: etc-ldap
+          readOnly: true
+        - mountPath: /etc/pam.d
+          name: etc-pam
+          readOnly: true
+        - mountPath: /etc/sssd
+          name: etc-sssd
+          readOnly: true
+        - mountPath: /etc/univention/ssl
+          name: etc-univention-ssl
+          readOnly: true
+        - mountPath: /etc/univention/directory/reports
+          name: etc-univention-reports
+          readOnly: true
+        - mountPath: /var/cache/univention-management-console/acls
+          name: acl-cache
+        - mountPath: /var/cache/univention-config
+          name: config-cache
+          readOnly: true
+        - mountPath: /var/log/univention
+          name: univention-logs
+        - mountPath: /var/lib/sss
+          name: var-lib-sss
+        - mountPath: /var/www/univention
+          name: var-www-univention
+          readOnly: true
+        - mountPath: /run
+          name: run
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /usr/share/univention-management-console/saml/idp
+          name: usr-share-umc-saml-idp
+          readOnly: true
+        - mountPath: /var/secrets/ssl
+          name: certificates
+        - mountPath: /etc/univention/base.conf
+          name: config-map-ucr
+          subPath: base.conf
+        - mountPath: /etc/univention/base-defaults.conf
+          name: config-map-ucr
+          subPath: base-defaults.conf
+        - mountPath: /etc/ldap.secret
+          name: ums-umc-server-ldap-credentials-volume
+          readOnly: true
+          subPath: ldap.secret
+        - mountPath: /etc/machine.secret
+          name: ums-umc-server-ldap-credentials-volume
+          readOnly: true
+          subPath: machine.secret
+        - mountPath: /var/secrets/smtp_secret
+          name: ums-umc-server-smtp-credentials-custom-volume
+          readOnly: true
+          subPath: password
+        - mountPath: /var/secrets/db_password
+          name: ums-umc-server-postgresql-opendesk-credentials-volume
+          readOnly: true
+          subPath: umcServerDatabasePassword
+        - mountPath: /var/secrets/memcached_password
+          name: ums-umc-server-memcached-opendesk-credentials-volume
+          readOnly: true
+          subPath: umcServerMemcachedPassword
+        - mountPath: /var/secrets/ca_cert
+          name: ums-umc-server-ldap-tls-volume
+          readOnly: true
+          subPath: ca.crt
+        - mountPath: /var/secrets/cert_pem
+          name: ums-umc-server-ldap-tls-volume
+          readOnly: true
+          subPath: tls.crt
+        - mountPath: /var/secrets/private_key
+          name: ums-umc-server-ldap-tls-volume
+          readOnly: true
+          subPath: tls.key
+        - mountPath: /usr/lib/python3/dist-packages/univention/udm/modules
+          name: plugin-targets
+          readOnly: true
+          subPath: udm-modules
+        - mountPath: /usr/lib/python3/dist-packages/univention/admin/hooks.d
+          name: plugin-targets
+          readOnly: true
+          subPath: udm-hooks.d
+        - mountPath: /usr/lib/python3/dist-packages/univention/admin/syntax.d
+          name: plugin-targets
+          readOnly: true
+          subPath: udm-syntax.d
+        - mountPath: /usr/lib/python3/dist-packages/univention/admin/handlers
+          name: plugin-targets
+          readOnly: true
+          subPath: udm-handlers
+        - mountPath: /usr/share/univention-management-console-frontend/js/dijit/themes/umc/icons/
+          name: plugin-targets
+          readOnly: true
+          subPath: umc-icons
+        - mountPath: /usr/share/univention-management-console/modules/
+          name: plugin-targets
+          readOnly: true
+          subPath: umc-modules
+        - mountPath: /usr/share/univention-self-service/email_bodies
+          name: passwordreset-email-body
+          readOnly: true
+      - command:
+        - sh
+        - -c
+        - 'sssd -i --logger stderr --debug-level 2
+
+          '
+        envFrom:
+        - configMapRef:
+            name: ums-umc-server
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/umc-server:0.34.1@sha256:4addb518b7b622f0e82dbdde30bbb8d8da6cc197528268d2ad856635f3bbe64a
+        imagePullPolicy: IfNotPresent
+        name: sssd-sidecar
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: true
+          capabilities:
+            add:
+            - DAC_OVERRIDE
+            - SETGID
+            - AUDIT_WRITE
+            - SETUID
+            - CHOWN
+            - SETPCAP
+            - FOWNER
+            - FSETID
+            - KILL
+            - MKNOD
+            - NET_BIND_SERVICE
+            - SYS_CHROOT
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /etc/ldap
+          name: etc-ldap
+          readOnly: true
+        - mountPath: /etc/pam.d
+          name: etc-pam
+          readOnly: true
+        - mountPath: /etc/sssd
+          name: etc-sssd
+          readOnly: true
+        - mountPath: /etc/univention/ssl
+          name: etc-univention-ssl
+          readOnly: true
+        - mountPath: /run
+          name: run
+        - mountPath: /usr/share/univention-management-console/saml/idp
+          name: usr-share-umc-saml-idp
+          readOnly: true
+        - mountPath: /var/lib/sss
+          name: var-lib-sss
+        - mountPath: /var/lib/sss/db/
+          name: sssd-db
+        - mountPath: /var/secrets/ssl
+          name: certificates
+      initContainers:
+      - command:
+        - bash
+        - -c
+        - "/entrypoint.d/50-entrypoint.sh\ncp -a /var/lib/sss/* /target/var/lib/sss/\n\
+          if [[ ! -d /target/var/lib/sss/pipes/private ]]; then\n  mkdir -p /target/var/lib/sss/pipes/private\n\
+          fi\nchmod 750 /target/var/lib/sss/pipes/private/\nchown root:root -R /target/var/lib/sss/pipes\
+          \ /target/var/lib/sss/db /etc/sssd/sssd.conf\nchmod 0600 /etc/sssd/sssd.conf\n"
+        envFrom:
+        - configMapRef:
+            name: ums-umc-server
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/umc-server:0.34.1@sha256:4addb518b7b622f0e82dbdde30bbb8d8da6cc197528268d2ad856635f3bbe64a
+        imagePullPolicy: IfNotPresent
+        name: prepare-config
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - DAC_OVERRIDE
+            - SETGID
+            - SETUID
+            - SYS_ADMIN
+            - NET_ADMIN
+            - AUDIT_CONTROL
+            - CHOWN
+            - FOWNER
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /etc/ldap
+          name: etc-ldap
+        - mountPath: /etc/pam.d
+          name: etc-pam
+        - mountPath: /etc/sssd
+          name: etc-sssd
+        - mountPath: /etc/univention/ssl
+          name: etc-univention-ssl
+        - mountPath: /etc/univention/directory/reports
+          name: etc-univention-reports
+        - mountPath: /var/cache/univention-management-console/acls
+          name: acl-cache
+        - mountPath: /var/cache/univention-config
+          name: config-cache
+        - mountPath: /var/log/univention
+          name: univention-logs
+        - mountPath: /target/var/lib/sss
+          name: var-lib-sss
+        - mountPath: /var/www/univention
+          name: var-www-univention
+        - mountPath: /run
+          name: run
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /usr/share/univention-management-console/saml/idp
+          name: usr-share-umc-saml-idp
+        - mountPath: /var/secrets/ssl
+          name: certificates
+        - mountPath: /etc/univention/base.conf
+          name: config-map-ucr
+          subPath: base.conf
+        - mountPath: /etc/univention/base-defaults.conf
+          name: config-map-ucr
+          subPath: base-defaults.conf
+        - mountPath: /etc/ldap.secret
+          name: ums-umc-server-ldap-credentials-volume
+          readOnly: true
+          subPath: ldap.secret
+        - mountPath: /etc/machine.secret
+          name: ums-umc-server-ldap-credentials-volume
+          readOnly: true
+          subPath: machine.secret
+        - mountPath: /var/secrets/smtp_secret
+          name: ums-umc-server-smtp-credentials-custom-volume
+          readOnly: true
+          subPath: password
+        - mountPath: /var/secrets/db_password
+          name: ums-umc-server-postgresql-opendesk-credentials-volume
+          readOnly: true
+          subPath: umcServerDatabasePassword
+        - mountPath: /var/secrets/memcached_password
+          name: ums-umc-server-memcached-opendesk-credentials-volume
+          readOnly: true
+          subPath: umcServerMemcachedPassword
+        - mountPath: /var/secrets/ca_cert
+          name: ums-umc-server-ldap-tls-volume
+          readOnly: true
+          subPath: ca.crt
+        - mountPath: /var/secrets/cert_pem
+          name: ums-umc-server-ldap-tls-volume
+          readOnly: true
+          subPath: tls.crt
+        - mountPath: /var/secrets/private_key
+          name: ums-umc-server-ldap-tls-volume
+          readOnly: true
+          subPath: tls.key
+      - command:
+        - sh
+        - -c
+        - 'cp -Rv /usr/share/univention-management-console/modules/ /target/umc-modules
+
+          cp -Rv /usr/lib/python3/dist-packages/univention/udm/modules /target/udm-modules
+
+          cp -Rv /usr/lib/python3/dist-packages/univention/admin/hooks.d /target/udm-hooks.d
+
+          cp -Rv /usr/lib/python3/dist-packages/univention/admin/syntax.d /target/udm-syntax.d
+
+          cp -Rv /usr/lib/python3/dist-packages/univention/admin/handlers /target/udm-handlers
+
+          mkdir -p /target/udm-modules /target/udm-hooks.d /target/udm-syntax.d /target/udm-handlers
+          /target/umc-modules /target/umc-icons
+
+          '
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/umc-server:0.34.1@sha256:4addb518b7b622f0e82dbdde30bbb8d8da6cc197528268d2ad856635f3bbe64a
+        imagePullPolicy: IfNotPresent
+        name: load-internal-plugins
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/portal-extension:0.38.0@sha256:aa6ec6b99810e05655d98fa1192bc2eabb855335f7a04aa4cd96ed5b5645d736
+        imagePullPolicy: IfNotPresent
+        name: load-portal-extension
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ox-extension:0.11.0@sha256:2cb5a9683b6ff81b995a5c71da52c2ff8177b662bb0be8f11e9cd0c6b48d8a11
+        imagePullPolicy: IfNotPresent
+        name: load-ox-extension
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - image: registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nubus:1.7.5@sha256:cc38d339abea18dc3644b7764d7be13798956161d1c87e34b26b5d8b7a11edc6
+        imagePullPolicy: IfNotPresent
+        name: load-opendesk-extension
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      securityContext:
+        fsGroup: 0
+        fsGroupChangePolicy: Always
+      serviceAccountName: ums-umc-server
+      terminationGracePeriodSeconds: 5
+      volumes:
+      - name: certificates
+        secret:
+          secretName: ums-saml-tls
+      - emptyDir:
+          medium: Memory
+        name: etc-ldap
+      - emptyDir:
+          medium: Memory
+        name: etc-pam
+      - emptyDir:
+          medium: Memory
+        name: etc-sssd
+      - emptyDir:
+          medium: Memory
+        name: etc-univention-ssl
+      - emptyDir:
+          medium: Memory
+        name: etc-univention-reports
+      - emptyDir:
+          medium: Memory
+        name: acl-cache
+      - emptyDir:
+          medium: Memory
+        name: config-cache
+      - emptyDir:
+          medium: Memory
+        name: univention-logs
+      - emptyDir:
+          medium: Memory
+        name: sssd-socket
+      - emptyDir: {}
+        name: var-lib-sss
+      - emptyDir:
+          medium: Memory
+        name: var-www-univention
+      - emptyDir:
+          medium: Memory
+        name: run
+      - emptyDir:
+          medium: Memory
+        name: tmp
+      - emptyDir:
+          medium: Memory
+        name: usr-share-umc-saml-idp
+      - emptyDir:
+          medium: Memory
+        name: sssd-db
+      - configMap:
+          name: ums-stack-data-ums-ucr
+        name: config-map-ucr
+      - name: ums-umc-server-ldap-credentials-volume
+        secret:
+          secretName: ums-umc-server-ldap-credentials
+      - name: ums-umc-server-smtp-credentials-custom-volume
+        secret:
+          secretName: ums-umc-server-smtp-credentials-custom
+      - name: ums-umc-server-postgresql-opendesk-credentials-volume
+        secret:
+          secretName: ums-umc-server-postgresql-opendesk-credentials
+      - name: ums-umc-server-memcached-opendesk-credentials-volume
+        secret:
+          secretName: ums-umc-server-memcached-opendesk-credentials
+      - name: ums-umc-server-ldap-tls-volume
+        secret:
+          secretName: ums-umc-server-ldap-tls
+      - configMap:
+          defaultMode: 292
+          name: ums-umc-server-pw-reset-email-body
+        name: passwordreset-email-body
+      - emptyDir: {}
+        name: plugin-targets
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: core-mw
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-6.0.3
+    roles.middleware.open-xchange.com/admin: 'true'
+    roles.middleware.open-xchange.com/businessmobility: 'true'
+    roles.middleware.open-xchange.com/documents: 'true'
+    roles.middleware.open-xchange.com/http-api: 'true'
+    roles.middleware.open-xchange.com/request-analyzer: 'true'
+    roles.middleware.open-xchange.com/sync: 'true'
+    version: 8.30.63
+  name: open-xchange-core-mw-default
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: open-xchange
+      app.kubernetes.io/name: core-mw
+  serviceName: open-xchange-core-mw-hazelcast-headless
+  template:
+    metadata:
+      annotations:
+        checksum/allConfig: 22f8aa2bc5fe10b9f5e5112ac05b536a3ae130b64fe00b650d2c74353af509e
+        checksum/commonEnv: c6365e50c0b99db57563e26009d4252f83c809351ec3603d5a33f01c502356b8
+        commit.open-xchange.com/backend: 8347272db983dbd9f11efed0f107a5d6145fc789
+        commit.open-xchange.com/documentconverter-api: 6903464ecc527debdcaacf2a603067cc8bd5b723
+        commit.open-xchange.com/exchange-interop: 7dba363002de2d05f1f5f80cad02e707bb2bac6c
+        commit.open-xchange.com/guard: ce7022310b622add5778381f709c2a455910b7e9
+        commit.open-xchange.com/imageconverter: fbcc4654551274cce4418a91e2f5920742261259
+        commit.open-xchange.com/nextcloud-integration: 903305bef41bfa2cf977589c658f431c33ba8e7e
+        commit.open-xchange.com/office: b56fb4193176fdc2e6b25f773bc033cd46b18c68
+        commit.open-xchange.com/public-sector: e83e04cd026ecc3d004a4099e07f67f47bde50f1
+        commit.open-xchange.com/weakforced: 7e517a2d71f788ac8e48a16b498638ca62265dc3
+        logging.open-xchange.com/format: appsuite-json
+      labels:
+        app: core-mw
+        app.kubernetes.io/instance: open-xchange
+        app.kubernetes.io/name: core-mw
+        roles.middleware.open-xchange.com/admin: 'true'
+        roles.middleware.open-xchange.com/businessmobility: 'true'
+        roles.middleware.open-xchange.com/documents: 'true'
+        roles.middleware.open-xchange.com/http-api: 'true'
+        roles.middleware.open-xchange.com/request-analyzer: 'true'
+        roles.middleware.open-xchange.com/sync: 'true'
+        version: 8.30.63
+    spec:
+      affinity: {}
+      containers:
+      - env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: ''
+        - name: SERVER_NAME
+          value: server
+        - name: RELEASE_NAMESPACE
+          value: tn-openbsw-opendesk
+        - name: OX_LOG_TO_CONSOLE
+          value: 'true'
+        - name: OX_BLACKLISTED_PACKAGES
+          value: open-xchange-admin-autocontextid open-xchange-admin-reseller open-xchange-admin-soap-reseller
+            open-xchange-authentication-database open-xchange-authentication-imap
+            open-xchange-authentication-ldap open-xchange-authentication-masterpassword
+            open-xchange-cassandra open-xchange-dataretention-csv open-xchange-documents-backend
+            open-xchange-documents-monitoring open-xchange-documents-templates open-xchange-eas-provisioning
+            open-xchange-eas-provisioning-mail open-xchange-eas-provisioning-sms open-xchange-hostname-config-cascade
+            open-xchange-hostname-ldap open-xchange-multifactor open-xchange-omf-source
+            open-xchange-omf-source-dualprovisioning open-xchange-omf-source-dualprovisioning-cloudplugins
+            open-xchange-omf-source-guard open-xchange-omf-source-mailfilter open-xchange-parallels
+            open-xchange-passwordchange-script open-xchange-plugins-antiphishing open-xchange-plugins-antiphishing-vadesecure
+            open-xchange-plugins-blackwhitelist open-xchange-plugins-blackwhitelist-sieve
+            open-xchange-plugins-contact-storage-group open-xchange-plugins-contact-whitelist-sync
+            open-xchange-plugins-mx-checker open-xchange-plugins-onboarding-maillogin
+            open-xchange-plugins-trustedidentity open-xchange-plugins-unsubscribe
+            open-xchange-plugins-unsubscribe-vadesecure open-xchange-saml-core open-xchange-sms-sipgate
+            open-xchange-sms-twilio open-xchange-spamhandler-parallels open-xchange-sso
+            open-xchange-weakforced
+        - name: OX_APPSUITE_APPROOT
+          value: /appsuite
+        - name: DCS_SERVICENAME
+          value: open-xchange-core-documents-collaboration
+        - name: DC_SERVER_URL
+          value: http://open-xchange-core-documentconverter.tn-openbsw-opendesk.svc.cluster.local:8008/documentconverterws
+        - name: IC_SERVER_URL
+          value: http://open-xchange-core-imageconverter.tn-openbsw-opendesk.svc.cluster.local:8005/imageconverter
+        - name: SPELLCHECK_SERVER_URL
+          value: http://open-xchange-core-spellcheck.tn-openbsw-opendesk.svc.cluster.local:8003
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: HELM_RELEASE_NAME
+          value: open-xchange
+        - name: HZ_ENABLED
+          value: 'true'
+        - name: HZ_SERVICE_DNS
+          value: open-xchange-core-mw-hazelcast-headless.tn-openbsw-opendesk.svc.cluster.local
+        - name: HZ_GROUP_NAME
+          value: hzgroup
+        - name: HZ_GROUP_PASSWORD
+          value: b2c81c10244ead7fc393e267e4f4306ae765f7b7
+        - name: JAVA_OPTS_MEM
+          value: -XX:MaxHeapSize=2048M
+        envFrom:
+        - secretRef:
+            name: open-xchange-core-mw-mysql
+        - secretRef:
+            name: open-xchange-common-env
+        - secretRef:
+            name: open-xchange-core-mw-secret-envvars
+        image: registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/middleware-public-sector:8.30.62@sha256:9e4341c723cf6671479dfaad37635f8b28bb510decb9b7f0fd2616faacbf0d1a
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 15
+          httpGet:
+            path: /live
+            port: 8016
+            scheme: HTTP
+          initialDelaySeconds: null
+          periodSeconds: 10
+          timeoutSeconds: null
+        name: core-mw
+        ports:
+        - containerPort: 8009
+          name: http
+        readinessProbe:
+          failureThreshold: 2
+          httpGet:
+            path: /ready
+            port: 8009
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 99
+            memory: 8Gi
+          requests:
+            cpu: 1
+            memory: 1.25Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /health
+            port: 8009
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: null
+        volumeMounts:
+        - mountPath: /var/log/open-xchange
+          name: logs-default
+        - mountPath: /var/spool/open-xchange/
+          name: spool-default
+        - mountPath: /opt/open-xchange/etc/logback.xml
+          name: properties-lean-default
+          subPath: logback.xml
+        - mountPath: /opt/open-xchange/etc/languages/appsuite/languages.properties
+          name: properties-lean-default
+          subPath: languages.properties
+        - mountPath: /opt/open-xchange/etc/properties-lean-config.properties
+          name: properties-lean-default
+          subPath: properties-lean-config.properties
+        - mountPath: /injections/configuration/properties
+          name: properties-default
+        - mountPath: /injections/configuration/properties-overwrite
+          name: properties-overwrite-default
+        - mountPath: /injections/configuration/ui-settings
+          name: ui-settings-default
+        - mountPath: /injections/etc/meta/meta
+          name: meta-default
+        - mountPath: /injections/etc/etc
+          name: etc-files-default
+        - mountPath: /injections/etc/secretEtc
+          name: etc-secrets-default
+        - mountPath: /injections/etc/yaml
+          name: yaml-files-default
+        - mountPath: /injections/etc/secretYaml
+          name: yaml-secrets-default
+        - mountPath: /injections/etc/as-config
+          name: as-config-default
+        - mountPath: /injections/etc/context-sets/contextSets
+          name: context-sets-default
+        - mountPath: /hooks/start/helm/
+          name: start-hooks-default
+        - mountPath: /hooks/beforeApply/helm/
+          name: before-apply-hooks-default
+        - mountPath: /hooks/beforeAppsuiteStart/helm/
+          name: before-appsuite-start-hooks-default
+        - mountPath: /opt/open-xchange/etc/pushClientConfig/drive-restricted-config.yaml
+          name: drive-restricted-config
+          readOnly: true
+        - mountPath: /opt/open-xchange/etc/pushClientConfig/drive-mobile-android
+          name: drive-restricted-fcm-keystore
+          readOnly: true
+        - mountPath: /opt/open-xchange/etc/pushClientConfig/mobile-api-facade-restricted-config.yaml
+          name: mobile-api-facade-restricted-config
+          readOnly: true
+      imagePullSecrets: []
+      initContainers:
+      - command:
+        - /bin/bash
+        - -c
+        - "\necho -e \"Checking for the availability of MySQL Server deployment\"\n\
+          while ! nc -z -w 5 \"${MYSQL_HOST}\" \"${MYSQL_PORT}\"; do\n    printf \"\
+          -\"\ndone\necho -e \"  >> MySQL Server is up & running\"\n"
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: ''
+        - name: SERVER_NAME
+          value: server
+        - name: RELEASE_NAMESPACE
+          value: tn-openbsw-opendesk
+        - name: OX_LOG_TO_CONSOLE
+          value: 'true'
+        - name: OX_BLACKLISTED_PACKAGES
+          value: open-xchange-admin-autocontextid open-xchange-admin-reseller open-xchange-admin-soap-reseller
+            open-xchange-authentication-database open-xchange-authentication-imap
+            open-xchange-authentication-ldap open-xchange-authentication-masterpassword
+            open-xchange-cassandra open-xchange-dataretention-csv open-xchange-documents-backend
+            open-xchange-documents-monitoring open-xchange-documents-templates open-xchange-eas-provisioning
+            open-xchange-eas-provisioning-mail open-xchange-eas-provisioning-sms open-xchange-hostname-config-cascade
+            open-xchange-hostname-ldap open-xchange-multifactor open-xchange-omf-source
+            open-xchange-omf-source-dualprovisioning open-xchange-omf-source-dualprovisioning-cloudplugins
+            open-xchange-omf-source-guard open-xchange-omf-source-mailfilter open-xchange-parallels
+            open-xchange-passwordchange-script open-xchange-plugins-antiphishing open-xchange-plugins-antiphishing-vadesecure
+            open-xchange-plugins-blackwhitelist open-xchange-plugins-blackwhitelist-sieve
+            open-xchange-plugins-contact-storage-group open-xchange-plugins-contact-whitelist-sync
+            open-xchange-plugins-mx-checker open-xchange-plugins-onboarding-maillogin
+            open-xchange-plugins-trustedidentity open-xchange-plugins-unsubscribe
+            open-xchange-plugins-unsubscribe-vadesecure open-xchange-saml-core open-xchange-sms-sipgate
+            open-xchange-sms-twilio open-xchange-spamhandler-parallels open-xchange-sso
+            open-xchange-weakforced
+        - name: OX_APPSUITE_APPROOT
+          value: /appsuite
+        - name: DCS_SERVICENAME
+          value: open-xchange-core-documents-collaboration
+        - name: DC_SERVER_URL
+          value: http://open-xchange-core-documentconverter.tn-openbsw-opendesk.svc.cluster.local:8008/documentconverterws
+        - name: IC_SERVER_URL
+          value: http://open-xchange-core-imageconverter.tn-openbsw-opendesk.svc.cluster.local:8005/imageconverter
+        - name: SPELLCHECK_SERVER_URL
+          value: http://open-xchange-core-spellcheck.tn-openbsw-opendesk.svc.cluster.local:8003
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: HELM_RELEASE_NAME
+          value: open-xchange
+        - name: JAVA_OPTS_MEM
+          value: -XX:MaxHeapSize=2048M
+        envFrom:
+        - secretRef:
+            name: open-xchange-core-mw-mysql
+        - secretRef:
+            name: open-xchange-common-env
+        - secretRef:
+            name: open-xchange-core-mw-secret-envvars
+        image: registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/middleware-public-sector:8.30.62@sha256:9e4341c723cf6671479dfaad37635f8b28bb510decb9b7f0fd2616faacbf0d1a
+        imagePullPolicy: IfNotPresent
+        name: init-middleware
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /var/log/open-xchange
+          name: logs-default
+        - mountPath: /var/spool/open-xchange/
+          name: spool-default
+        - mountPath: /opt/open-xchange/etc/logback.xml
+          name: properties-lean-default
+          subPath: logback.xml
+        - mountPath: /opt/open-xchange/etc/languages/appsuite/languages.properties
+          name: properties-lean-default
+          subPath: languages.properties
+        - mountPath: /opt/open-xchange/etc/properties-lean-config.properties
+          name: properties-lean-default
+          subPath: properties-lean-config.properties
+        - mountPath: /injections/configuration/properties
+          name: properties-default
+        - mountPath: /injections/configuration/properties-overwrite
+          name: properties-overwrite-default
+        - mountPath: /injections/configuration/ui-settings
+          name: ui-settings-default
+        - mountPath: /injections/etc/meta/meta
+          name: meta-default
+        - mountPath: /injections/etc/etc
+          name: etc-files-default
+        - mountPath: /injections/etc/secretEtc
+          name: etc-secrets-default
+        - mountPath: /injections/etc/yaml
+          name: yaml-files-default
+        - mountPath: /injections/etc/secretYaml
+          name: yaml-secrets-default
+        - mountPath: /injections/etc/as-config
+          name: as-config-default
+        - mountPath: /injections/etc/context-sets/contextSets
+          name: context-sets-default
+        - mountPath: /hooks/start/helm/
+          name: start-hooks-default
+        - mountPath: /hooks/beforeApply/helm/
+          name: before-apply-hooks-default
+        - mountPath: /hooks/beforeAppsuiteStart/helm/
+          name: before-appsuite-start-hooks-default
+      nodeSelector: {}
+      serviceAccountName: open-xchange-core-mw
+      terminationGracePeriodSeconds: 120
+      tolerations: []
+      volumes:
+      - emptyDir: {}
+        name: shared-default
+      - configMap:
+          items:
+          - key: logback.xml
+            path: logback.xml
+          - key: languages.properties
+            path: languages.properties
+          - key: properties-lean-config.properties
+            path: properties-lean-config.properties
+          name: open-xchange-core-mw-properties-lean-configmap
+        name: properties-lean-default
+      - emptyDir: {}
+        name: disabled-bundles-default
+      - emptyDir: {}
+        name: logs-default
+      - emptyDir: {}
+        name: spool-default
+      - name: properties-default
+        projected:
+          sources:
+          - secret:
+              name: open-xchange-core-mw-properties-secret
+          - configMap:
+              name: open-xchange-core-mw-default-properties-configmap
+      - name: properties-overwrite-default
+        projected:
+          sources:
+          - configMap:
+              name: open-xchange-core-mw-default-properties-overwrite-configmap
+      - name: ui-settings-default
+        projected:
+          sources:
+          - secret:
+              name: open-xchange-core-mw-ui-settings-secret
+          - configMap:
+              name: open-xchange-core-mw-ui-settings-configmap
+      - name: meta-default
+        projected:
+          sources:
+          - configMap:
+              name: open-xchange-core-mw-meta-configmap
+      - name: etc-files-default
+        projected:
+          sources:
+          - configMap:
+              name: open-xchange-core-mw-etc-files-configmap
+      - name: etc-secrets-default
+        projected:
+          sources:
+          - secret:
+              name: open-xchange-core-mw-etc-secrets-secret
+      - name: yaml-files-default
+        projected:
+          sources:
+          - configMap:
+              items:
+              - key: contacts-provider-ldap-mappings.yml
+                path: contacts-provider-ldap-mappings.yml
+              - key: contacts-provider-ldap.yml
+                path: contacts-provider-ldap.yml
+              name: open-xchange-core-mw-yaml-files-configmap
+      - name: yaml-secrets-default
+        projected:
+          sources:
+          - secret:
+              items:
+              - key: ldap-client-config.yml
+                path: ldap-client-config.yml
+              name: open-xchange-core-mw-yaml-secrets-secret
+      - name: context-sets-default
+        projected:
+          sources:
+          - secret:
+              name: open-xchange-core-mw-contextsets-secret
+          - configMap:
+              name: open-xchange-core-mw-contextsets-configmap
+      - name: as-config-default
+        projected:
+          sources:
+          - configMap:
+              name: open-xchange-core-mw-as-config-configmap
+      - configMap:
+          name: open-xchange-core-mw-hook-start-configmap
+        name: start-hooks-default
+      - configMap:
+          name: open-xchange-core-mw-hook-before-apply-configmap
+        name: before-apply-hooks-default
+      - configMap:
+          name: open-xchange-core-mw-hook-before-appsuite-start-configmap
+        name: before-appsuite-start-hooks-default
+      - name: drive-restricted-config
+        secret:
+          optional: true
+          secretName: drive-restricted-config
+      - name: drive-restricted-fcm-keystore
+        secret:
+          optional: true
+          secretName: drive-restricted-fcm-keystore
+      - name: mobile-api-facade-restricted-config
+        secret:
+          optional: true
+          secretName: mobile-api-facade-restricted-config
+  volumeClaimTemplates: []
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: ox-connector
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ox-connector
+    helm.sh/chart: ox-connector-0.14.5
+  name: ox-connector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: ox-connector
+      app.kubernetes.io/name: ox-connector
+  serviceName: ox-connector
+  template:
+    metadata:
+      annotations:
+        checksum/config: e2f273e38c1d9ff646b4da721123f474d9fb18366d42e0e1a24cc7e7b71e63bb
+        checksum/secret: 206aff3087624dc5b5260842fbeb77fd7406c9f5e6b08b297fca57ba78535a0c
+      labels:
+        app.kubernetes.io/instance: ox-connector
+        app.kubernetes.io/name: ox-connector
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: ox-connector
+        - secretRef:
+            name: ox-connector
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ox-connector-standalone:0.14.5@sha256:0b7816e3c8eca1949d3adc8c19d64394a862cbe478a3c51c6d18e546f02aea3d
+        imagePullPolicy: IfNotPresent
+        name: ox-connector
+        resources:
+          limits:
+            cpu: 99
+            memory: 512Mi
+          requests:
+            cpu: 0.1
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - CHOWN
+            - DAC_OVERRIDE
+            - FOWNER
+            - FSETID
+            - KILL
+            - SETGID
+            - SETUID
+            - SETPCAP
+            - NET_BIND_SERVICE
+            - SYS_CHROOT
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /etc/ox-secrets
+          name: ox-connector-ox-contexts
+        - mountPath: /var/lib/univention-appcenter/apps/ox-connector
+          name: ox-connector-appcenter
+      initContainers:
+      - command:
+        - /bin/bash
+        - /scripts/wait-for-api.sh
+        envFrom:
+        - configMapRef:
+            name: ox-connector
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/wait-for-dependency:0.26.0@sha256:a31fde86bf21c597a31356fe492ab7e7a03a89282ca215eb7100763d6eb96b6b
+        imagePullPolicy: IfNotPresent
+        name: wait-for-api
+        resources: {}
+        volumeMounts:
+        - mountPath: /scripts
+          name: wait-for-api
+      securityContext: {}
+      serviceAccountName: ox-connector
+      volumes:
+      - configMap:
+          name: ox-connector
+        name: wait-for-api
+  volumeClaimTemplates:
+  - metadata:
+      name: ox-connector-ox-contexts
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  - metadata:
+      name: ox-connector-appcenter
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: prosody
+    app.kubernetes.io/version: stable-9646
+    helm.sh/chart: prosody-1.4.1
+  name: jitsi-prosody
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: jitsi
+      app.kubernetes.io/name: prosody
+  serviceName: jitsi-prosody
+  template:
+    metadata:
+      annotations:
+        si.jit.meet/hash-configmap: e1f8f3d46a89cbd6c1f02611da82acaa
+        si.jit.meet/hash-secret: 44136fa355b3678a1146ad16f7e8649e
+      labels:
+        app.kubernetes.io/instance: jitsi
+        app.kubernetes.io/name: prosody
+    spec:
+      containers:
+      - env:
+        - name: AUTH_TYPE
+          value: hybrid_matrix_token
+        - name: JWT_APP_ID
+          value: meet.apps.digilab.network
+        - name: JWT_APP_SECRET
+          value: bcf362546628d7392f707eda7333e7d75f05a1bc
+        - name: MATRIX_UVS_SYNC_POWER_LEVELS
+          value: 'true'
+        - name: MATRIX_UVS_URL
+          value: http://opendesk-matrix-user-verification-service..svc.cluster.local
+        - name: TURNS_HOST
+          value: ''
+        - name: TURNS_PORT
+          value: '5349'
+        - name: TURN_HOST
+          value: ''
+        - name: TURN_PORT
+          value: '3478'
+        - name: TURN_TRANSPORT
+          value: udp
+        - name: TURN_CREDENTIALS
+          value: ''
+        envFrom:
+        - configMapRef:
+            name: jitsi-prosody
+        - secretRef:
+            name: jitsi-prosody
+        - secretRef:
+            name: jitsi-prosody-jibri
+        - secretRef:
+            name: jitsi-prosody-jicofo
+        - secretRef:
+            name: jitsi-prosody-jigasi
+        - secretRef:
+            name: jitsi-prosody-jvb
+        - configMapRef:
+            name: jitsi-prosody-common
+        image: registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/prosody:stable-9779@sha256:5864f3f72d3605a52a1b90ec845a4a1837a851d7774dcbfdc9490beb4bdda18a
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /http-bind
+            port: bosh-insecure
+        name: prosody
+        ports:
+        - containerPort: 5222
+          name: xmpp-c2s
+          protocol: TCP
+        - containerPort: 5269
+          name: xmpp-s2s
+          protocol: TCP
+        - containerPort: 5347
+          name: xmpp-component
+          protocol: TCP
+        - containerPort: 5280
+          name: bosh-insecure
+          protocol: TCP
+        - containerPort: 5281
+          name: bosh-secure
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /http-bind
+            port: bosh-insecure
+        resources:
+          limits:
+            cpu: 99
+            memory: 512Mi
+          requests:
+            cpu: 0.1
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities: {}
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /config
+          name: config
+        - mountPath: /config/data
+          name: prosody-data
+      securityContext: {}
+      serviceAccountName: jitsi-prosody
+      volumes:
+      - emptyDir: {}
+        name: config
+      - configMap:
+          defaultMode: 493
+          items:
+          - key: 10-config
+            path: 10-config
+          name: jitsi-prosody-cont-inits
+        name: custom-cont-inits
+      - configMap:
+          items:
+          - key: prosody.cfg.lua
+            path: prosody.cfg.lua
+          - key: saslauthd.conf
+            path: saslauthd.conf
+          - key: jitsi-meet.cfg.lua
+            path: jitsi-meet.cfg.lua
+          name: jitsi-prosody-defaults
+        name: custom-defaults
+      - name: prosody-data
+        persistentVolumeClaim:
+          claimName: prosody-data
+  volumeClaimTemplates:
+  - metadata:
+      name: prosody-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      volumeMode: Filesystem
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-synapse
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-synapse
+    helm.sh/chart: opendesk-synapse-3.4.1
+  name: opendesk-synapse
+  namespace: tn-openbsw-opendesk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: opendesk-synapse
+      app.kubernetes.io/name: opendesk-synapse
+  serviceName: opendesk-synapse
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: dbe1cde16d94759848112ca9496ec00234871a0e7ed5da09eb9a4788d9d9a16e
+        checksum/secret: 3832637a50c72becc0bb5bf0568c7ee96bbb8b1a02a2bfe730fd62c884918795
+      labels:
+        app.kubernetes.io/instance: opendesk-synapse
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: opendesk-synapse
+        helm.sh/chart: opendesk-synapse-3.4.1
+    spec:
+      containers:
+      - command:
+        - bash
+        - -cx
+        - 'mkdir -p /media/generatedSecrets
+
+          sed "s/REPLACE_HOSTNAME/$(hostname -s)/g" /config/instance_template.yaml
+          > /config/rendered/instance.yaml
+
+          /start.py run --config-path=/config/homeserver.yaml --config-path=/config/rendered/instance.yaml
+
+          '
+        env:
+        - name: SYNAPSE_WORKER
+          value: synapse.app.homeserver
+        - name: SSL_CERT_DIR
+          value: /etc/ssl/certs
+        - name: PYTHONPATH
+          value: /modules
+        image: registry.opencode.de/bmi/opendesk/components/supplier/element/images-mirror/synapse:v1.115.0@sha256:abf4a5b5b2030f7deb555a8ec7b945607db9e98b057eb06364e66ba8308bdd40
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 8
+          httpGet:
+            path: /health
+            port: synapse-health
+            scheme: HTTP
+          initialDelaySeconds: 1
+          periodSeconds: 6
+          successThreshold: 1
+          timeoutSeconds: 2
+        name: synapse
+        ports:
+        - containerPort: 8080
+          name: synapse-health
+          protocol: TCP
+        - containerPort: 8008
+          name: synapse-http
+          protocol: TCP
+        - containerPort: 9001
+          name: synapse-metrics
+          protocol: TCP
+        - containerPort: 9093
+          name: synapse-repl
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 8
+          httpGet:
+            path: /health
+            port: synapse-health
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 2
+        resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
+          requests:
+            cpu: 1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 10991
+          runAsNonRoot: true
+          runAsUser: 10991
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /config/homeserver.yaml
+          name: shared-config
+          readOnly: true
+          subPath: homeserver.yaml
+        - mountPath: /config/instance_template.yaml
+          name: process-type-config
+          readOnly: true
+          subPath: instance_template.yaml
+        - mountPath: /config/log_config.yaml
+          name: shared-config
+          readOnly: true
+          subPath: log_config.yaml
+        - mountPath: /secrets/
+          name: external-secrets
+          readOnly: true
+        - mountPath: /config/rendered
+          name: rendered-config
+        - mountPath: /media
+          name: media
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /modules
+          name: synapse-modules
+      initContainers:
+      - image: registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/synapse-guest-module:2.0.0@sha256:0fb4ee93cf6fc58f3f3b2f7f8c95d5e6d259b9a5dc354bde516e441187819283
+        imagePullPolicy: IfNotPresent
+        name: install-guest-module
+        resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
+          requests:
+            cpu: 1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 10991
+          runAsNonRoot: true
+          runAsUser: 10991
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /modules
+          name: synapse-modules
+      securityContext:
+        fsGroup: 10991
+      serviceAccountName: opendesk-synapse
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: external-secrets
+        secret:
+          defaultMode: 420
+          secretName: opendesk-synapse
+      - configMap:
+          defaultMode: 420
+          name: opendesk-synapse-shared
+        name: shared-config
+      - configMap:
+          defaultMode: 420
+          name: opendesk-synapse-main
+        name: process-type-config
+      - emptyDir:
+          medium: Memory
+          sizeLimit: 50Mi
+        name: rendered-config
+      - emptyDir:
+          medium: Memory
+          sizeLimit: 50Mi
+        name: tmp
+      - emptyDir:
+          medium: Memory
+          sizeLimit: 50Mi
+        name: synapse-modules
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      name: media
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: xwiki
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: xwiki
+    helm.sh/chart: xwiki-1.4.0
+  name: xwiki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: xwiki
+      app.kubernetes.io/name: xwiki
+  serviceName: xwiki
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: a80f42ceef17d396f89599e109b1554d5356f2a4c4523aa2a063efdf1ddb07cd
+        checksum/initialization-configmaps: 1c7c182db26a97b6ad403897b7d5c8860370b8ff04b668c474edf4b28eed4c74
+      labels:
+        app.kubernetes.io/instance: xwiki
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: xwiki
+        helm.sh/chart: xwiki-1.4.0
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - /configmaps/entrypoint
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: DB_PASSWORD
+              name: xwiki
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              key: DB_HOST
+              name: xwiki
+        - name: DB_USER
+          valueFrom:
+            configMapKeyRef:
+              key: DB_USER
+              name: xwiki
+        - name: DB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              key: DB_DATABASE
+              name: xwiki
+        image: registry.opencode.de/bmi/opendesk/components/supplier/xwiki/images-mirror/xwiki:0.22-mariadb-jetty-alpine@sha256:ba29f44befc558c4a4d969f103b216c13a55194dbc532adc43567bee4943d65f
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /rest
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 3
+        name: xwiki
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /rest/wikis/xwiki/spaces
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 99
+            memory: 8Gi
+          requests:
+            cpu: 0.1
+            memory: 1.5Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 100
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 5
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          successThreshold: 1
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 60
+        volumeMounts:
+        - mountPath: /usr/local/xwiki/data
+          name: xwiki-data
+        - mountPath: /configmaps
+          name: configmaps
+      initContainers:
+      - command:
+        - /bin/sh
+        - -ec
+        - chown -R "100:101" /usr/local/xwiki/data
+        image: registry.opencode.de/bmi/opendesk/components/supplier/xwiki/images-mirror/xwiki:0.22-mariadb-jetty-alpine@sha256:ba29f44befc558c4a4d969f103b216c13a55194dbc532adc43567bee4943d65f
+        imagePullPolicy: IfNotPresent
+        name: xwiki-data-permissions
+        resources:
+          limits:
+            cpu: 99
+            memory: 8Gi
+          requests:
+            cpu: 0.1
+            memory: 1.5Gi
+        securityContext:
+          runAsUser: 0
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /usr/local/xwiki/data
+          name: xwiki-data
+      securityContext:
+        fsGroup: 101
+      serviceAccountName: xwiki-sa
+      volumes:
+      - configMap:
+          name: xwiki-init-scripts
+        name: configmaps
+      - name: xwiki-data
+  volumeClaimTemplates:
+  - metadata:
+      name: xwiki-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi

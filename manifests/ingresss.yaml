@@ -1,0 +1,1784 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    haproxy-ingress.github.io/redirect-to: https://portal.apps.digilab.network
+    haproxy.org/request-redirect: https://portal.apps.digilab.network
+    nginx.ingress.kubernetes.io/server-snippet: "location ~* \"^/$\" {\n  return 302\
+      \ https://portal.apps.digilab.network;\n}\n"
+    nginx.org/server-snippets: "location ~* \"^/$\" {\n  return 302 https://portal.apps.digilab.network;\n\
+      }\n"
+  labels:
+    app.kubernetes.io/instance: opendesk-home
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-home
+    helm.sh/chart: opendesk-home-1.0.2
+  name: opendesk-home
+spec:
+  rules:
+  - host: apps.digilab.network
+  tls:
+  - hosts:
+    - apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 4G
+    nginx.org/client-max-body-size: 4G
+  labels:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2023.12.20
+    helm.sh/chart: minio-12.10.11
+  name: minio-api
+  namespace: tn-openbsw-opendesk
+spec:
+  rules:
+  - host: objectstore.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: minio
+            port:
+              name: minio-api
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - objectstore.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: guardian
+    app.kubernetes.io/version: 2.0.0
+    helm.sh/chart: nubusGuardian-0.14.0
+  name: ums-guardian-management-ui
+  namespace: tn-openbsw-opendesk
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: portal.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: ums-guardian-management-ui
+            port:
+              number: 80
+        path: /univention/guardian/management-ui
+        pathType: Prefix
+  tls:
+  - hosts:
+    - portal.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: guardian
+    app.kubernetes.io/version: 2.0.0
+    helm.sh/chart: nubusGuardian-0.14.0
+  name: ums-guardian-management-api
+  namespace: tn-openbsw-opendesk
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: portal.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: ums-guardian-management-api
+            port:
+              number: 80
+        path: /guardian/management
+        pathType: Prefix
+  tls:
+  - hosts:
+    - portal.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: guardian
+    app.kubernetes.io/version: 2.0.0
+    helm.sh/chart: nubusGuardian-0.14.0
+  name: ums-guardian-authorization-api
+  namespace: tn-openbsw-opendesk
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: portal.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: ums-guardian-authorization-api
+            port:
+              number: 80
+        path: /guardian/authorization
+        pathType: Prefix
+  tls:
+  - hosts:
+    - portal.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffer-size: 8k
+    nginx.org/proxy-buffer-size: 8k
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ums-keycloak-extensions-proxy
+    app.kubernetes.io/version: 21.0.1
+    helm.sh/chart: nubusKeycloakExtensions-0.11.0
+  name: ums-keycloak-extensions-proxy
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: id.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: ums-keycloak-extensions-proxy
+            port:
+              name: http
+        path: /realms/
+        pathType: Prefix
+      - backend:
+          service:
+            name: ums-keycloak-extensions-proxy
+            port:
+              name: http
+        path: /js/
+        pathType: Prefix
+      - backend:
+          service:
+            name: ums-keycloak-extensions-proxy
+            port:
+              name: http
+        path: /resources/
+        pathType: Prefix
+      - backend:
+          service:
+            name: ums-keycloak-extensions-proxy
+            port:
+              name: http
+        path: /fingerprintjs
+        pathType: Prefix
+  tls:
+  - hosts:
+    - id.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-notifications-api
+    nginx.ingress.kubernetes.io/rewrite-target: /$2$3
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: notifications-api
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nubusNotificationsApi-0.42.2
+  name: ums-notifications-api
+  namespace: tn-openbsw-opendesk
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: portal.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: ums-notifications-api
+            port:
+              name: http
+        path: /(univention/portal/notifications-api/)(.*)$
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - portal.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-portal-frontend
+    nginx.ingress.kubernetes.io/rewrite-target: /$2$3
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: portal-frontend
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nubusPortalFrontend-0.42.2
+  name: ums-portal-frontend-rewrites
+  namespace: tn-openbsw-opendesk
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: portal.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: ums-portal-frontend
+            port:
+              name: http
+        path: /univention/(portal|selfservice)/$
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: ums-portal-frontend
+            port:
+              name: http
+        path: /univention/(portal|selfservice)/index.html$
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: ums-portal-frontend
+            port:
+              name: http
+        path: /univention/(portal|selfservice)/(css|fonts|i18n|media|js|oidc|custom)(/.*)$
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: ums-portal-frontend
+            port:
+              name: http
+        path: /univention/(portal)/(icons)(/.*)$
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - portal.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-portal-frontend
+    nginx.ingress.kubernetes.io/permanent-redirect: /univention/portal/
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: portal-frontend
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nubusPortalFrontend-0.42.2
+  name: ums-portal-frontend-redirects
+  namespace: tn-openbsw-opendesk
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: portal.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: ums-portal-frontend
+            port:
+              name: http
+        path: /$
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: ums-portal-frontend
+            port:
+              name: http
+        path: /univention$
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: ums-portal-frontend
+            port:
+              name: http
+        path: /univention/$
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: ums-portal-frontend
+            port:
+              name: http
+        path: /univention/portal$
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: ums-portal-frontend
+            port:
+              name: http
+        path: /univention/selfservice$
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - portal.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-portal-server
+    nginx.ingress.kubernetes.io/rewrite-target: /$2$3
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: portal-server
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nubusPortalServer-0.42.2
+  name: ums-portal-server
+  namespace: tn-openbsw-opendesk
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: portal.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: ums-portal-server
+            port:
+              name: http
+        path: /()(univention/portal/|univention/selfservice/)(portal.json|navigation.json)$
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - portal.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-udm-rest-api
+    nginx.ingress.kubernetes.io/configuration-snippet-disabled: 'rewrite ^/univention(/udm/.*)$
+      $1 break;
+
+      '
+    nginx.ingress.kubernetes.io/proxy-buffer-size: 64k
+    nginx.ingress.kubernetes.io/rewrite-target: /$2$3
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: udm-rest-api
+    app.kubernetes.io/version: 12.0.7
+    helm.sh/chart: nubusUdmRestApi-0.25.1
+  name: ums-udm-rest-api
+  namespace: tn-openbsw-opendesk
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: portal.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: ums-udm-rest-api
+            port:
+              name: http
+        path: /(univention/)(udm/.*)$
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - portal.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/cors-allow-origin: https://portal.apps.digilab.network,
+      https://id.apps.digilab.network
+    nginx.ingress.kubernetes.io/enable-cors: 'true'
+    nginx.ingress.kubernetes.io/rewrite-target: /$2$3
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: umc-gateway
+    app.kubernetes.io/version: 12.0.29
+    helm.sh/chart: nubusUmcGateway-0.34.1
+  name: ums-umc-gateway
+  namespace: tn-openbsw-opendesk
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: portal.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: ums-umc-gateway
+            port:
+              name: http
+        path: /()(univention/)(languages.json|meta.json|theme.css)$
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: ums-umc-gateway
+            port:
+              name: http
+        path: /()(univention/)((js|management|themes)/.*)$
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: ums-umc-gateway
+            port:
+              name: http
+        path: /()(univention/login/)(dialog.js|main.js|LoginDialog.js|i18n/en/main.json)$
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - portal.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-umc-server
+    nginx.ingress.kubernetes.io/configuration-snippet: 'proxy_set_header X-UMC-HTTPS
+      ''on'';
+
+      '
+    nginx.ingress.kubernetes.io/rewrite-target: /$2$3
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: umc-server
+    app.kubernetes.io/version: 12.0.29
+    helm.sh/chart: nubusUmcServer-0.34.1
+  name: ums-umc-server
+  namespace: tn-openbsw-opendesk
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: portal.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: ums-umc-server
+            port:
+              name: http
+        path: /(univention)/(auth|logout|saml|get|set|command|upload)(.*)$
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - portal.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 128k
+    nginx.ingress.kubernetes.io/proxy-buffer-size: 64k
+    nginx.ingress.kubernetes.io/proxy-buffers-number: '4'
+    nginx.ingress.kubernetes.io/proxy-busy-buffers-size: 128k
+    nginx.ingress.kubernetes.io/proxy-http-version: '1.1'
+    nginx.ingress.kubernetes.io/proxy-set-headers: 'Host $http_host;
+
+      X-Forwarded-For $proxy_add_x_forwarded_for;
+
+      X-Forwarded-Host $http_x_forwarded_host;
+
+      X-Forwarded-Port $http_x_forwarded_port;
+
+      X-Forwarded-Proto $http_x_forwarded_proto;
+
+      '
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: ums-portal-customization
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: portal.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: ums-portal-frontend
+            port:
+              number: 80
+        path: /favicon.ico$
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - portal.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 128k
+    nginx.ingress.kubernetes.io/proxy-buffer-size: 64k
+    nginx.ingress.kubernetes.io/proxy-buffers-number: '4'
+    nginx.ingress.kubernetes.io/proxy-busy-buffers-size: 128k
+    nginx.ingress.kubernetes.io/proxy-http-version: '1.1'
+    nginx.ingress.kubernetes.io/proxy-set-headers: 'Host $http_host;
+
+      X-Forwarded-For $proxy_add_x_forwarded_for;
+
+      X-Forwarded-Host $http_x_forwarded_host;
+
+      X-Forwarded-Port $http_x_forwarded_port;
+
+      X-Forwarded-Proto $http_x_forwarded_proto;
+
+      '
+    nginx.ingress.kubernetes.io/rewrite-target: /ums/portal-assets/icons/$2/$3
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: ums-minio-rewrites
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: portal.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: minio
+            port:
+              number: 9000
+        path: /univention/(portal|selfservice)/icons/(logos|entries)/(.*)$
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - portal.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: intercom-service
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: intercom-service
+    app.kubernetes.io/version: '1.4'
+    helm.sh/chart: intercom-service-2.4.0
+  name: intercom-service
+spec:
+  rules:
+  - host: ics.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: intercom-service
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - ics.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: open-xchange-appsuite-appsuite-base
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-ui-middleware
+            port:
+              number: 80
+        path: /appsuite/
+        pathType: Prefix
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/app-root: /appsuite/
+  name: open-xchange-appsuite-rootredirect
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-ui-middleware
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+  name: open-xchange-appsuite-rest-routes-admin
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /admin
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+  name: open-xchange-appsuite-rest-routes-advertisement
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /advertisement
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+  name: open-xchange-appsuite-rest-routes-chronos
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /chronos
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+  name: open-xchange-appsuite-rest-routes-preliminary
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /preliminary
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+  name: open-xchange-appsuite-rest-routes-userfeedback
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /userfeedback
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+  name: open-xchange-appsuite-static-routes-servlet
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /servlet
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+  name: open-xchange-appsuite-static-routes-realtime
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /realtime
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+  name: open-xchange-appsuite-static-routes-infostore
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /infostore
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
+  name: open-xchange-appsuite-static-routes-webservices
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /webservices
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: //$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: drive-client-windows-ox-route
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-drive-client-windows-ox-route
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-drive-client-windows-ox
+            port:
+              number: 80
+        path: /api/drive/client/windows/ox/install/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /oxguard/$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: guard-api-route
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-guard-api-route
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /appsuite/api/oxguard/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /guardsupport/$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: guard-support-api-route
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-guard-support-api-route
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /appsuite/api/guardsupport/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /pgp/$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: guard-pgp-route
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-guard-pgp-route
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /pks/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /appsuite/api/$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: http-api-routes-api
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-http-api-routes-api
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /api/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /appsuite/api/$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: http-api-routes-ajax
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-http-api-routes-ajax
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /ajax/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/proxy-body-size: 100M
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '60'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '60'
+    nginx.ingress.kubernetes.io/rewrite-target: /appsuite/api/$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: http-api-routes-appsuite-api
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-http-api-routes-appsuite-api
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /appsuite/api/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /rt2/$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: rt2-route
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-rt2-route
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-http-api
+            port:
+              number: 80
+        path: /appsuite/rt2/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /help-documents/$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: documents-help-route
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-documents-help-route
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-office-user-guide
+            port:
+              number: 80
+        path: /appsuite/help-documents/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /help/$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: drive-help-route
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-drive-help-route
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-drive-help
+            port:
+              number: 80
+        path: /appsuite/help-drive/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /help/$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: core-help-route
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-core-help-route
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-user-guide
+            port:
+              number: 80
+        path: /appsuite/help/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /appsuite/$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: office-web-route
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-office-web-route
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-ui-middleware
+            port:
+              number: 80
+        path: /appsuite/office/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/temporal-redirect: /caldav/
+  name: open-xchange-appsuite-caldav-well-known-redirect
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-ui-middleware
+            port:
+              number: 80
+        path: /.well-known/caldav
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/temporal-redirect: /carddav/
+  name: open-xchange-appsuite-carddav-well-known-redirect
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-ui-middleware
+            port:
+              number: 80
+        path: /.well-known/carddav
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: authorization
+  name: open-xchange-appsuite-dav-infostore-route
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-sync
+            port:
+              number: 80
+        path: /servlet/webdav.infostore/
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /servlet/dav//$1
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
+    nginx.ingress.kubernetes.io/session-cookie-name: dav-root-route
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: open-xchange-appsuite-dav-root-route
+spec:
+  rules:
+  - host: webmail.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-xchange-core-mw-sync
+            port:
+              number: 80
+        path: //(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - webmail.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    intents.otterize.com/service-name: opendesk-nextcloud
+    nginx.ingress.kubernetes.io/proxy-body-size: 100M
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '600'
+    nginx.org/client-max-body-size: 100M
+    nginx.org/proxy-read-timeout: 600s
+    nginx.org/proxy-send-timeout: 600s
+  labels:
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: aio
+    helm.sh/chart: aio-3.4.0
+  name: opendesk-nextcloud-aio
+spec:
+  rules:
+  - host: files.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: opendesk-nextcloud-aio
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - files.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    haproxy-ingress.github.io/balance-algorithm: url_param WOPISrc check_post
+    haproxy-ingress.github.io/config-backend: 'hash-type consistent
+
+      # block admin urls from outside
+
+      acl admin_url path_beg /cool/getMetrics
+
+      acl admin_url path_beg /cool/adminws/
+
+      acl admin_url path_beg /browser/dist/admin/admin.html
+
+      http-request deny if admin_url
+
+      '
+    haproxy-ingress.github.io/timeout-tunnel: 600s
+    haproxy.org/backend-config-snippet: 'balance url_param WOPISrc check_post
+
+      hash-type consistent
+
+      '
+    haproxy.org/timeout-tunnel: 600s
+    nginx.ingress.kubernetes.io/proxy-body-size: 100M
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '600'
+    nginx.ingress.kubernetes.io/server-snippet: '# block admin and metrics endpoint
+      from outside by default
+
+      location /cool/getMetrics { deny all; return 403; }
+
+      location /cool/adminws/ { deny all; return 403; }
+
+      location /browser/dist/admin/admin.html { deny all; return 403; }
+
+      '
+    nginx.ingress.kubernetes.io/upstream-hash-by: $arg_WOPISrc
+    nginx.org/client-max-body-size: 100M
+    nginx.org/lb-method: hash $arg_WOPISrc consistent
+    nginx.org/proxy-read-timeout: 600s
+    nginx.org/proxy-send-timeout: 600s
+    nginx.org/server-snippets: '# block admin and metrics endpoint from outside by
+      default
+
+      location /cool/getMetrics { deny all; return 403; }
+
+      location /cool/adminws/ { deny all; return 403; }
+
+      location /browser/dist/admin/admin.html { deny all; return 403; }
+
+      '
+    nginx.org/websocket-services: collabora
+  labels:
+    app.kubernetes.io/instance: collabora-online
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: collabora-online
+    app.kubernetes.io/version: 24.04.7.2.1
+    helm.sh/chart: collabora-online-1.1.21
+  name: collabora
+spec:
+  rules:
+  - host: office.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: collabora
+            port:
+              number: 9980
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - office.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.org/websocket-services: cryptpad
+  labels:
+    app.kubernetes.io/instance: cryptpad
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: cryptpad
+    helm.sh/chart: cryptpad-0.0.20
+  name: cryptpad
+spec:
+  rules:
+  - host: pad.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: cryptpad
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: cryptpad
+            port:
+              number: 83
+        path: /cryptpad_websocket
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - pad.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    ingress.cilium.io/tcp-keep-alive: enabled
+    ingress.cilium.io/websocket: enabled
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-sent-timeout: '3600'
+    nginx.org/websocket-services: jitsi-web
+  labels:
+    app.kubernetes.io/component: web
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: jitsi
+    app.kubernetes.io/version: stable-9646
+    helm.sh/chart: jitsi-1.4.1
+  name: jitsi-web
+spec:
+  rules:
+  - host: meet.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: jitsi-web
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - meet.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-element
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-element
+    helm.sh/chart: opendesk-element-3.4.1
+  name: opendesk-element
+spec:
+  rules:
+  - host: chat.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: opendesk-element
+            port:
+              name: element
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - chat.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-well-known
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-well-known
+    helm.sh/chart: opendesk-well-known-3.4.1
+  name: opendesk-well-known
+spec:
+  rules:
+  - host: apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: opendesk-well-known
+            port:
+              name: well-known
+        path: /.well-known/matrix
+        pathType: Prefix
+  tls:
+  - hosts:
+    - apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 100M
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '60'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '60'
+    nginx.org/client-max-body-size: 100M
+    nginx.org/proxy-read-timeout: 60s
+    nginx.org/proxy-send-timeout: 60s
+  labels:
+    app.kubernetes.io/instance: opendesk-synapse-web
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-synapse-web
+    helm.sh/chart: opendesk-synapse-web-3.4.1
+  name: opendesk-synapse-web
+spec:
+  rules:
+  - host: matrix.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: opendesk-synapse-web
+            port:
+              name: web
+        path: /_matrix
+        pathType: Prefix
+      - backend:
+          service:
+            name: opendesk-synapse-web
+            port:
+              name: web
+        path: /_synapse
+        pathType: Prefix
+  tls:
+  - hosts:
+    - matrix.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-synapse
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-synapse
+    helm.sh/chart: opendesk-synapse-3.4.1
+  name: opendesk-synapse
+spec:
+  rules:
+  - host: matrix-federation.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: opendesk-synapse-federation
+            port:
+              name: federation
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - matrix-federation.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: matrix-neoboard-widget
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matrix-neoboard-widget
+    helm.sh/chart: matrix-neoboard-widget-3.5.0
+  name: matrix-neoboard-widget
+spec:
+  rules:
+  - host: matrix-neoboard-widget.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: matrix-neoboard-widget
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - matrix-neoboard-widget.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: matrix-neochoice-widget
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matrix-neochoice-widget
+    helm.sh/chart: matrix-neochoice-widget-3.5.0
+  name: matrix-neochoice-widget
+spec:
+  rules:
+  - host: matrix-neochoice-widget.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: matrix-neochoice-widget
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - matrix-neochoice-widget.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: matrix-neodatefix-widget
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matrix-neodatefix-widget
+    helm.sh/chart: matrix-neodatefix-widget-3.5.0
+  name: matrix-neodatefix-widget
+spec:
+  rules:
+  - host: matrix-neodatefix-widget.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: matrix-neodatefix-widget
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - matrix-neodatefix-widget.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations: null
+  labels:
+    app.kubernetes.io/instance: matrix-neodatefix-bot
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matrix-neodatefix-bot
+    helm.sh/chart: matrix-neodatefix-bot-3.5.0
+  name: matrix-neodatefix-bot
+spec:
+  rules:
+  - host: matrix-neodatefix-bot.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: matrix-neodatefix-bot
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - matrix-neodatefix-bot.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 100M
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '60'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '60'
+    nginx.org/client-max-body-size: 100M
+    nginx.org/proxy-read-timeout: 60s
+    nginx.org/proxy-send-timeout: 60s
+  labels:
+    app.kubernetes.io/instance: openproject
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: openproject
+    app.kubernetes.io/version: 14.6.3
+    helm.sh/chart: openproject-8.3.2
+  name: openproject
+spec:
+  rules:
+  - host: projects.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: openproject
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - projects.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    haproxy-ingress.github.io/headers: X-Forwarded-Host wiki.apps.digilab.network
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/proxy-body-size: 100M
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '60'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '60'
+    nginx.ingress.kubernetes.io/session-cookie-expires: '1800'
+    nginx.ingress.kubernetes.io/session-cookie-name: XNGINX
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    nginx.org/client-max-body-size: 100M
+    nginx.org/proxy-read-timeout: 60s
+    nginx.org/proxy-send-timeout: 60s
+  labels:
+    app.kubernetes.io/instance: xwiki
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: xwiki
+    helm.sh/chart: xwiki-1.4.0
+  name: xwiki
+spec:
+  rules:
+  - host: wiki.apps.digilab.network
+    http:
+      paths:
+      - backend:
+          service:
+            name: xwiki
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - wiki.apps.digilab.network
+    secretName: opendesk-certificates-tls

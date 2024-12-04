@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: ums-ca-issuer
+spec:
+  ca:
+    secretName: ums-ecdsa-ca-secret
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: ums-ecdsa-ss-issuer
+spec:
+  selfSigned: {}

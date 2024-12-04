@@ -1,0 +1,1898 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  labels:
+    app.kubernetes.io/instance: opendesk-migrations-pre
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-migrations
+    helm.sh/chart: opendesk-migrations-1.3.5
+  name: opendesk-migrations-pre-1
+spec:
+  template:
+    metadata:
+      annotations: null
+      labels:
+        app.kubernetes.io/instance: opendesk-migrations-pre
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: opendesk-migrations
+        helm.sh/chart: opendesk-migrations-1.3.5
+    spec:
+      containers:
+      - command:
+        - /app/odmigs.py
+        env:
+        - name: MIGRATIONS_LOGLEVEL
+          value: INFO
+        - name: MIGRATIONS_CLEANUP
+          value: 'false'
+        - name: MIGRATIONS_STAGE
+          value: PRE
+        - name: MIGRATIONS_RUN_ID
+          value: '2'
+        - name: MIGRATIONS_NAMESPACE
+          value: ''
+        - name: MIGRATIONS_FAIL_ON_UNEXPECTED_STATE
+          value: 'true'
+        image: registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-migrations:1.3.18@sha256:d7f13322cc9cc7ab157f926280070850b0dfc6169c93a306ec4c3cf7c21eff69
+        imagePullPolicy: IfNotPresent
+        name: opendesk-migrations
+        resources:
+          limits:
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /app/etc/
+          name: environmentdetails-volume
+          readOnly: true
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: opendesk-migrations-pre
+      volumes:
+      - name: environmentdetails-volume
+        secret:
+          secretName: opendesk-migrations-pre-environmentdetails
+  ttlSecondsAfterFinished: null
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/instance: postgresql
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-2.1.1
+  name: postgresql-bootstrap
+  namespace: tn-openbsw-opendesk
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      annotations: null
+      labels:
+        app.kubernetes.io/instance: postgresql
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: postgresql
+        helm.sh/chart: postgresql-2.1.1
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - /mnt/bootstrap/init-wait.sh && /mnt/bootstrap/init-user.sh && /mnt/bootstrap/init-db.sh
+        env:
+        - name: PGHOST
+          value: postgresql
+        - name: PGPORT
+          value: '5432'
+        - name: PGUSER
+          value: postgres
+        - name: PGPASSWORD
+          value: b20a9e9dce16e5a4da2b59b6f265e9055f6bc9b9
+        image: registry-1.docker.io/library/postgres:15.4-alpine3.18@sha256:f36c528a2dc8747ea40b4cb8578da69fa75c5063fd6a71dcea3e3b2a6404ff7b
+        imagePullPolicy: IfNotPresent
+        name: psql
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /mnt/bootstrap/
+          name: bootstrap
+          readOnly: true
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: postgresql
+      volumes:
+      - name: bootstrap
+        secret:
+          defaultMode: 360
+          secretName: postgresql-job
+  ttlSecondsAfterFinished: 60
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/instance: mariadb
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: mariadb
+    helm.sh/chart: mariadb-3.0.3
+  name: mariadb-bootstrap
+  namespace: tn-openbsw-opendesk
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      annotations: null
+      labels:
+        app.kubernetes.io/instance: mariadb
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: mariadb
+        helm.sh/chart: mariadb-3.0.3
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - /mnt/bootstrap/init-wait.sh && /mnt/bootstrap/init-user.sh < /mnt/bootstrap/init-user-data.sql
+          && /mnt/bootstrap/init-db.sh
+        env:
+        - name: MARIADB_HOST
+          value: mariadb
+        - name: MARIADB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: rootPassword
+              name: mariadb
+        image: registry-1.docker.io/library/mariadb:10.5@sha256:aa1ccc18000c32d1f39ac0b055117b27bffd93e622ec961d682de40fe2a1a95f
+        imagePullPolicy: IfNotPresent
+        name: mariadb
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.1
+            memory: 384Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /mnt/bootstrap/
+          name: bootstrap
+          readOnly: true
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: mariadb
+      volumes:
+      - name: bootstrap
+        secret:
+          defaultMode: 360
+          secretName: mariadb-job
+  ttlSecondsAfterFinished: 60
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+  labels:
+    app.kubernetes.io/component: minio-provisioning
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2023.12.20
+    helm.sh/chart: minio-12.10.11
+  name: minio-provisioning
+  namespace: tn-openbsw-opendesk
+spec:
+  parallelism: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: minio-provisioning
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/version: 2023.12.20
+        helm.sh/chart: minio-12.10.11
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - "set -e; echo \"Start Minio provisioning\";\nfunction attachPolicy() {\n\
+          \  local tmp=$(mc admin $1 info provisioning $2 | sed -n -e 's/^Policy.*:\
+          \ \\(.*\\)$/\\1/p');\n  IFS=',' read -r -a CURRENT_POLICIES <<< \"$tmp\"\
+          ;\n  if [[ ! \"${CURRENT_POLICIES[*]}\" =~ \"$3\" ]]; then\n    mc admin\
+          \ policy attach provisioning $3 --$1=$2;\n  fi;\n};\nfunction detachDanglingPolicies()\
+          \ {\n  local tmp=$(mc admin $1 info provisioning $2 | sed -n -e 's/^Policy.*:\
+          \ \\(.*\\)$/\\1/p');\n  IFS=',' read -r -a CURRENT_POLICIES <<< \"$tmp\"\
+          ;\n  IFS=',' read -r -a DESIRED_POLICIES <<< \"$3\";\n  for current in \"\
+          ${CURRENT_POLICIES[@]}\"; do\n    if [[ ! \"${DESIRED_POLICIES[*]}\" =~\
+          \ \"${current}\" ]]; then\n      mc admin policy detach provisioning $current\
+          \ --$1=$2;\n    fi;\n  done;\n}\nfunction addUsersFromFile() {\n  local\
+          \ username=$(grep -oP '^username=\\K.+' $1);\n  local password=$(grep -oP\
+          \ '^password=\\K.+' $1);\n  local disabled=$(grep -oP '^disabled=\\K.+'\
+          \ $1);\n  local policies_list=$(grep -oP '^policies=\\K.+' $1);\n  local\
+          \ set_policies=$(grep -oP '^setPolicies=\\K.+' $1);\n\n  mc admin user add\
+          \ provisioning \"${username}\" \"${password}\";\n\n  IFS=',' read -r -a\
+          \ POLICIES <<< \"${policies_list}\";\n  for policy in \"${POLICIES[@]}\"\
+          ; do\n    attachPolicy user \"${username}\" \"${policy}\";\n  done;\n  if\
+          \ [ \"${set_policies}\" == \"true\" ]; then\n    detachDanglingPolicies\
+          \ user \"${username}\" \"${policies_list}\";\n  fi;\n\n  local user_status=\"\
+          enable\";\n  if [[ \"${disabled}\" != \"\" && \"${disabled,,}\" == \"true\"\
+          \ ]]; then\n    user_status=\"disable\";\n  fi;\n\n  mc admin user \"${user_status}\"\
+          \ provisioning \"${username}\";\n}; mc alias set provisioning $MINIO_SCHEME://minio:9000\
+          \ $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD;\nmc admin service restart provisioning;\
+          \ mc admin policy create provisioning migrations-bucket-policy /etc/ilm/policy-migrations-bucket-policy.json;\
+          \ mc admin policy create provisioning nextcloud-bucket-policy /etc/ilm/policy-nextcloud-bucket-policy.json;\
+          \ mc admin policy create provisioning openproject-bucket-policy /etc/ilm/policy-openproject-bucket-policy.json;\
+          \ mc admin policy create provisioning ums-bucket-policy /etc/ilm/policy-ums-bucket-policy.json;\
+          \ mc admin user add provisioning migration_user 21e28658b357bd44e66963a47ddcede3e9dba8a4;\
+          \ attachPolicy user migration_user migrations-bucket-policy; detachDanglingPolicies\
+          \ user migration_user \"migrations-bucket-policy\"; mc admin user enable\
+          \ provisioning migration_user; mc admin user add provisioning nextcloud_user\
+          \ 85e2ff3b91af2205fa257ba1895def14c6eae17b; attachPolicy user nextcloud_user\
+          \ nextcloud-bucket-policy; detachDanglingPolicies user nextcloud_user \"\
+          nextcloud-bucket-policy\"; mc admin user enable provisioning nextcloud_user;\
+          \ mc admin user add provisioning openproject_user fcfa935cf477f5c2941df0447257d1ae1895a37f;\
+          \ attachPolicy user openproject_user openproject-bucket-policy; detachDanglingPolicies\
+          \ user openproject_user \"openproject-bucket-policy\"; mc admin user enable\
+          \ provisioning openproject_user; mc admin user add provisioning ums_user\
+          \ 3bf3449a238dbd6bab26e571908dfa476743946b; attachPolicy user ums_user ums-bucket-policy;\
+          \ detachDanglingPolicies user ums_user \"ums-bucket-policy\"; mc admin user\
+          \ enable provisioning ums_user; mc mb provisioning/migrations --ignore-existing\
+          \  ; mc mb provisioning/nextcloud --ignore-existing  ; mc mb provisioning/openproject\
+          \ --ignore-existing  ; mc mb provisioning/ums --ignore-existing  ;\nmc anonymous\
+          \ set download provisioning/ums/portal-assets;\necho \"End Minio provisioning\"\
+          ;"
+        env:
+        - name: MINIO_SCHEME
+          value: http
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              key: root-user
+              name: minio
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: root-password
+              name: minio
+        envFrom: null
+        image: registry-1.docker.io/bitnami/minio:2023@sha256:bced4f2f9fc48b755ebb3e1b35e76195a978d4331bf2d0c6699dab412d3c0be7
+        imagePullPolicy: IfNotPresent
+        name: minio
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.25
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1001
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /etc/ilm
+          name: minio-provisioning
+      initContainers:
+      - command:
+        - /bin/bash
+        - -c
+        - "set -e;\necho \"Waiting for Minio\";\nwait-for-port \\\n  --host=minio\
+          \ \\\n  --state=inuse \\\n  --timeout=120 \\\n  9000;\necho \"Minio is available\"\
+          ;"
+        image: registry-1.docker.io/bitnami/minio:2023@sha256:bced4f2f9fc48b755ebb3e1b35e76195a978d4331bf2d0c6699dab412d3c0be7
+        imagePullPolicy: IfNotPresent
+        name: wait-for-available-minio
+        resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
+          requests:
+            cpu: 0.25
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1001
+          seccompProfile:
+            type: RuntimeDefault
+      restartPolicy: OnFailure
+      securityContext:
+        fsGroup: 1001
+      serviceAccountName: minio
+      terminationGracePeriodSeconds: 0
+      volumes:
+      - configMap:
+          name: minio-provisioning
+        name: minio-provisioning
+  ttlSecondsAfterFinished: 60
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    intents.otterize.com/service-name: ums-provisioning-register-consumers
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ums-provisioning-registerConsumers
+    helm.sh/chart: nubusProvisioning-0.44.0
+  name: ums-provisioning-register-consumers
+  namespace: tn-openbsw-opendesk
+spec:
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: 917567cd1bf78b07341165ced3d60f9dafa444131455805ae1605e064a9a10c7
+      labels:
+        app.kubernetes.io/instance: ums
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: ums-provisioning-register-consumers
+        helm.sh/chart: nubusProvisioning-0.44.0
+    spec:
+      containers:
+      - args:
+        - "for file in /secrets/*; do\n  filename=$(basename \"${file}\" .json)\n\
+          \  response=$(set +x; curl -s -o response.txt -w \"%{http_code}\" -u \"\
+          ${ADMIN_USERNAME}\":\"${ADMIN_PASSWORD}\" \\\n  -H 'Content-Type: application/json'\
+          \ \\\n  -d @\"${file}\" \"${PROVISIONING_API_BASE_URL}\")\n\n  if [ \"${response}\"\
+          \ -eq 201 ]; then\n    echo \"Successful registration of the consumer: \"\
+          ${filename}\"\"\n  elif [ \"${response}\" -eq 200 ]; then\n    echo \"Consumer\
+          \ with the name '\"${filename}\"' is already registered with the same parameters\"\
+          \n  else\n    echo \"Failed to register the consumer: \"${filename}\"\n\
+          Response code: \"${response}\"\nResponse body: $(cat response.txt)\"\n \
+          \   exit 1\n  fi\n  echo ------------------------------------\ndone\n"
+        command:
+        - /bin/sh
+        - -c
+        envFrom:
+        - configMapRef:
+            name: ums-provisioning-register-consumers
+        - secretRef:
+            name: ums-provisioning-register-consumers-credentials
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/wait-for-dependency:0.26.0@sha256:a31fde86bf21c597a31356fe492ab7e7a03a89282ca215eb7100763d6eb96b6b
+        imagePullPolicy: IfNotPresent
+        name: consumer-registration
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /secrets
+          name: consumer-secrets
+      initContainers:
+      - command:
+        - /bin/bash
+        - -c
+        - /scripts/wait-for-api.sh ${PROVISIONING_API_BASE_URL}
+        envFrom:
+        - configMapRef:
+            name: ums-provisioning-register-consumers
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/wait-for-dependency:0.26.0@sha256:a31fde86bf21c597a31356fe492ab7e7a03a89282ca215eb7100763d6eb96b6b
+        imagePullPolicy: IfNotPresent
+        name: wait-for-provisioning-api
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /scripts
+          name: scripts-volume
+      - command:
+        - /bin/bash
+        - /scripts/wait-for-data-loader.sh
+        envFrom:
+        - configMapRef:
+            name: ums-provisioning-register-consumers
+        - secretRef:
+            name: ums-provisioning-register-consumers-credentials
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/wait-for-dependency:0.26.0@sha256:a31fde86bf21c597a31356fe492ab7e7a03a89282ca215eb7100763d6eb96b6b
+        imagePullPolicy: IfNotPresent
+        name: wait-for-data-loader
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /scripts
+          name: wait-for-data-loader
+      restartPolicy: Never
+      volumes:
+      - name: consumer-secrets
+        secret:
+          secretName: ums-provisioning-register-consumers-json-secrets
+      - configMap:
+          defaultMode: 365
+          name: ums-provisioning-wait-for-api
+        name: scripts-volume
+      - configMap:
+          name: ums-provisioning-register-consumers
+        name: wait-for-data-loader
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    intents.otterize.com/service-name: ums-stack-data-ums
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: stack-data-ums
+    helm.sh/chart: nubusStackDataUms-0.73.0
+  name: ums-stack-data-ums-1
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      annotations:
+        argocd.argoproj.io/hook: Sync
+        argocd.argoproj.io/hook-delete-policy: HookSucceeded
+        checksum/config: 9c107d8825489848caf88309f47c3617ec193352ce68f609af3b2e53b737385c
+        checksum/config-data: 12de3f35c507baa1f52ff485f1bc6c6087c892333f72c256d6def655e083cc80
+        intents.otterize.com/service-name: ums-stack-data-ums
+      labels:
+        app.kubernetes.io/instance: ums
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: stack-data-ums
+        helm.sh/chart: nubusStackDataUms-0.73.0
+      name: stack-data-ums
+    spec:
+      containers:
+      - command:
+        - process-all.sh
+        - --template-context
+        - /template-context/context.yaml
+        env:
+        - name: SET_STATUS_FLAG
+          value: 'true'
+        envFrom:
+        - configMapRef:
+            name: ums-stack-data-ums
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/data-loader:0.73.0@sha256:9babbdd0879aed7da928bf5034bf5f311511a8d07c242d2b10d067cc5dc0fd41
+        imagePullPolicy: IfNotPresent
+        name: load-data-ums
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /run/secrets/univention.de/data-loader/udm_secret
+          name: ums-udm-rest-api-credentials
+          subPath: machine.secret
+        - mountPath: /join-data
+          name: plugin-targets
+          readOnly: true
+          subPath: udm-data-loader
+        - mountPath: /template-context
+          name: context-config
+          readOnly: true
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - 'mkdir /target/udm-data-loader
+
+          cp -RLv --preserve=all /join-data/* /target/udm-data-loader
+
+          '
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/data-loader:0.73.0@sha256:9babbdd0879aed7da928bf5034bf5f311511a8d07c242d2b10d067cc5dc0fd41
+        imagePullPolicy: IfNotPresent
+        name: load-internal-plugins
+        resources: null
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+        - mountPath: /join-data
+          name: data
+      - image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/portal-extension:0.38.0@sha256:aa6ec6b99810e05655d98fa1192bc2eabb855335f7a04aa4cd96ed5b5645d736
+        imagePullPolicy: IfNotPresent
+        name: load-portal-extension
+        resources: null
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/ox-extension:0.11.0@sha256:2cb5a9683b6ff81b995a5c71da52c2ff8177b662bb0be8f11e9cd0c6b48d8a11
+        imagePullPolicy: IfNotPresent
+        name: load-ox-extension
+        resources: null
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - image: registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nubus:1.7.5@sha256:cc38d339abea18dc3644b7764d7be13798956161d1c87e34b26b5d8b7a11edc6
+        imagePullPolicy: IfNotPresent
+        name: load-opendesk-extension
+        resources: null
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /target
+          name: plugin-targets
+      - command:
+        - /bin/sh
+        - -c
+        - /usr/local/bin/wait-for-udm-rest-api.py
+        envFrom:
+        - configMapRef:
+            name: ums-stack-data-ums
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/data-loader:0.73.0@sha256:9babbdd0879aed7da928bf5034bf5f311511a8d07c242d2b10d067cc5dc0fd41
+        imagePullPolicy: IfNotPresent
+        name: wait-for-udm-rest-api
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /run/secrets/univention.de/data-loader/udm_secret
+          name: ums-udm-rest-api-credentials
+          subPath: machine.secret
+      restartPolicy: Never
+      volumes:
+      - name: ums-udm-rest-api-credentials
+        secret:
+          secretName: ums-udm-rest-api-credentials
+      - configMap:
+          name: ums-stack-data-ums-data
+        name: data
+      - name: context-config
+        secret:
+          secretName: ums-stack-data-ums-context
+      - emptyDir: {}
+        name: plugin-targets
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    helm.sh/hook: post-install,post-upgrade
+  labels:
+    app.kubernetes.io/instance: ums
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: keycloak-bootstrap
+    app.kubernetes.io/version: 0.0.1
+    helm.sh/chart: nubusKeycloakBootstrap-0.3.0
+  name: ums-keycloak-bootstrap-bootstrap-1
+spec:
+  template:
+    metadata:
+      annotations:
+        checksum/config: b3fc623976847bf70e148c7e900dd3e4a2d21fcb55bd4131be6d09c8732dccbc
+        intents.otterize.com/service-name: ums-keycloak-bootstrap
+      labels:
+        app.kubernetes.io/instance: ums
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: keycloak-bootstrap
+        app.kubernetes.io/version: 0.0.1
+        helm.sh/chart: nubusKeycloakBootstrap-0.3.0
+    spec:
+      containers:
+      - command:
+        - /app/entrypoint.sh
+        env:
+        - name: KEYCLOAK_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: admin_password
+              name: ums-opendesk-keycloak-credentials
+        - name: LDAP_BIND_PW
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: ums-keycloak-bootstrap-ldap-opendesk-credentials
+        envFrom:
+        - configMapRef:
+            name: ums-keycloak-bootstrap
+        image: registry.opencode.de/bmi/opendesk/components/supplier/univention/images-mirror/keycloak-bootstrap:0.3.0@sha256:2911e8d5409f4e302b5c8c073cc6bf3f3622582e6eef43c63672ac4551712750
+        imagePullPolicy: IfNotPresent
+        name: univention-keycloak-bootstrap
+        resources:
+          limits:
+            cpu: 99
+            memory: 512Mi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /bootstrap
+          name: bootstrap-volume
+        - mountPath: /credentials/ldapread.secret
+          name: ldap-credentials-volume
+          subPath: password
+        - mountPath: /credentials/keycloak.secret
+          name: keycloak-credentials-volume
+          subPath: admin_password
+        - mountPath: /tmp
+          name: temp-dir
+      restartPolicy: Never
+      serviceAccountName: ums-keycloak-bootstrap
+      terminationGracePeriodSeconds: 5
+      volumes:
+      - name: keycloak-credentials-volume
+        secret:
+          secretName: ums-opendesk-keycloak-credentials
+      - name: ldap-credentials-volume
+        secret:
+          secretName: ums-keycloak-bootstrap-ldap-opendesk-credentials
+      - configMap:
+          name: ums-keycloak-bootstrap-bootstrap-data
+        name: bootstrap-volume
+      - emptyDir:
+          sizeLimit: 20Mi
+        name: temp-dir
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  labels:
+    app.kubernetes.io/instance: opendesk-keycloak-bootstrap
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-keycloak-bootstrap
+    helm.sh/chart: opendesk-keycloak-bootstrap-2.1.3
+  name: opendesk-keycloak-bootstrap-bootstrap-1
+spec:
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: bae3ae12548a82e4696400e620ef96653ed31639fd13f35d0ef21f7a53288917
+        intents.otterize.com/service-name: ums-keycloak-bootstrap
+      labels:
+        app.kubernetes.io/instance: opendesk-keycloak-bootstrap
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: opendesk-keycloak-bootstrap
+        helm.sh/chart: opendesk-keycloak-bootstrap-2.1.3
+    spec:
+      containers:
+      - command:
+        - /app/entrypoint.sh
+        env:
+        - name: OPENDESK_KEYCLOAK_BOOTSTRAP_TEMP_DIR
+          value: /tmp
+        - name: OPENDESK_KEYCLOAK_BOOTSTRAP_DEBUG_PAUSE_BEFORE_SCRIPT_START
+          value: '0'
+        image: registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-keycloak-bootstrap:1.2.1@sha256:f5ce0be27580c6347c5e700c4fa271a811d45d8a0e4b40ffe8a4d0e3d47e670f
+        imagePullPolicy: IfNotPresent
+        name: opendesk-keycloak-bootstrap
+        resources:
+          limits:
+            cpu: 99
+            memory: 512Mi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /app/values.yaml
+          name: secrets-volume
+          subPath: values.yaml
+        - mountPath: /app/ansible
+          name: ansible-directory-volume
+        - mountPath: /tmp
+          name: temp-dir
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: opendesk-keycloak-bootstrap
+      volumes:
+      - name: secrets-volume
+        secret:
+          secretName: opendesk-keycloak-bootstrap
+      - emptyDir:
+          sizeLimit: 20Mi
+        name: temp-dir
+      - configMap:
+          name: opendesk-keycloak-bootstrap-ansible
+        name: ansible-directory-volume
+  ttlSecondsAfterFinished: 1800
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+  labels:
+    app.kubernetes.io/instance: opendesk-open-xchange-bootstrap
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-open-xchange-bootstrap
+    helm.sh/chart: opendesk-open-xchange-bootstrap-2.1.2
+  name: opendesk-open-xchange-bootstrap
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      annotations:
+        argocd.argoproj.io/hook: Sync
+        argocd.argoproj.io/hook-delete-policy: HookSucceeded
+      labels:
+        app.kubernetes.io/instance: opendesk-open-xchange-bootstrap
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: opendesk-open-xchange-bootstrap
+        helm.sh/chart: opendesk-open-xchange-bootstrap-2.1.2
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - "until kubectl exec --namespace=\"${NAMESPACE}\" ${CORE_MIDDLEWARE_POD}\
+          \ -c core-mw -- bash -c 'echo core-mw running...'; do\n  echo \"waiting\
+          \ for container core-mw to be alive...\"\n  sleep 1\ndone\nkubectl exec\
+          \ --namespace=\"${NAMESPACE}\" ${CORE_MIDDLEWARE_POD} -c core-mw -- bash\
+          \ -c \"mkdir -p /opt/open-xchange/ox-filestore\"\nkubectl exec --namespace=\"\
+          ${NAMESPACE}\" ${CORE_MIDDLEWARE_POD} -c core-mw -- bash -c '/opt/open-xchange/sbin/initconfigdb\
+          \ --configdb-user \"${MYSQL_USER}\" --configdb-pass \"${MYSQL_PASSWORD}\"\
+          \ --configdb-host \"${MYSQL_HOST}\" --mysql-root-passwd \"${MYSQL_PASSWORD}\"\
+          \ --configdb-dbname \"${MYSQL_DATABASE}\"' || echo \"error initconfigdb\"\
+          \nkubectl exec --namespace=\"${NAMESPACE}\" ${CORE_MIDDLEWARE_POD} -c core-mw\
+          \ -- bash -c 'until nc -z localhost 8009; do echo \"waiting for port 8009\"\
+          ; sleep 5; done'\nkubectl exec --namespace=\"${NAMESPACE}\" ${CORE_MIDDLEWARE_POD}\
+          \ -c core-mw -- bash -c '/opt/open-xchange/sbin/registerfilestore -A \"\
+          ${MASTER_ADMIN_USER}\" -P \"${MASTER_ADMIN_PW}\" -t /opt/open-xchange/ox-filestore\
+          \ -s \"100000\"' || echo \"error: registerfilestore\"\nkubectl exec --namespace=\"\
+          ${NAMESPACE}\" ${CORE_MIDDLEWARE_POD} -c core-mw -- bash -c '/opt/open-xchange/sbin/registerserver\
+          \ -A \"${MASTER_ADMIN_USER}\" -P \"${MASTER_ADMIN_PW}\" -n oxserver' ||\
+          \ echo \"error: registerserver\"\nkubectl exec --namespace=\"${NAMESPACE}\"\
+          \ ${CORE_MIDDLEWARE_POD} -c core-mw -- bash -c '/opt/open-xchange/sbin/registerdatabase\
+          \ -A \"${MASTER_ADMIN_USER}\" -P \"${MASTER_ADMIN_PW}\" --name \"PRIMARYDB\"\
+          \ --hostname \"${MYSQL_HOST}\" --dbuser \"${MYSQL_USER}\" --dbpasswd \"\
+          ${MYSQL_PASSWORD}\" --master true' || echo \"error: registerdatabase\"\n\
+          kubectl --namespace=\"${NAMESPACE}\" rollout restart statefulset ${CORE_MIDDLEWARE_STATEFULSET}\n"
+        env:
+        - name: NAMESPACE
+          value: tn-openbsw-opendesk
+        - name: CORE_MIDDLEWARE_STATEFULSET
+          value: open-xchange-core-mw-default
+        - name: CORE_MIDDLEWARE_POD
+          value: open-xchange-core-mw-default-0
+        image: registry-1.docker.io/alpine/k8s:1.26.8@sha256:acde24d2a8ebaafda76f464591a5ddc7d0acd08bb38b12560961c1b1c4fc85ec
+        imagePullPolicy: IfNotPresent
+        name: opendesk-open-xchange-bootstrap
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+      restartPolicy: Never
+      serviceAccountName: opendesk-open-xchange-bootstrap
+  ttlSecondsAfterFinished: 60
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    intents.otterize.com/service-name: opendesk-nextcloud-php
+  labels:
+    app.kubernetes.io/instance: opendesk-nextcloud-management
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-nextcloud-management
+    helm.sh/chart: opendesk-nextcloud-management-3.4.1
+  name: opendesk-nextcloud-management-1
+  namespace: tn-openbsw-opendesk
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: fdd133b2e326e1a27a310ad6ec0a1a746b85e4e1b1da2a7cefd8ba3ea6194df9
+        intents.otterize.com/service-name: opendesk-nextcloud-php
+      labels:
+        app.kubernetes.io/instance: opendesk-nextcloud-management
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: opendesk-nextcloud-management
+        helm.sh/chart: opendesk-nextcloud-management-3.4.1
+    spec:
+      containers:
+      - command:
+        - /usr/bin/php
+        - /usr/local/bin/entrypoint/entrypoint.php
+        env:
+        - name: FS_ENV_SUBSCRIPTION_KEY
+          value: null
+        - name: FS_ENV_SUBSCRIPTION_DATA
+          value: null
+        - name: FS_ENV_DEFAULT_QUOTA
+          value: 1 GB
+        - name: FS_ENV_RETENTION_OBLIGATION_VERSIONS
+          value: auto
+        - name: FS_ENV_RETENTION_OBLIGATION_TRASHBIN
+          value: auto
+        - name: FS_ENV_DEV_MODE
+          value: 'false'
+        - name: FS_ENV_RUN_MODE
+          value: init
+        - name: FS_ENV_LOGLEVEL
+          value: '2'
+        - name: FS_ENV_DBTYPE
+          value: mysql
+        - name: FS_ENV_DBHOST
+          value: mariadb
+        - name: FS_ENV_DBNAME
+          value: nextcloud
+        - name: FS_ENV_DBPORT
+          value: '3306'
+        - name: FS_ENV_DBUSER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: opendesk-nextcloud-management-database
+        - name: FS_ENV_DBPASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: opendesk-nextcloud-management-database
+        - name: FS_ENV_NCADMINNAME
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: opendesk-nextcloud-management-administrator
+        - name: FS_ENV_NCADMINPASS
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: opendesk-nextcloud-management-administrator
+        - name: FS_ENV_REDIS_HOST
+          value: redis-headless
+        - name: FS_ENV_REDIS_PORT
+          value: '6379'
+        - name: FS_ENV_REDIS_TIMEOUT
+          value: '30'
+        - name: FS_ENV_REDIS_DBINDEX
+          value: '4'
+        - name: FS_ENV_PHP_REDIS_DBINDEX
+          value: '5'
+        - name: FS_ENV_REDIS_USER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: opendesk-nextcloud-management-cache
+        - name: FS_ENV_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: opendesk-nextcloud-management-cache
+        - name: FS_ENV_MAIL_SMTPAUTH
+          value: 'false'
+        - name: FS_ENV_MAIL_SMTPMODE
+          value: smtp
+        - name: FS_ENV_MAIL_SMTPSECURE
+          value: ''
+        - name: FS_ENV_MAIL_SMTPHOST
+          value: postfix..svc.cluster.local
+        - name: FS_ENV_MAIL_SMTPPORT
+          value: '25'
+        - name: FS_ENV_MAIL_DOMAIN
+          value: apps.digilab.network
+        - name: FS_ENV_MAIL_FROM_ADDRESS
+          value: no-reply
+        - name: FS_ENV_MAIL_SMTPVERIFYPEER
+          value: 'true'
+        - name: FS_ENV_PORTAL_URL
+          value: https://portal.apps.digilab.network
+        - name: FS_ENV_LOGO_URL
+          value: https://portal.apps.digilab.network/univention/portal/icons/logos/domain.svg
+        - name: FS_ENV_WEBMAIL_URL
+          value: https://webmail.apps.digilab.network
+        - name: FS_ENV_PORTAL_JSON_USERNAME_ATTRIBUTE
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: opendesk-nextcloud-management-integration
+        - name: FS_ENV_PORTAL_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: opendesk-nextcloud-management-integration
+        - name: FS_ENV_PORTAL_NAVIGATION_JSON_URL
+          value: https://portal.apps.digilab.network/univention/portal/navigation.json
+        - name: FS_ENV_PORTAL_AUTH_METHOD
+          value: basic
+        - name: FS_ENV_PORTAL_MENU_TABNAME
+          value: target
+        - name: FS_ENV_OIDC_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: opendesk-nextcloud-management-oidc
+        - name: FS_ENV_OIDC_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: opendesk-nextcloud-management-oidc
+        - name: FS_ENV_OIDC_DISCOVERY_URI
+          value: https://id.apps.digilab.network/realms/opendesk/.well-known/openid-configuration
+        - name: FS_ENV_OIDC_MAPPING_UID
+          value: opendesk_useruuid
+        - name: FS_ENV_LDAP
+          value: ewogICJsZGFwQWdlbnROYW1lIjogICJ1aWQ9bGRhcHNlYXJjaF9uZXh0Y2xvdWQsY249dXNlcnMsZGM9c3dwLWxkYXAsZGM9aW50ZXJuYWwiLAogICJsZGFwQmFzZSI6ICJkYz1zd3AtbGRhcCxkYz1pbnRlcm5hbCIsCiAgImxkYXBCYXNlR3JvdXBzIjogImRjPXN3cC1sZGFwLGRjPWludGVybmFsIiwKICAibGRhcEJhc2VVc2VycyI6ICJkYz1zd3AtbGRhcCxkYz1pbnRlcm5hbCIsCiAgImxkYXBIb3N0IjogImxkYXA6Ly91bXMtbGRhcC1zZXJ2ZXIiLAogICJsZGFwUG9ydCI6ICIzODkiLAogICJsZGFwQWRtaW5Hcm91cCI6ICJtYW5hZ2VkLWJ5LWF0dHJpYnV0ZS1GaWxlc2hhcmVBZG1pbiIKfQo=
+        - name: FS_ENV_LDAP_AGENT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: opendesk-nextcloud-management-ldap
+        - name: FS_ENV_ANTIVIRUS_ICAP_HOST
+          value: clamav-simple
+        - name: FS_ENV_ANTIVIRUS_ICAP_PORT
+          value: '1344'
+        - name: FS_ENV_ANTIVIRUS_ICAP_SERVICE
+          value: avscan
+        - name: FS_ENV_ANTIVIRUS_ICAP_HEADER
+          value: X-Infection-Found
+        - name: FS_ENV_ANTIVIRUS_ICAP_MODE
+          value: reqmod
+        - name: FS_ENV_ANTIVIRUS_ICAP_CHUNK_SIZE
+          value: '1048576'
+        - name: FS_ENV_ANTIVIRUS_ACTION
+          value: delete
+        - name: FS_ENV_CRYPTPAD_HOST
+          value: https://pad.apps.digilab.network
+        - name: FS_ENV_MONITORING_TOKEN
+          value: aabb03d4a9ffe83d36156d863957c5ee32c775f0
+        - name: FS_ENV_OBJECTSTORE_BUCKET
+          value: nextcloud
+        - name: FS_ENV_OBJECTSTORE_HOST
+          value: objectstore.apps.digilab.network
+        - name: FS_ENV_OBJECTSTORE_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: opendesk-nextcloud-management-objectstore
+        - name: FS_ENV_OBJECTSTORE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: opendesk-nextcloud-management-objectstore
+        - name: FS_ENV_OBJECTSTORE_PORT
+          value: '443'
+        - name: FS_ENV_OBJECTSTORE_PATH_STYLE
+          value: 'true'
+        - name: FS_ENV_OBJECTSTORE_USE_SSL
+          value: 'true'
+        - name: FS_ENV_OBJECTSTORE_REGION
+          value: eu-west-1
+        - name: FS_ENV_OBJECTSTORE_STORAGE_CLASS
+          value: STANDARD
+        - name: FS_ENV_WOPI_ALLOWLIST
+          value: 10.0.0.0/8
+        - name: FS_ENV_INTERNAL_WOPI_URL
+          value: https://office.apps.digilab.network
+        - name: FS_ENV_PUBLIC_WOPI_URL
+          value: https://office.apps.digilab.network
+        - name: FS_ENV_TRUSTED_DOMAINS
+          value: files.apps.digilab.network
+        - name: FS_ENV_TRUSTED_PROXIES
+          value: 127.0.0.1
+        - name: FS_ENV_THEMING_COLOR
+          value: '#571EFA'
+        - name: FS_ENV_NCADMINENABLED
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_ALLOW_LINKS
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_ALLOW_MAIL_NOTIFICATION
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_ALLOW_PUBLIC_UPLOAD
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_DEFAULT_INTERNAL_EXPIRE_DATE
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_ENFORCE_INTERNAL_EXPIRE_DATE
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_INTERNAL_EXPIRE_AFTER_N_DAYS
+          value: '90'
+        - name: FS_ENV_SHAREAPI_DEFAULT_EXPIRE_DATE
+          value: 'true'
+        - name: FS_ENV_SHAREAPI_ENFORCE_EXPIRE_DATE
+          value: 'false'
+        - name: FS_ENV_SHAREAPI_EXPIRE_AFTER_N_DAYS
+          value: '30'
+        - name: FS_ENV_SHAREAPI_ENFORCE_LINKS_PASSWORD
+          value: 'false'
+        - name: FS_ENV_ENFORCE_PASSWORD_PROTECTION
+          value: 'false'
+        - name: FS_ENV_CREATE_OCDATA
+          value: 'true'
+        image: registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nextcloud:2.2.3@sha256:b5e36b4922b50be96ecdd8628d8124880251da5b2e98cfa5b12cf1ef715d042f
+        imagePullPolicy: IfNotPresent
+        name: init
+        resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
+          requests:
+            cpu: 0.1
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 101
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /var/nextcloud/data
+          name: nextcloud-data
+        - mountPath: /var/www/html/config
+          name: nextcloud-config
+        - mountPath: /tmp
+          name: nextcloud-tmp
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 101
+        fsGroupChangePolicy: Always
+      serviceAccountName: opendesk-nextcloud-management
+      volumes:
+      - emptyDir: {}
+        name: nextcloud-data
+      - emptyDir: {}
+        name: nextcloud-tmp
+      - emptyDir: {}
+        name: nextcloud-config
+  ttlSecondsAfterFinished: 180
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-jitsi
+    helm.sh/chart: opendesk-jitsi-2.0.3
+  name: jitsi-opendesk-jitsi
+spec:
+  template:
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - /init/init.sh
+        image: registry-1.docker.io/bitnami/kubectl:1.30.2@sha256:3ec696e5ce1b79f78eb0eac1fed4ef20fa6584662cdf3c7ad933b0b03b9ce3f6
+        imagePullPolicy: IfNotPresent
+        name: advertise-ip
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /init
+          name: init
+      restartPolicy: OnFailure
+      serviceAccountName: jitsi-opendesk-jitsi
+      volumes:
+      - configMap:
+          name: jitsi-opendesk-jitsi
+        name: init
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Skip
+    helm.sh/hook: pre-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/instance: opendesk-matrix-user-verification-service-bootstrap
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-synapse-create-account
+    helm.sh/chart: opendesk-synapse-create-account-3.4.1
+  name: opendesk-matrix-user-verification-service-bootstrap
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - 'kubectl delete secret --namespace="${NAMESPACE}" ${SECRET_NAME} --ignore-not-found
+
+          '
+        env:
+        - name: NAMESPACE
+          value: tn-openbsw-opendesk
+        - name: SECRET_NAME
+          value: opendesk-matrix-user-verification-service-account
+        image: registry-1.docker.io/alpine/k8s:1.30.0@sha256:d7a11b7032550e992667fd7725b039dcd639270fbceec368d7e66e3d9e41ee15
+        imagePullPolicy: IfNotPresent
+        name: opendesk-synapse-create-account
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 101
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        tty: true
+      restartPolicy: Never
+      serviceAccountName: opendesk-matrix-user-verification-service-bootstrap
+  ttlSecondsAfterFinished: 60
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    helm.sh/hook: post-install
+  labels:
+    app.kubernetes.io/instance: opendesk-matrix-user-verification-service-bootstrap
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-synapse-create-account
+    helm.sh/chart: opendesk-synapse-create-account-3.4.1
+  name: opendesk-matrix-user-verification-service-bootstrap
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - "# SPDX-FileCopyrightText: 2023 Bundesministerium des Innern und f\xFCr\
+          \ Heimat, PG ZenDiS \"Projektgruppe f\xFCr Aufbau ZenDiS\"\n#\n# SPDX-License-Identifier:\
+          \ Apache-2.0\n\nuntil kubectl exec --namespace=\"${NAMESPACE}\" ${SYNAPSE_POD}\
+          \ -c synapse \\\n-- bash -c 'curl -sf http://localhost:8008/health';\ndo\n\
+          \  echo \"waiting for container to be alive...\"\n  sleep 1\ndone\n\nACCESS_TOKEN=$(kubectl\
+          \ exec --namespace=\"${NAMESPACE}\" ${SYNAPSE_POD} -c synapse \\\n-- bash\
+          \ -c \"\necho \\\"create the user ${MATRIX_USERNAME} if not exists\\\"\n\
+          register_new_matrix_user -u ${MATRIX_USERNAME} -a -c /config/homeserver.yaml\
+          \ -p ${MATRIX_PASSWORD} || true\n\nRESULT=''\nACCESS_TOKEN=''\nMATRIX_USER_ID=''\n\
+          \ncreate_user() {\n    RESULT=\\$(curl -X POST -d '{\\\"type\\\":\\\"m.login.password\\\
+          \", \\\"user\\\":\\\"$MATRIX_USERNAME\\\", \\\"password\\\":\\\"$MATRIX_PASSWORD\\\
+          \", \\\"device_id\\\":\\\"$DEVICE_ID\\\"}' http://localhost:8008/_matrix/client/v3/login)\n\
+          \    ACCESS_TOKEN=\\$(echo \\$RESULT | sed -n 's/.*\\\"access_token\\\"\
+          :\\\"\\([^\\\"]*\\)\\\".*/\\1/p')\n    MATRIX_USER_ID=\\$(echo \\$RESULT\
+          \ | sed -n 's/.*\\\"user_id\\\":\\\"\\([^\\\"]*\\)\\\".*/\\1/p')\n\n   \
+          \ if [ -z \"\\${ACCESS_TOKEN}\" ]\n    then\n        return 1\n    else\n\
+          \        return 0\n    fi\n}\n\necho \\\"login as user ${MATRIX_USERNAME}\\\
+          \"\nuntil create_user\ndo\n    echo \\$RESULT\n    echo 'waiting for user\
+          \ to login...'\n    sleep 5\ndone\n\necho \\\"disable rate limiting for\
+          \ user ${MATRIX_USERNAME}\\\"\nuntil curl -X POST -f -d '{\\\"messages_per_second\\\
+          \": 0, \\\"burst_count\\\": 0}' -H \\\"Authorization: Bearer \\$ACCESS_TOKEN\\\
+          \" -H 'Content-Type: application/json' http://localhost:8008/_synapse/admin/v1/users/\\\
+          $MATRIX_USER_ID/override_ratelimit\ndo\n    echo 'waiting for rate limit\
+          \ to be set...'\n    sleep 5\ndone\n\necho \"\\n\"\necho \\$ACCESS_TOKEN\n\
+          \" | tee /dev/tty | tail -1)\n\nkubectl delete secret --namespace=\"${NAMESPACE}\"\
+          \ ${SECRET_NAME} --ignore-not-found\nkubectl create secret --namespace=\"\
+          ${NAMESPACE}\" generic ${SECRET_NAME} --from-literal=access_token=$ACCESS_TOKEN\n"
+        env:
+        - name: NAMESPACE
+          value: tn-openbsw-opendesk
+        - name: SYNAPSE_POD
+          value: opendesk-synapse-0
+        - name: MATRIX_USERNAME
+          value: uvs
+        - name: MATRIX_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: opendesk-matrix-user-verification-service-bootstrap
+        - name: DEVICE_ID
+          value: DEFAULT
+        - name: SECRET_NAME
+          value: opendesk-matrix-user-verification-service-account
+        image: registry-1.docker.io/alpine/k8s:1.30.0@sha256:d7a11b7032550e992667fd7725b039dcd639270fbceec368d7e66e3d9e41ee15
+        imagePullPolicy: IfNotPresent
+        name: opendesk-synapse-create-account
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 101
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        tty: true
+      restartPolicy: Never
+      serviceAccountName: opendesk-matrix-user-verification-service-bootstrap
+  ttlSecondsAfterFinished: 60
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Skip
+    helm.sh/hook: pre-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/instance: matrix-neodatefix-bot-bootstrap
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-synapse-create-account
+    helm.sh/chart: opendesk-synapse-create-account-3.4.1
+  name: matrix-neodatefix-bot-bootstrap
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - 'kubectl delete secret --namespace="${NAMESPACE}" ${SECRET_NAME} --ignore-not-found
+
+          '
+        env:
+        - name: NAMESPACE
+          value: tn-openbsw-opendesk
+        - name: SECRET_NAME
+          value: matrix-neodatefix-bot-account
+        image: registry-1.docker.io/alpine/k8s:1.30.0@sha256:d7a11b7032550e992667fd7725b039dcd639270fbceec368d7e66e3d9e41ee15
+        imagePullPolicy: IfNotPresent
+        name: opendesk-synapse-create-account
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 101
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        tty: true
+      restartPolicy: Never
+      serviceAccountName: matrix-neodatefix-bot-bootstrap
+  ttlSecondsAfterFinished: 60
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    helm.sh/hook: post-install
+  labels:
+    app.kubernetes.io/instance: matrix-neodatefix-bot-bootstrap
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-synapse-create-account
+    helm.sh/chart: opendesk-synapse-create-account-3.4.1
+  name: matrix-neodatefix-bot-bootstrap
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - "# SPDX-FileCopyrightText: 2023 Bundesministerium des Innern und f\xFCr\
+          \ Heimat, PG ZenDiS \"Projektgruppe f\xFCr Aufbau ZenDiS\"\n#\n# SPDX-License-Identifier:\
+          \ Apache-2.0\n\nuntil kubectl exec --namespace=\"${NAMESPACE}\" ${SYNAPSE_POD}\
+          \ -c synapse \\\n-- bash -c 'curl -sf http://localhost:8008/health';\ndo\n\
+          \  echo \"waiting for container to be alive...\"\n  sleep 1\ndone\n\nACCESS_TOKEN=$(kubectl\
+          \ exec --namespace=\"${NAMESPACE}\" ${SYNAPSE_POD} -c synapse \\\n-- bash\
+          \ -c \"\necho \\\"create the user ${MATRIX_USERNAME} if not exists\\\"\n\
+          register_new_matrix_user -u ${MATRIX_USERNAME} -a -c /config/homeserver.yaml\
+          \ -p ${MATRIX_PASSWORD} || true\n\nRESULT=''\nACCESS_TOKEN=''\nMATRIX_USER_ID=''\n\
+          \ncreate_user() {\n    RESULT=\\$(curl -X POST -d '{\\\"type\\\":\\\"m.login.password\\\
+          \", \\\"user\\\":\\\"$MATRIX_USERNAME\\\", \\\"password\\\":\\\"$MATRIX_PASSWORD\\\
+          \", \\\"device_id\\\":\\\"$DEVICE_ID\\\"}' http://localhost:8008/_matrix/client/v3/login)\n\
+          \    ACCESS_TOKEN=\\$(echo \\$RESULT | sed -n 's/.*\\\"access_token\\\"\
+          :\\\"\\([^\\\"]*\\)\\\".*/\\1/p')\n    MATRIX_USER_ID=\\$(echo \\$RESULT\
+          \ | sed -n 's/.*\\\"user_id\\\":\\\"\\([^\\\"]*\\)\\\".*/\\1/p')\n\n   \
+          \ if [ -z \"\\${ACCESS_TOKEN}\" ]\n    then\n        return 1\n    else\n\
+          \        return 0\n    fi\n}\n\necho \\\"login as user ${MATRIX_USERNAME}\\\
+          \"\nuntil create_user\ndo\n    echo \\$RESULT\n    echo 'waiting for user\
+          \ to login...'\n    sleep 5\ndone\n\necho \\\"disable rate limiting for\
+          \ user ${MATRIX_USERNAME}\\\"\nuntil curl -X POST -f -d '{\\\"messages_per_second\\\
+          \": 0, \\\"burst_count\\\": 0}' -H \\\"Authorization: Bearer \\$ACCESS_TOKEN\\\
+          \" -H 'Content-Type: application/json' http://localhost:8008/_synapse/admin/v1/users/\\\
+          $MATRIX_USER_ID/override_ratelimit\ndo\n    echo 'waiting for rate limit\
+          \ to be set...'\n    sleep 5\ndone\n\necho \"\\n\"\necho \\$ACCESS_TOKEN\n\
+          \" | tee /dev/tty | tail -1)\n\nkubectl delete secret --namespace=\"${NAMESPACE}\"\
+          \ ${SECRET_NAME} --ignore-not-found\nkubectl create secret --namespace=\"\
+          ${NAMESPACE}\" generic ${SECRET_NAME} --from-literal=access_token=$ACCESS_TOKEN\n"
+        env:
+        - name: NAMESPACE
+          value: tn-openbsw-opendesk
+        - name: SYNAPSE_POD
+          value: opendesk-synapse-0
+        - name: MATRIX_USERNAME
+          value: meetings-bot
+        - name: MATRIX_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: matrix-neodatefix-bot-bootstrap
+        - name: DEVICE_ID
+          value: DEFAULT
+        - name: SECRET_NAME
+          value: matrix-neodatefix-bot-account
+        image: registry-1.docker.io/alpine/k8s:1.30.0@sha256:d7a11b7032550e992667fd7725b039dcd639270fbceec368d7e66e3d9e41ee15
+        imagePullPolicy: IfNotPresent
+        name: opendesk-synapse-create-account
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 101
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        tty: true
+      restartPolicy: Never
+      serviceAccountName: matrix-neodatefix-bot-bootstrap
+  ttlSecondsAfterFinished: 60
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    intents.otterize.com/service-name: openproject-seeder
+  labels:
+    app.kubernetes.io/instance: openproject
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: openproject
+    app.kubernetes.io/version: 14.6.3
+    helm.sh/chart: openproject-8.3.2
+  name: openproject-seeder-1
+spec:
+  template:
+    metadata:
+      annotations:
+        argocd.argoproj.io/hook: Sync
+        argocd.argoproj.io/hook-delete-policy: HookSucceeded
+        intents.otterize.com/service-name: openproject-seeder
+      labels:
+        app.kubernetes.io/instance: openproject
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: openproject
+        app.kubernetes.io/version: 14.6.3
+        helm.sh/chart: openproject-8.3.2
+        openproject/process: seeder
+    spec:
+      containers:
+      - args:
+        - bash
+        - /app/docker/prod/seeder
+        env:
+        - name: OPENPROJECT_DB_PASSWORD
+          value: 2f8fea4e3716ce8fa44ae96bd699ea77347519f9
+        envFrom:
+        - secretRef:
+            name: openproject-core
+        - secretRef:
+            name: openproject-oidc
+        - secretRef:
+            name: openproject-s3
+        - secretRef:
+            name: openproject-memcached
+        - secretRef:
+            name: openproject-environment
+        image: registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:14.6.3@sha256:8d04eb793503e1a7e230b56c53c1a656c106a403aa823afa94a6219779bb1829
+        imagePullPolicy: IfNotPresent
+        name: seeder
+        resources:
+          limits:
+            cpu: 99
+            memory: 768Mi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /app/tmp
+          name: app-tmp
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - until pg_isready -h $DATABASE_HOST -p $DATABASE_PORT -U openproject_user;
+          do echo "waiting for database $DATABASE_HOST:$DATABASE_PORT"; sleep 2; done;
+        env:
+        - name: OPENPROJECT_DB_PASSWORD
+          value: 2f8fea4e3716ce8fa44ae96bd699ea77347519f9
+        envFrom:
+        - secretRef:
+            name: openproject-core
+        - secretRef:
+            name: openproject-oidc
+        - secretRef:
+            name: openproject-s3
+        - secretRef:
+            name: openproject-memcached
+        - secretRef:
+            name: openproject-environment
+        image: registry-1.docker.io/library/postgres:16.3-alpine3.20@sha256:de3d7b6e4b5b3fe899e997579d6dfe95a99539d154abe03f0b6839133ed05065
+        imagePullPolicy: IfNotPresent
+        name: check-db-ready
+        resources:
+          limits:
+            cpu: 99
+            memory: 768Mi
+          requests:
+            cpu: 0.1
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+      restartPolicy: OnFailure
+      securityContext:
+        fsGroup: 1000
+      volumes:
+      - ephemeral:
+          volumeClaimTemplate:
+            metadata:
+              creationTimestamp: null
+            spec:
+              accessModes:
+              - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 5Gi
+        name: tmp
+      - ephemeral:
+          volumeClaimTemplate:
+            metadata:
+              creationTimestamp: null
+            spec:
+              accessModes:
+              - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 5Gi
+        name: app-tmp
+  ttlSecondsAfterFinished: 6000
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+  labels:
+    app.kubernetes.io/instance: opendesk-openproject-bootstrap
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-openproject-bootstrap
+    helm.sh/chart: opendesk-openproject-bootstrap-2.1.1
+  name: opendesk-openproject-bootstrap-bootstrap-1
+spec:
+  template:
+    metadata:
+      annotations: null
+      labels:
+        app.kubernetes.io/instance: opendesk-openproject-bootstrap
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: opendesk-openproject-bootstrap
+        helm.sh/chart: opendesk-openproject-bootstrap-2.1.1
+    spec:
+      containers:
+      - command:
+        - /app/entrypoint.sh
+        env:
+        - name: OPENPROJECT_HOST
+          value: https://projects.apps.digilab.network
+        - name: OPENPROJECT_STORAGE_NAME
+          value: Nextcloud at apps.digilab.network
+        - name: OP_ADMIN_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: openprojectAdminUsername
+              name: opendesk-openproject-bootstrap
+        - name: OP_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: openprojectAdminPassword
+              name: opendesk-openproject-bootstrap
+        - name: NEXTCLOUD_HOST
+          value: https://files.apps.digilab.network
+        - name: NC_ADMIN_USERNAME
+          value: nextcloud
+        - name: SETUP_PROJECT_FOLDER
+          value: 'true'
+        - name: NC_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: nextcloudAdminPassword
+              name: opendesk-openproject-bootstrap
+        - name: OD_OP_BOOTSTRAP_TEMP_DIR
+          value: /app/temp
+        - name: OD_OP_BOOTSTRAP_DEBUG_ENABLED
+          value: 'false'
+        - name: OD_OP_BOOTSTRAP_DEBUG_PAUSE_BEFORE_SCRIPT_START
+          value: '0'
+        image: registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-openproject-bootstrap:1.1.4@sha256:2fd97a316114428849aaeef87fb8755274e675830088a93afcafac91bb048d1d
+        imagePullPolicy: IfNotPresent
+        name: opendesk-openproject-bootstrap
+        resources:
+          limits:
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /app/temp
+          name: temp-dir
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: opendesk-openproject-bootstrap
+      volumes:
+      - emptyDir:
+          sizeLimit: 20Mi
+        name: temp-dir
+  ttlSecondsAfterFinished: 1800
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  labels:
+    app.kubernetes.io/instance: opendesk-migrations-post
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-migrations
+    helm.sh/chart: opendesk-migrations-1.3.5
+  name: opendesk-migrations-post-1
+spec:
+  template:
+    metadata:
+      annotations: null
+      labels:
+        app.kubernetes.io/instance: opendesk-migrations-post
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: opendesk-migrations
+        helm.sh/chart: opendesk-migrations-1.3.5
+    spec:
+      containers:
+      - command:
+        - /app/odmigs.py
+        env:
+        - name: MIGRATIONS_LOGLEVEL
+          value: INFO
+        - name: MIGRATIONS_CLEANUP
+          value: 'false'
+        - name: MIGRATIONS_STAGE
+          value: POST
+        - name: MIGRATIONS_RUN_ID
+          value: '2'
+        - name: MIGRATIONS_NAMESPACE
+          value: ''
+        - name: MIGRATIONS_FAIL_ON_UNEXPECTED_STATE
+          value: 'true'
+        image: registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-migrations:1.3.18@sha256:d7f13322cc9cc7ab157f926280070850b0dfc6169c93a306ec4c3cf7c21eff69
+        imagePullPolicy: IfNotPresent
+        name: opendesk-migrations
+        resources:
+          limits:
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seLinuxOptions: null
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /app/etc/
+          name: environmentdetails-volume
+          readOnly: true
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccountName: opendesk-migrations-post
+      volumes:
+      - name: environmentdetails-volume
+        secret:
+          secretName: opendesk-migrations-post-environmentdetails
+  ttlSecondsAfterFinished: null

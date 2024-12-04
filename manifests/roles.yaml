@@ -1,0 +1,429 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-migrations-pre
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-migrations
+    helm.sh/chart: opendesk-migrations-1.3.5
+  name: opendesk-migrations-pre
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - migrations-status
+  resources:
+  - configmaps
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  resourceNames:
+  - ox-connector
+  resources:
+  - statefulsets
+  verbs:
+  - delete
+- apiGroups:
+  - ''
+  resourceNames:
+  - ums-keycloak
+  - ums-udm-rest-api
+  resources:
+  - services
+  verbs:
+  - delete
+- apiGroups:
+  - batch
+  resourceNames:
+  - opendesk-open-xchange-bootstrap
+  resources:
+  - jobs
+  verbs:
+  - delete
+- apiGroups:
+  - apps
+  resourceNames:
+  - ums-umc-server
+  resources:
+  - deployments
+  verbs:
+  - delete
+- apiGroups:
+  - ''
+  resourceNames:
+  - ums-ldap-server-0
+  resources:
+  - pods/exec
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - shared-data-ums-ldap-server-0
+  - ox-connector-ox-contexts-ox-connector-0
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - ums-ldap-notifier
+  - ums-ldap-server
+  resources:
+  - statefulsets/scale
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - shared-data-ums-ldap-server-0
+  - shared-run-ums-ldap-server-0
+  - ox-connector-appcenter-ox-connector-0
+  - ox-connector-data-ox-connector-0
+  - ox-connector-ox-contexts-ox-connector-0
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - delete
+- apiGroups:
+  - apps
+  resourceNames:
+  - ums-keycloak
+  - opendesk-nextcloud-php
+  - ums-umc-server
+  resources:
+  - deployments
+  verbs:
+  - update
+  - patch
+- apiGroups:
+  - apps
+  resourceNames:
+  - ums-selfservice-listener
+  - opendesk-synapse
+  resources:
+  - statefulsets
+  verbs:
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: core-mw
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-6.0.3
+    version: 8.30.63
+  name: open-xchange-core-mw
+  namespace: tn-openbsw-opendesk
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  - secrets
+  - services
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: opendesk-open-xchange-bootstrap
+  namespace: tn-openbsw-opendesk
+rules:
+- apiGroups:
+  - ''
+  resourceNames:
+  - open-xchange-core-mw-default-0
+  resources:
+  - pods
+  verbs:
+  - get
+- apiGroups:
+  - ''
+  resourceNames:
+  - open-xchange-core-mw-default-0
+  resources:
+  - pods/exec
+  verbs:
+  - create
+- apiGroups:
+  - apps
+  resourceNames:
+  - open-xchange-core-mw-default
+  resources:
+  - statefulsets
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-jitsi
+    helm.sh/chart: opendesk-jitsi-2.0.3
+  name: jitsi-opendesk-jitsi
+rules:
+- apiGroups:
+  - ''
+  resourceNames:
+  - jitsi-jvb
+  resources:
+  - services
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ''
+  resourceNames:
+  - jitsi-jvb
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - apps
+  resourceNames:
+  - jitsi-jvb
+  resources:
+  - deployments
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - apps
+  resourceNames:
+  - jitsi-web
+  resources:
+  - deployments
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: opendesk-matrix-user-verification-service-bootstrap
+  namespace: tn-openbsw-opendesk
+rules:
+- apiGroups:
+  - ''
+  resourceNames:
+  - opendesk-synapse-0
+  resources:
+  - pods
+  verbs:
+  - get
+- apiGroups:
+  - ''
+  resourceNames:
+  - opendesk-synapse-0
+  resources:
+  - pods/exec
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - opendesk-matrix-user-verification-service-account
+  resources:
+  - secrets
+  verbs:
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: matrix-neodatefix-bot-bootstrap
+  namespace: tn-openbsw-opendesk
+rules:
+- apiGroups:
+  - ''
+  resourceNames:
+  - opendesk-synapse-0
+  resources:
+  - pods
+  verbs:
+  - get
+- apiGroups:
+  - ''
+  resourceNames:
+  - opendesk-synapse-0
+  resources:
+  - pods/exec
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - matrix-neodatefix-bot-account
+  resources:
+  - secrets
+  verbs:
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/instance: opendesk-migrations-post
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: opendesk-migrations
+    helm.sh/chart: opendesk-migrations-1.3.5
+  name: opendesk-migrations-post
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - migrations-status
+  resources:
+  - configmaps
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  resourceNames:
+  - ox-connector
+  resources:
+  - statefulsets
+  verbs:
+  - delete
+- apiGroups:
+  - ''
+  resourceNames:
+  - ums-keycloak
+  - ums-udm-rest-api
+  resources:
+  - services
+  verbs:
+  - delete
+- apiGroups:
+  - batch
+  resourceNames:
+  - opendesk-open-xchange-bootstrap
+  resources:
+  - jobs
+  verbs:
+  - delete
+- apiGroups:
+  - apps
+  resourceNames:
+  - ums-umc-server
+  resources:
+  - deployments
+  verbs:
+  - delete
+- apiGroups:
+  - ''
+  resourceNames:
+  - ums-ldap-server-0
+  resources:
+  - pods/exec
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - shared-data-ums-ldap-server-0
+  - ox-connector-ox-contexts-ox-connector-0
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - ums-ldap-notifier
+  - ums-ldap-server
+  resources:
+  - statefulsets/scale
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - shared-data-ums-ldap-server-0
+  - shared-run-ums-ldap-server-0
+  - ox-connector-appcenter-ox-connector-0
+  - ox-connector-data-ox-connector-0
+  - ox-connector-ox-contexts-ox-connector-0
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - delete
+- apiGroups:
+  - apps
+  resourceNames:
+  - ums-keycloak
+  - opendesk-nextcloud-php
+  - ums-umc-server
+  resources:
+  - deployments
+  verbs:
+  - update
+  - patch
+- apiGroups:
+  - apps
+  resourceNames:
+  - ums-selfservice-listener
+  - opendesk-synapse
+  resources:
+  - statefulsets
+  verbs:
+  - update
+  - patch

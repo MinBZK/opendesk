@@ -1,0 +1,103 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  annotations:
+    intents.otterize.com/service-name: opendesk-nextcloud
+  labels:
+    app.kubernetes.io/instance: opendesk-nextcloud
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: aio
+    helm.sh/chart: aio-3.4.0
+  name: opendesk-nextcloud-aio-cron
+  namespace: tn-openbsw-opendesk
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          annotations:
+            checksum/configmap: e4d54b3371f275352d27c8cf89bb23b335fdb1485448f29ad3c1090e7d829bee
+            intents.otterize.com/service-name: opendesk-nextcloud
+          labels:
+            app.kubernetes.io/instance: opendesk-nextcloud
+            app.kubernetes.io/managed-by: Helm
+            app.kubernetes.io/name: aio
+            helm.sh/chart: aio-3.4.0
+        spec:
+          containers:
+          - command:
+            - /usr/bin/php
+            - /usr/local/bin/entrypoint/entrypoint.php
+            env:
+            - name: FS_ENV_RUN_MODE
+              value: cron
+            - name: FS_ENV_DBTYPE
+              value: mysql
+            - name: FS_ENV_DBHOST
+              value: mariadb
+            - name: FS_ENV_DBNAME
+              value: nextcloud
+            - name: FS_ENV_DBPORT
+              value: '3306'
+            - name: FS_ENV_DBUSER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: opendesk-nextcloud-aio-database
+            - name: FS_ENV_DBPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: opendesk-nextcloud-aio-database
+            - name: FS_ENV_CREATE_OCDATA
+              value: 'true'
+            image: registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nextcloud:2.2.3@sha256:b5e36b4922b50be96ecdd8628d8124880251da5b2e98cfa5b12cf1ef715d042f
+            imagePullPolicy: IfNotPresent
+            name: cron
+            resources:
+              limits:
+                cpu: 99
+                memory: 1Gi
+              requests:
+                cpu: 0.1
+                memory: 512Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              privileged: false
+              readOnlyRootFilesystem: true
+              runAsGroup: 101
+              runAsNonRoot: true
+              runAsUser: 101
+              seLinuxOptions: null
+              seccompProfile:
+                type: RuntimeDefault
+            volumeMounts:
+            - mountPath: /var/www/html/config
+              name: nextcloud-config
+            - mountPath: /var/nextcloud/data
+              name: nextcloud-data
+            - mountPath: /tmp
+              name: nextcloud-tmp
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 101
+            fsGroupChangePolicy: Always
+          serviceAccountName: opendesk-nextcloud-aio
+          volumes:
+          - emptyDir: {}
+            name: nextcloud-data
+          - emptyDir: {}
+            name: nextcloud-tmp
+          - emptyDir:
+              medium: Memory
+              sizeLimit: 5Mi
+            name: nextcloud-config
+      ttlSecondsAfterFinished: 180
+  schedule: '*/5 * * * *'
+  successfulJobsHistoryLimit: 0
