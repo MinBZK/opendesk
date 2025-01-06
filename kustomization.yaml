@@ -29,4 +29,3 @@ resources:
   - manifests/openproject-bootstrap.yaml
   - manifests/migrations-post-secrets.yaml
   - manifests/migrations-post.yaml
-  - manifests/vault.yaml

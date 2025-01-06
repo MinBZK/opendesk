@@ -114,7 +114,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:14.6.1@sha256:3c9828b1ab4dc91f2b3887f9bfddda8ba79b92a2f335dd2db2295d14a98deab0
         imagePullPolicy: IfNotPresent
         envFrom:
@@ -135,9 +135,6 @@ spec:
         - bash
         - /app/docker/prod/wait-for-db
         resources:
-          limits:
-            cpu: 99
-            memory: 768Mi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -156,7 +153,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:14.6.1@sha256:3c9828b1ab4dc91f2b3887f9bfddda8ba79b92a2f335dd2db2295d14a98deab0
         imagePullPolicy: IfNotPresent
         envFrom:
@@ -212,9 +209,6 @@ spec:
           failureThreshold: 30
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 768Mi
@@ -300,7 +294,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:14.6.1@sha256:3c9828b1ab4dc91f2b3887f9bfddda8ba79b92a2f335dd2db2295d14a98deab0
         imagePullPolicy: IfNotPresent
         envFrom:
@@ -321,9 +315,6 @@ spec:
         - bash
         - /app/docker/prod/wait-for-db
         resources:
-          limits:
-            cpu: 99
-            memory: 768Mi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -342,7 +333,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:14.6.1@sha256:3c9828b1ab4dc91f2b3887f9bfddda8ba79b92a2f335dd2db2295d14a98deab0
         imagePullPolicy: IfNotPresent
         envFrom:
@@ -370,9 +361,6 @@ spec:
         - mountPath: /app/tmp
           name: app-tmp
         resources:
-          limits:
-            cpu: 99
-            memory: 4Gi
           requests:
             cpu: 0.25
             memory: 512Mi
@@ -437,7 +425,7 @@ spec:
                   storage: 5Gi
       initContainers:
       - name: check-db-ready
-        image: 
+        image:
           registry-1.docker.io/library/postgres:16.3-alpine3.20@sha256:de3d7b6e4b5b3fe899e997579d6dfe95a99539d154abe03f0b6839133ed05065
         imagePullPolicy: IfNotPresent
         command: [sh, -c, until pg_isready -h $DATABASE_HOST -p $DATABASE_PORT -U
@@ -458,9 +446,6 @@ spec:
         - name: OPENPROJECT_DB_PASSWORD
           value: 5baeeb8674fca48695591fdbdb0591cac48afc94
         resources:
-          limits:
-            cpu: 99
-            memory: 768Mi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -479,7 +464,7 @@ spec:
             type: RuntimeDefault
       containers:
       - name: seeder
-        image: 
+        image:
           registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:14.6.1@sha256:3c9828b1ab4dc91f2b3887f9bfddda8ba79b92a2f335dd2db2295d14a98deab0
         imagePullPolicy: IfNotPresent
         args:
@@ -500,9 +485,6 @@ spec:
         - name: OPENPROJECT_DB_PASSWORD
           value: 5baeeb8674fca48695591fdbdb0591cac48afc94
         resources:
-          limits:
-            cpu: 99
-            memory: 768Mi
           requests:
             cpu: 0.1
             memory: 256Mi

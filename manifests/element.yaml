@@ -340,9 +340,6 @@ spec:
           failureThreshold: 3
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 32Mi
@@ -639,9 +636,6 @@ spec:
           failureThreshold: 3
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 32Mi
@@ -1013,9 +1007,6 @@ spec:
           failureThreshold: 3
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 64Mi
@@ -1423,9 +1414,6 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         resources:
-          limits:
-            cpu: 99
-            memory: 4Gi
           requests:
             cpu: 1
             memory: 256Mi
@@ -1498,9 +1486,6 @@ spec:
           failureThreshold: 8
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 4Gi
           requests:
             cpu: 1
             memory: 256Mi
@@ -1685,9 +1670,6 @@ spec:
           registry-1.docker.io/alpine/k8s:1.30.0@sha256:d7a11b7032550e992667fd7725b039dcd639270fbceec368d7e66e3d9e41ee15
         imagePullPolicy: IfNotPresent
         resources:
-          limits:
-            cpu: 1
-            memory: 1Gi
           requests:
             cpu: 500m
             memory: 256Mi
@@ -1742,9 +1724,6 @@ spec:
           registry-1.docker.io/alpine/k8s:1.30.0@sha256:d7a11b7032550e992667fd7725b039dcd639270fbceec368d7e66e3d9e41ee15
         imagePullPolicy: IfNotPresent
         resources:
-          limits:
-            cpu: 1
-            memory: 1Gi
           requests:
             cpu: 500m
             memory: 256Mi
@@ -1960,9 +1939,6 @@ spec:
           containerPort: 3000
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 128Mi
@@ -2097,9 +2073,6 @@ spec:
           containerPort: 8080
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 128Mi
           requests:
             cpu: 0.1
             memory: 48Mi
@@ -2278,9 +2251,6 @@ spec:
           containerPort: 8080
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 48Mi
@@ -2461,9 +2431,6 @@ spec:
           containerPort: 8080
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 48Mi
@@ -2604,9 +2571,6 @@ spec:
           registry-1.docker.io/alpine/k8s:1.30.0@sha256:d7a11b7032550e992667fd7725b039dcd639270fbceec368d7e66e3d9e41ee15
         imagePullPolicy: IfNotPresent
         resources:
-          limits:
-            cpu: 1
-            memory: 1Gi
           requests:
             cpu: 500m
             memory: 256Mi
@@ -2661,9 +2625,6 @@ spec:
           registry-1.docker.io/alpine/k8s:1.30.0@sha256:d7a11b7032550e992667fd7725b039dcd639270fbceec368d7e66e3d9e41ee15
         imagePullPolicy: IfNotPresent
         resources:
-          limits:
-            cpu: 1
-            memory: 1Gi
           requests:
             cpu: 500m
             memory: 256Mi
@@ -3110,9 +3071,6 @@ spec:
           containerPort: 3000
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 512Mi
           requests:
             cpu: 0.1
             memory: 128Mi

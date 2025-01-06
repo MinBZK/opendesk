@@ -362,7 +362,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: redis
-        image: 
+        image:
           registry-1.docker.io/bitnami/redis:7.2.3-debian-11-r2@sha256:9ac3bbf7740969d32689e360ddcfa5f672538c47f6f6cf296173c3078de0edf2
         imagePullPolicy: IfNotPresent
         securityContext:
@@ -426,9 +426,6 @@ spec:
             - -c
             - /health/ping_readiness_local.sh 1
         resources:
-          limits:
-            cpu: 99
-            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 32Mi
@@ -563,7 +560,7 @@ spec:
       serviceAccountName: memcached
       containers:
       - name: memcached
-        image: 
+        image:
           registry-1.docker.io/bitnami/memcached:1.6.21-debian-11-r107@sha256:247ec29efd6030960047a623aef025021154662edf6b6d6e88c97936f164d99d
         imagePullPolicy: IfNotPresent
         securityContext:
@@ -604,9 +601,6 @@ spec:
           tcpSocket:
             port: memcache
         resources:
-          limits:
-            cpu: 99
-            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 32Mi
@@ -718,7 +712,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry-1.docker.io/library/postgres:15.4-alpine3.18@sha256:f36c528a2dc8747ea40b4cb8578da69fa75c5063fd6a71dcea3e3b2a6404ff7b
         imagePullPolicy: IfNotPresent
         env:
@@ -768,9 +762,6 @@ spec:
             - -c
             - exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -841,7 +832,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry-1.docker.io/library/postgres:15.4-alpine3.18@sha256:f36c528a2dc8747ea40b4cb8578da69fa75c5063fd6a71dcea3e3b2a6404ff7b
         imagePullPolicy: IfNotPresent
         command:
@@ -862,9 +853,6 @@ spec:
         - name: PGPASSWORD
           value: a826fedc7de54b7b51fef95697c7161a6cbb223a
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -976,7 +964,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry-1.docker.io/library/mariadb:10.5@sha256:aa1ccc18000c32d1f39ac0b055117b27bffd93e622ec961d682de40fe2a1a95f
         imagePullPolicy: IfNotPresent
         env:
@@ -1020,9 +1008,6 @@ spec:
             - -ec
             - mariadb-admin status -uroot -p"${MARIADB_ROOT_PASSWORD}"
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 384Mi
@@ -1093,7 +1078,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry-1.docker.io/library/mariadb:10.5@sha256:aa1ccc18000c32d1f39ac0b055117b27bffd93e622ec961d682de40fe2a1a95f
         imagePullPolicy: IfNotPresent
         command:
@@ -1111,9 +1096,6 @@ spec:
         - name: MARIADB_ROOT_PASSWORD
           value: 6c3e5177d1196ce1c7e94a3ed70d4536916bc46b
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 384Mi
@@ -1241,21 +1223,21 @@ data:
     smtp_host_lookup = native
 
     # Relayhost if any is configured
-    relayhost = 
+    relayhost =
 
-    content_filter = 
+    content_filter =
 
     smtp_sasl_auth_enable = yes
     smtp_sasl_password_maps = lmdb:/etc/postfix/sasl_passwd.map
-    smtp_sasl_security_options = 
+    smtp_sasl_security_options =
     smtp_use_tls = yes
-    smtp_tls_CAfile = 
+    smtp_tls_CAfile =
     smtp_tls_mandatory_protocols = !SSLv2, !SSLv3
     smtp_tls_session_cache_database = lmdb:/var/lib/postfix/smtp_scache
 
     virtual_mailbox_domains = opendesk.apps.digilab.network
     virtual_transport = lmtps:dovecot:24
-    transport_maps = 
+    transport_maps =
 
     ###############
     # Restrictions
@@ -1421,7 +1403,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry.opencode.de/bmi/opendesk/components/platform-development/images/postfix:2.0.0@sha256:5b2432dc09318db172a593bca860887ee9d713b9987db64f8b265f3e08a1d374
         imagePullPolicy: IfNotPresent
           # for debugging use:
@@ -1451,9 +1433,6 @@ spec:
           failureThreshold: 10
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 128Mi
           requests:
             cpu: 0.1
             memory: 16Mi
@@ -1795,7 +1774,7 @@ spec:
       serviceAccountName: clamav-simple
       initContainers:
       - name: chown
-        image: 
+        image:
           registry-1.docker.io/clamav/clamav:1.1.1-10_base@sha256:aed8d5a3ef58352c862028fae44241215a50eae0b9acb7ba8892b1edc0a6598f
         securityContext:
           allowPrivilegeEscalation: false
@@ -1812,9 +1791,6 @@ spec:
         - name: clamav-database
           mountPath: /var/lib/clamav/
         resources:
-          limits:
-            cpu: 99
-            memory: 4Gi
           requests:
             cpu: 0.1
             memory: 1.5Gi
@@ -1833,7 +1809,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry-1.docker.io/clamav/clamav:1.1.1-10_base@sha256:aed8d5a3ef58352c862028fae44241215a50eae0b9acb7ba8892b1edc0a6598f
         imagePullPolicy: IfNotPresent
         env:
@@ -1867,9 +1843,7 @@ spec:
           failureThreshold: 10
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 4Gi
+
           requests:
             cpu: 0.1
             memory: 1.5Gi
@@ -1904,7 +1878,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry.opencode.de/bmi/opendesk/components/platform-development/images/clamav-icap:0.5.10@sha256:891f267a6b2a304616854ad2f013dc5d23f6f6c84d535c8b46e76d124fe39b6a
         imagePullPolicy: IfNotPresent
         command:
@@ -1938,9 +1912,6 @@ spec:
           failureThreshold: 10
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 4Gi
           requests:
             cpu: 0.1
             memory: 1.5Gi
@@ -2198,7 +2169,7 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       containers:
       - name: minio
-        image: 
+        image:
           registry-1.docker.io/bitnami/minio:2023@sha256:bced4f2f9fc48b755ebb3e1b35e76195a978d4331bf2d0c6699dab412d3c0be7
         imagePullPolicy: IfNotPresent
         securityContext:
@@ -2274,9 +2245,6 @@ spec:
           successThreshold: 1
           failureThreshold: 60
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.25
             memory: 256Mi
@@ -2354,7 +2322,7 @@ spec:
       serviceAccountName: minio
       initContainers:
       - name: wait-for-available-minio
-        image: 
+        image:
           registry-1.docker.io/bitnami/minio:2023@sha256:bced4f2f9fc48b755ebb3e1b35e76195a978d4331bf2d0c6699dab412d3c0be7
         imagePullPolicy: IfNotPresent
         securityContext:
@@ -2381,15 +2349,12 @@ spec:
             9000;
           echo "Minio is available";
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.25
             memory: 256Mi
       containers:
       - name: minio
-        image: 
+        image:
           registry-1.docker.io/bitnami/minio:2023@sha256:bced4f2f9fc48b755ebb3e1b35e76195a978d4331bf2d0c6699dab412d3c0be7
         imagePullPolicy: IfNotPresent
         securityContext:
@@ -2501,9 +2466,6 @@ spec:
               key: root-password
         envFrom:
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.25
             memory: 256Mi

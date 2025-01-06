@@ -23,7 +23,7 @@ data:
   config.js: |
     /* globals module */
 
-    module.exports = {  
+    module.exports = {
             httpUnsafeOrigin: 'https://pad.opendesk.apps.digilab.network',
             httpSafeOrigin: 'https://pad.opendesk.apps.digilab.network',
             adminKeys: [],
@@ -127,7 +127,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry.opencode.de/bmi/opendesk/components/supplier/xwiki/images-mirror/cryptpad:opendesk-20231222@sha256:f4d20d5c38c87b11ed1a1b46ef6a3633d32c6758ebdff8556458f040318fa5e2
         imagePullPolicy: IfNotPresent
         command: [/bin/sh, -c]
@@ -146,9 +146,6 @@ spec:
             echo "$VALUE" >> "$FILE"
           fi
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 512Mi
@@ -167,7 +164,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry.opencode.de/bmi/opendesk/components/supplier/xwiki/images-mirror/cryptpad:opendesk-20231222@sha256:f4d20d5c38c87b11ed1a1b46ef6a3633d32c6758ebdff8556458f040318fa5e2
         imagePullPolicy: IfNotPresent
         env:
@@ -211,9 +208,6 @@ spec:
           failureThreshold: 5
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 512Mi

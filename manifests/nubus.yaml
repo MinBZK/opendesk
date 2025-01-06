@@ -3992,9 +3992,6 @@ spec:
           failureThreshold: 30
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -4107,9 +4104,6 @@ spec:
           failureThreshold: 30
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -4233,9 +4227,6 @@ spec:
           failureThreshold: 30
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -4332,9 +4323,6 @@ spec:
           failureThreshold: 30
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -4399,9 +4387,6 @@ spec:
               key: umcKeycloakExtensionsSmtpPassword
         ports:
         resources:
-          limits:
-            cpu: 99
-            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 48Mi
@@ -4477,9 +4462,6 @@ spec:
           containerPort: 8181
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 48Mi
@@ -4568,9 +4550,6 @@ spec:
         - name: etc-univention-volume
           mountPath: /target/etc/univention
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -4599,9 +4578,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -4624,9 +4600,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -4649,9 +4622,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -4674,9 +4644,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -4714,9 +4681,6 @@ spec:
         - name: proxy-scripts-volume
           mountPath: /scripts-proxy
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -4809,9 +4773,6 @@ spec:
           containerPort: 636
           protocol: TCP
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -4983,9 +4944,6 @@ spec:
           containerPort: 8080
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -5080,9 +5038,6 @@ spec:
           containerPort: 80
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -5246,9 +5201,6 @@ spec:
           containerPort: 80
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -5329,9 +5281,6 @@ spec:
         - name: wait-for-nats
           mountPath: /scripts
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -5396,9 +5345,6 @@ spec:
           successThreshold: 1
           timeoutSeconds: 5
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -5463,9 +5409,6 @@ spec:
         - name: wait-for-nats
           mountPath: /scripts
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -5521,9 +5464,6 @@ spec:
           containerPort: 7777
           protocol: TCP
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -5586,9 +5526,6 @@ spec:
         - name: wait-for-udm
           mountPath: /scripts
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -5602,9 +5539,6 @@ spec:
         command: [bash, -c, 'set -euo pipefail; until curl -s http://${PROVISIONING_API_HOST}:${PROVISIONING_API_PORT}/v1/subscriptions
             > /dev/null || [ $? -ne 0 ]; do echo Waiting for api; sleep 2; done;']
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 64Mi
@@ -5669,9 +5603,6 @@ spec:
           successThreshold: 1
           timeoutSeconds: 5
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -5824,9 +5755,6 @@ spec:
         - name: wait-for-nats
           mountPath: /scripts
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -5895,9 +5823,6 @@ spec:
           successThreshold: 1
           timeoutSeconds: 5
         resources:
-          limits:
-            cpu: 1
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 64Mi
@@ -6013,9 +5938,6 @@ spec:
         readinessProbe:
         startupProbe:
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -6092,9 +6014,6 @@ spec:
         - name: usr-lib-python3-volume
           mountPath: /target/usr/lib/python3
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -6124,9 +6043,6 @@ spec:
         - name: var-cache-univention-config-volume
           mountPath: /var/cache/univention-config
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -6159,9 +6075,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -6185,9 +6098,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -6211,9 +6121,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -6237,9 +6144,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -6302,9 +6206,6 @@ spec:
           containerPort: 9979
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -6423,9 +6324,6 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -6460,9 +6358,6 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -6644,9 +6539,6 @@ spec:
           failureThreshold: 30
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -6757,9 +6649,6 @@ spec:
           failureThreshold: 30
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -6892,9 +6781,6 @@ spec:
           failureThreshold: 10
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 512Mi
@@ -6964,9 +6850,6 @@ spec:
           containerPort: 6669
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -7096,9 +6979,6 @@ spec:
         - name: etc-univention-volume
           mountPath: /target/etc/univention
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -7127,9 +7007,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -7152,9 +7029,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -7177,9 +7051,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -7202,9 +7073,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -7239,9 +7107,6 @@ spec:
           mountPath: /etc/univention/base-defaults.conf
           subPath: base-defaults.conf
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -7313,9 +7178,6 @@ spec:
           containerPort: 636
           protocol: TCP
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -7501,9 +7363,6 @@ spec:
         - name: etc-univention-volume
           mountPath: /target/etc/univention
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -7532,9 +7391,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -7557,9 +7413,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -7582,9 +7435,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -7607,9 +7457,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -7644,9 +7491,6 @@ spec:
           mountPath: /etc/univention/base-defaults.conf
           subPath: base-defaults.conf
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -7689,9 +7533,6 @@ spec:
         - name: secondary-scripts-volume
           mountPath: /scripts-secondary
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -7759,9 +7600,6 @@ spec:
           containerPort: 636
           protocol: TCP
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -7901,9 +7739,6 @@ spec:
           subPath: tls.key
           readOnly: true
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -7937,9 +7772,6 @@ spec:
           subPath: tls.key
           readOnly: true
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -7966,9 +7798,6 @@ spec:
         - name: scripts
           mountPath: /scripts
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -7990,9 +7819,6 @@ spec:
         - configMapRef:
             name: ums-portal-consumer-common
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -8045,9 +7871,6 @@ spec:
           subPath: tls.key
           readOnly: true
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -8260,9 +8083,6 @@ spec:
           containerPort: 8222
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 128Mi
@@ -8306,9 +8126,6 @@ spec:
         - -config
         - /etc/nats-config/nats.conf
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -8408,9 +8225,6 @@ spec:
         - -c
         - trap true INT TERM; sleep infinity & wait
         resources:
-          limits:
-            cpu: 288
-            memory: 1Gi
           requests:
             cpu: 10m
             memory: 16Mi
@@ -8537,9 +8351,6 @@ spec:
         - name: data
           mountPath: /var/log/univention
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -8624,9 +8435,6 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -8745,9 +8553,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -8771,9 +8576,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -8797,9 +8599,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -8823,9 +8622,6 @@ spec:
         - name: plugin-targets
           mountPath: /target
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -8993,9 +8789,6 @@ spec:
           failureThreshold: 30
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -9061,9 +8854,6 @@ spec:
         - mountPath: /var/secrets/ssl
           name: certificates
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -9186,9 +8976,6 @@ spec:
             name: ums-provisioning-register-consumers
         command: [/bin/bash, -c, '/scripts/wait-for-api.sh ${PROVISIONING_API_BASE_URL}']
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 64Mi
@@ -9209,9 +8996,6 @@ spec:
         - name: wait-for-data-loader
           mountPath: /scripts
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 64Mi
@@ -9252,9 +9036,6 @@ spec:
             echo ------------------------------------
           done
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 64Mi
@@ -9408,9 +9189,6 @@ spec:
           mountPath: /run/secrets/univention.de/data-loader/udm_secret
           subPath: machine.secret
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -9454,9 +9232,6 @@ spec:
           mountPath: /template-context
           readOnly: true
         resources:
-          limits:
-            cpu: 99
-            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -10194,9 +9969,6 @@ spec:
         - mountPath: /tmp
           name: temp-dir
         resources:
-          limits:
-            cpu: 99
-            memory: 512Mi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -10465,9 +10237,6 @@ spec:
           containerPort: 8008
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 128Mi
           requests:
             cpu: 0.1
             memory: 64Mi
@@ -11277,9 +11046,6 @@ spec:
         - mountPath: /tmp
           name: temp-dir
         resources:
-          limits:
-            cpu: 99
-            memory: 512Mi
           requests:
             cpu: 0.1
             memory: 256Mi

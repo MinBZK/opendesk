@@ -111,7 +111,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry.opencode.de/bmi/opendesk/components/supplier/collabora/images/collabora-online-for-opendesk:24.04.7.2.1@sha256:5b00478f2c6c7372b2a67e68783d9b1a91265679bbd4afdc1416e50720d50ce6
         imagePullPolicy: IfNotPresent
         ports:
@@ -161,9 +161,6 @@ spec:
               name: collabora
               key: password
         resources:
-          limits:
-            cpu: 99
-            memory: 4Gi
           requests:
             cpu: 0.5
             memory: 512Mi

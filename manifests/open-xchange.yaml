@@ -896,9 +896,6 @@ spec:
           failureThreshold: 10
           successThreshold: 1
         resources:
-          limits:
-            cpu: 99
-            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 32Mi
@@ -2390,9 +2387,6 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 10
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.25
             memory: 1.25Gi
@@ -2528,9 +2522,6 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
-          limits:
-            cpu: 99
-            memory: 96Mi
           requests:
             cpu: 0.01
             memory: 32Mi
@@ -2647,9 +2638,6 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
-          limits:
-            cpu: 99
-            memory: 2Gi
           requests:
             cpu: 0.5
             memory: 1.25Gi
@@ -2752,9 +2740,6 @@ spec:
             path: /health
             port: http
         resources:
-          limits:
-            cpu: 99
-            memory: 96Mi
           requests:
             cpu: 0.05
             memory: 32Mi
@@ -2881,9 +2866,6 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
-          limits:
-            cpu: 99
-            memory: 768Mi
           requests:
             cpu: 0.5
             memory: 192Mi
@@ -3006,9 +2988,6 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
-          limits:
-            cpu: 99
-            memory: 768Mi
           requests:
             cpu: 0.5
             memory: 192Mi
@@ -3080,9 +3059,6 @@ spec:
           containerPort: 8080
           protocol: TCP
         resources:
-          limits:
-            cpu: 99
-            memory: 96Mi
           requests:
             cpu: 0.01
             memory: 32Mi
@@ -3165,9 +3141,6 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
-          limits:
-            cpu: 99
-            memory: 96Mi
           requests:
             cpu: 0.02
             memory: 32Mi
@@ -3248,9 +3221,6 @@ spec:
             path: /
             port: http
         resources:
-          limits:
-            cpu: 99
-            memory: 96Mi
           requests:
             cpu: 0.01
             memory: 32Mi
@@ -3337,9 +3307,6 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
-          limits:
-            cpu: 99
-            memory: 96Mi
           requests:
             cpu: 0.01
             memory: 32Mi
@@ -3426,9 +3393,6 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
-          limits:
-            cpu: 99
-            memory: 96Mi
           requests:
             cpu: 0.01
             memory: 32Mi
@@ -3729,9 +3693,6 @@ spec:
         - secretRef:
             name: open-xchange-core-mw-secret-envvars
         resources:
-          limits:
-            cpu: 99
-            memory: 8Gi
           requests:
             cpu: 1
             memory: 1.25Gi
@@ -4881,9 +4842,6 @@ spec:
           registry-1.docker.io/alpine/k8s:1.26.8@sha256:acde24d2a8ebaafda76f464591a5ddc7d0acd08bb38b12560961c1b1c4fc85ec
         imagePullPolicy: IfNotPresent
         resources:
-          limits:
-            cpu: 1
-            memory: 1Gi
           requests:
             cpu: 500m
             memory: 256Mi
@@ -5084,9 +5042,6 @@ spec:
         - name: ox-connector-appcenter
           mountPath: /var/lib/univention-appcenter/apps/ox-connector
         resources:
-          limits:
-            cpu: 99
-            memory: 512Mi
           requests:
             cpu: 0.1
             memory: 64Mi

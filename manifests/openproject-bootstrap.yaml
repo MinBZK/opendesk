@@ -55,13 +55,11 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         resources:
-          limits:
-            memory: 1Gi
           requests:
             cpu: 500m
             memory: 256Mi
 
-        image: 
+        image:
           registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-openproject-bootstrap:1.1.4@sha256:2fd97a316114428849aaeef87fb8755274e675830088a93afcafac91bb048d1d
         imagePullPolicy: IfNotPresent
         command:
