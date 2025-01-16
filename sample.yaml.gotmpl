@@ -1,0 +1,25 @@
+---
+global:
+  domain: "opendesk.apps.digilab.network"
+  mailDomain: "opendesk.apps.digilab.network"
+  matrixDomain: "opendesk.apps.digilab.network"
+persistence:
+  storageClassNames:
+    RWX: "azurefile"
+    RWO: "managed"
+certificate:
+  issuerRef:
+    name: "letsencrypt-prod"
+functional:
+  externalServices:
+    nubus:
+      udmRestApi:
+        enabled: true
+debug:
+  enabled: true
+ai:
+  endpoint: "https://api.openai.com/v1/"
+  apiKey: ""
+  model: "gpt-4o-mini"
+notes:
+  enabled: false

@@ -5,7 +5,7 @@ metadata:
   name: dovecot
   labels:
     app.kubernetes.io/name: dovecot
-    helm.sh/chart: dovecot-1.4.0
+    helm.sh/chart: dovecot-1.4.1
     app.kubernetes.io/instance: dovecot
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: true
@@ -17,7 +17,7 @@ metadata:
   name: dovecot-virtual
   labels:
     app.kubernetes.io/name: dovecot
-    helm.sh/chart: dovecot-1.4.0
+    helm.sh/chart: dovecot-1.4.1
     app.kubernetes.io/instance: dovecot
     app.kubernetes.io/managed-by: Helm
 data:
@@ -35,12 +35,11 @@ metadata:
   name: dovecot
   labels:
     app.kubernetes.io/name: dovecot
-    helm.sh/chart: dovecot-1.4.0
+    helm.sh/chart: dovecot-1.4.1
     app.kubernetes.io/instance: dovecot
     app.kubernetes.io/managed-by: Helm
 data:
   dovecot.conf: |2
-
 
     auth_master_user_separator = *
     auth_mechanisms = xoauth2 oauthbearer plain login
@@ -66,7 +65,6 @@ data:
 
     # Submission settings
     submission_ssl = "no"
-    submission_host = "postfix.tn-openbsw-opendesk.svc.cluster.local:25"
     submission_host = "postfix.tn-openbsw-opendesk.svc.cluster.local:25"
 
     namespace {  # FIXME namespaces auslagern?
@@ -566,7 +564,8 @@ data:
       =home=/srv/mail/%0.2L{ldap:entryUUID}/%L{ldap:entryUUID}/
     user_filter = (& \
       (|(univentionObjectType=oxmail/functional_account) \
-        (univentionObjectType=users/user)) \
+        (univentionObjectType=users/user) \
+        (univentionObjectType=oxresources/oxresources)) \
       (mailPrimaryAddress=%Lu) \
     )
 
@@ -687,7 +686,7 @@ metadata:
   name: dovecot-external
   labels:
     app.kubernetes.io/name: dovecot
-    helm.sh/chart: dovecot-1.4.0
+    helm.sh/chart: dovecot-1.4.1
     app.kubernetes.io/instance: dovecot
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: dovecot
@@ -716,7 +715,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: dovecot
-    helm.sh/chart: dovecot-1.4.0
+    helm.sh/chart: dovecot-1.4.1
     app.kubernetes.io/instance: dovecot
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: dovecot
@@ -779,7 +778,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: dovecot
-    helm.sh/chart: dovecot-1.4.0
+    helm.sh/chart: dovecot-1.4.1
     app.kubernetes.io/instance: dovecot
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -793,10 +792,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: cf8a5ea7d0510128acaf836c074d17f70666c9ae1e2f841c31f7cfc9c5533b4d
+        checksum/configmap: 0b265d99207c11963c2746c1b8aa8b10762af5e3393a91c94102afd701dbceff
       labels:
         app.kubernetes.io/name: dovecot
-        helm.sh/chart: dovecot-1.4.0
+        helm.sh/chart: dovecot-1.4.1
         app.kubernetes.io/instance: dovecot
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -896,6 +895,9 @@ spec:
           failureThreshold: 10
           successThreshold: 1
         resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 32Mi
@@ -921,11 +923,11 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: core-mw
-    helm.sh/chart: core-mw-5.9.0
+    helm.sh/chart: core-mw-6.0.3
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-mw
-    version: 8.28.5
+    version: 8.30.63
 ---
 # Source: appsuite-public-sector/charts/appsuite/charts/core-documentconverter/templates/configmap.yaml
 apiVersion: v1
@@ -1077,11 +1079,12 @@ data:
 
     com.openexchange.hazelcast.enabled=false
 
-    com.openexchange.redis.hosts=redis-master:6379
-    com.openexchange.redis.username=
+    com.openexchange.redis.hosts=redis-headless:6379
+    com.openexchange.redis.username=default
     com.openexchange.redis.password=9d50d5fc28caacbce89e81b9d88d78e23da19c08
     com.openexchange.redis.mode=standalone
     com.openexchange.redis.ssl=false
+    com.openexchange.redis.cache.enabled=false
 
     com.openexchange.documentconverter.cacheDir=/var/spool/open-xchange/documentconverter/cache
     com.openexchange.documentconverter.scratchDir=/var/spool/open-xchange/documentconverter/scratch
@@ -1266,11 +1269,12 @@ data:
 
     com.openexchange.hazelcast.enabled=false
 
-    com.openexchange.redis.hosts=redis-master:6379
-    com.openexchange.redis.username=
+    com.openexchange.redis.hosts=redis-headless:6379
+    com.openexchange.redis.username=default
     com.openexchange.redis.password=9d50d5fc28caacbce89e81b9d88d78e23da19c08
     com.openexchange.redis.mode=standalone
     com.openexchange.redis.ssl=false
+    com.openexchange.redis.cache.enabled=false
 
     com.openexchange.objectcache.database.host=mariadb
     com.openexchange.objectcache.database.port=3306
@@ -1284,7 +1288,7 @@ data:
     com.openexchange.objectcache.objectstore.s3.-1.accessKey=.
     com.openexchange.objectcache.objectstore.s3.-1.secretKey=.
 
-    com.openexchange.objectcache.objectStoreIds={{ OXENV_OBJECTSTOREID }}, s3:-1,
+    com.openexchange.objectcache.objectStoreIds=s3:-1, {{ OXENV_OBJECTSTOREID }},
 
     com.openexchange.imageconverter.convertTimeoutMillis=20000
     com.openexchange.imageconverter.queueLength=512
@@ -1486,11 +1490,11 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: core-mw
-    helm.sh/chart: core-mw-5.9.0
+    helm.sh/chart: core-mw-6.0.3
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-mw
-    version: 8.28.5
+    version: 8.30.63
 data:
   logback.xml: |
     <?xml version="1.0" encoding="UTF-8" ?>
@@ -1533,7 +1537,7 @@ data:
       </root>
 
       <logger name="com.openexchange.login.internal.LoginPerformer" level="INFO"/>
-      <logger name="com.openexchange.sessiond.impl.SessionHandler" level="INFO"/>
+      <logger name="com.openexchange.sessiond.redis.RedisSessiondService" level="INFO"/>
 
       <logger name="sun.rmi" level="INFO"/>
       <logger name="org.apache" level="WARN"/>
@@ -1571,10 +1575,11 @@ data:
     ### This file was generated by Helm (core-mw)
 
     # config/redis.properties
-    com.openexchange.redis.hosts=redis-master:6379
-    com.openexchange.redis.username=
+    com.openexchange.redis.hosts=redis-headless:6379
+    com.openexchange.redis.username=default
     com.openexchange.redis.password=9d50d5fc28caacbce89e81b9d88d78e23da19c08
     com.openexchange.redis.mode=standalone
+    com.openexchange.redis.cache.enabled=false
 ---
 # Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/type-scoped-resources.yaml
 # properties-overwrite-configmap
@@ -1611,12 +1616,12 @@ data:
       io.ox/core//features/templates: "true"
       io.ox/dynamic-theme//folderBackground: '#ffffff'
       io.ox/dynamic-theme//folderHover: '#f5f5f5'
-      io.ox/dynamic-theme//folderSelected: '#87fa94'
+      io.ox/dynamic-theme//folderSelected: '#e7dffa'
       io.ox/dynamic-theme//listHover: '#f5f5f5'
-      io.ox/dynamic-theme//listSelected: '#87fa94'
+      io.ox/dynamic-theme//listSelected: '#e7dffa'
       io.ox/dynamic-theme//logoURL: https://portal.opendesk.apps.digilab.network/univention/portal/icons/logos/domain.svg
       io.ox/dynamic-theme//logoWidth: "82"
-      io.ox/dynamic-theme//mainColor: '#6af56a'
+      io.ox/dynamic-theme//mainColor: '#571EFA'
       io.ox/dynamic-theme//topbarBackground: '#ffffff'
       io.ox/dynamic-theme//topbarColor: '#000000'
       io.ox/dynamic-theme//topbarHover: rgba(0, 0, 0, 0.1)
@@ -1846,11 +1851,11 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: core-mw
-    helm.sh/chart: core-mw-5.9.0
+    helm.sh/chart: core-mw-6.0.3
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-mw
-    version: 8.28.5
+    version: 8.30.63
 rules:
 - apiGroups:
   - ''
@@ -1870,11 +1875,11 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: core-mw
-    helm.sh/chart: core-mw-5.9.0
+    helm.sh/chart: core-mw-6.0.3
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-mw
-    version: 8.28.5
+    version: 8.30.63
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -1891,11 +1896,11 @@ metadata:
   name: open-xchange-core-documentconverter
   labels:
     app.kubernetes.io/name: core-documentconverter
-    helm.sh/chart: core-documentconverter-2.26.2
+    helm.sh/chart: core-documentconverter-2.28.0
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-documentconverter
-    version: 8.28.0
+    version: 8.30.0
 spec:
   type: ClusterIP
   ports:
@@ -1922,11 +1927,11 @@ metadata:
   name: open-xchange-core-guidedtours
   labels:
     app.kubernetes.io/name: core-guidedtours
-    helm.sh/chart: core-guidedtours-2.6.7
+    helm.sh/chart: core-guidedtours-2.6.10
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-guidedtours
-    version: 8.6.6
+    version: 8.6.9
 spec:
   type: ClusterIP
   ports:
@@ -1945,11 +1950,11 @@ metadata:
   name: open-xchange-core-imageconverter
   labels:
     app.kubernetes.io/name: core-imageconverter
-    helm.sh/chart: core-imageconverter-2.27.4
+    helm.sh/chart: core-imageconverter-2.29.0
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-imageconverter
-    version: 8.28.0
+    version: 8.30.0
 spec:
   type: ClusterIP
   ports:
@@ -1996,37 +2001,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: open-xchange-core-mw-hazelcast-headless
-  labels:
-    app.kubernetes.io/name: core-mw
-    helm.sh/chart: core-mw-5.9.0
-    app.kubernetes.io/instance: open-xchange
-    app.kubernetes.io/managed-by: Helm
-    app: core-mw
-    version: 8.28.5
-spec:
-  type: ClusterIP
-  clusterIP: None
-  ports:
-  - name: tcp-hazelcast
-    port: 5701
-  selector:
-    app.kubernetes.io/name: core-mw
-    app.kubernetes.io/instance: open-xchange
-    roles.middleware.open-xchange.com/hazelcast-data-holding: 'true'
----
-# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/service.yaml
-apiVersion: v1
-kind: Service
-metadata:
   name: open-xchange-core-mw-http-api
   labels:
     app.kubernetes.io/name: core-mw
-    helm.sh/chart: core-mw-5.9.0
+    helm.sh/chart: core-mw-6.0.3
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-mw
-    version: 8.28.5
+    version: 8.30.63
 spec:
   type: ClusterIP
   ports:
@@ -2046,11 +2028,11 @@ metadata:
   name: open-xchange-core-mw-sync
   labels:
     app.kubernetes.io/name: core-mw
-    helm.sh/chart: core-mw-5.9.0
+    helm.sh/chart: core-mw-6.0.3
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-mw
-    version: 8.28.5
+    version: 8.30.63
 spec:
   type: ClusterIP
   ports:
@@ -2070,11 +2052,11 @@ metadata:
   name: open-xchange-core-mw-admin
   labels:
     app.kubernetes.io/name: core-mw
-    helm.sh/chart: core-mw-5.9.0
+    helm.sh/chart: core-mw-6.0.3
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-mw
-    version: 8.28.5
+    version: 8.30.63
 spec:
   type: ClusterIP
   ports:
@@ -2094,11 +2076,11 @@ metadata:
   name: open-xchange-core-mw-businessmobility
   labels:
     app.kubernetes.io/name: core-mw
-    helm.sh/chart: core-mw-5.9.0
+    helm.sh/chart: core-mw-6.0.3
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-mw
-    version: 8.28.5
+    version: 8.30.63
 spec:
   type: ClusterIP
   ports:
@@ -2118,11 +2100,11 @@ metadata:
   name: open-xchange-core-mw-request-analyzer
   labels:
     app.kubernetes.io/name: core-mw
-    helm.sh/chart: core-mw-5.9.0
+    helm.sh/chart: core-mw-6.0.3
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-mw
-    version: 8.28.5
+    version: 8.30.63
 spec:
   type: ClusterIP
   ports:
@@ -2135,6 +2117,29 @@ spec:
     app.kubernetes.io/instance: open-xchange
     roles.middleware.open-xchange.com/request-analyzer: 'true'
 ---
+# Source: appsuite-public-sector/charts/appsuite/charts/core-mw/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-xchange-core-mw-hazelcast-headless
+  labels:
+    app.kubernetes.io/name: core-mw
+    helm.sh/chart: core-mw-6.0.3
+    app.kubernetes.io/instance: open-xchange
+    app.kubernetes.io/managed-by: Helm
+    app: core-mw
+    version: 8.30.63
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: tcp-hazelcast
+    port: 5701
+  selector:
+    app.kubernetes.io/name: core-mw
+    app.kubernetes.io/instance: open-xchange
+    roles.middleware.open-xchange.com/documents: 'true'
+---
 # Source: appsuite-public-sector/charts/appsuite/charts/core-ui-middleware/templates/service.yaml
 apiVersion: v1
 kind: Service
@@ -2143,11 +2148,11 @@ metadata:
   labels:
     grafana.ox.io/service-monitor-implementation: default
     app.kubernetes.io/name: core-ui-middleware
-    helm.sh/chart: core-ui-middleware-3.0.10
+    helm.sh/chart: core-ui-middleware-3.2.0
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-ui-middleware
-    version: 2.0.4
+    version: 2.1.0
 spec:
   type: ClusterIP
   ports:
@@ -2170,11 +2175,11 @@ metadata:
   name: open-xchange-core-ui
   labels:
     app.kubernetes.io/name: core-ui
-    helm.sh/chart: core-ui-2.30.0
+    helm.sh/chart: core-ui-2.32.1
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-ui
-    version: 8.28.0
+    version: 8.30.1
 spec:
   type: ClusterIP
   ports:
@@ -2193,11 +2198,11 @@ metadata:
   name: open-xchange-core-user-guide
   labels:
     app.kubernetes.io/name: core-user-guide
-    helm.sh/chart: core-user-guide-2.28.0
+    helm.sh/chart: core-user-guide-2.30.0
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-user-guide
-    version: 8.28.0
+    version: 8.30.0
 spec:
   type: ClusterIP
   ports:
@@ -2216,11 +2221,11 @@ metadata:
   name: open-xchange-guard-ui
   labels:
     app.kubernetes.io/name: guard-ui
-    helm.sh/chart: guard-ui-2.5.2
+    helm.sh/chart: guard-ui-2.6.0
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: guard-ui
-    version: 8.28.0
+    version: 8.29.0
 spec:
   type: ClusterIP
   ports:
@@ -2285,11 +2290,11 @@ metadata:
   name: open-xchange-core-documentconverter
   labels:
     app.kubernetes.io/name: core-documentconverter
-    helm.sh/chart: core-documentconverter-2.26.2
+    helm.sh/chart: core-documentconverter-2.28.0
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-documentconverter
-    version: 8.28.0
+    version: 8.30.0
 spec:
   replicas: 1
   selector:
@@ -2299,16 +2304,16 @@ spec:
   template:
     metadata:
       annotations:
-        commit.open-xchange.com/backend: 8e83ad228c912acbdb927f7a0aced02cc6ec7a39
-        commit.open-xchange.com/documentconverter: b6b2cf3606537205c59a1d245067212ccffb3426
-        commit.open-xchange.com/documentconverter-api: eac2c9cf393a5e33f1a13c5b8544c207226f86a6
+        commit.open-xchange.com/backend: 8347272db983dbd9f11efed0f107a5d6145fc789
+        commit.open-xchange.com/documentconverter: 79b75d928fabf50a993c5d87848e5a054b9aa6d4
+        commit.open-xchange.com/documentconverter-api: 6903464ecc527debdcaacf2a603067cc8bd5b723
         logging.open-xchange.com/format: appsuite-json
-        checksum/commonEnv: 6a6e279f6d52a7570f0f7adad6cb64b0c20eed94472865dad4a1803d138b5a60
+        checksum/commonEnv: 54798d4020e24060f3c8d89104133496927e5088d8edfc349e0971e4e486635f
       labels:
         app.kubernetes.io/name: core-documentconverter
         app.kubernetes.io/instance: open-xchange
         app: core-documentconverter
-        version: 8.28.0
+        version: 8.30.0
     spec:
       imagePullSecrets: []
       serviceAccountName: default
@@ -2331,7 +2336,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/documentconverter:8.28.49@sha256:0b45243cb2b6453b4073f4b80f205873fff49d8ed93f05c55971d728aa957e07
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/documentconverter:8.30.60@sha256:4b3c79f94beec71f1b3e6c1be3cb4894d25e3a3133390cb077bf6fa749cecbe8
         imagePullPolicy: IfNotPresent
         env:
         - name: CONSOLELOG
@@ -2387,6 +2392,9 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 10
         resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
           requests:
             cpu: 0.25
             memory: 1.25Gi
@@ -2453,11 +2461,11 @@ metadata:
   name: open-xchange-core-guidedtours
   labels:
     app.kubernetes.io/name: core-guidedtours
-    helm.sh/chart: core-guidedtours-2.6.7
+    helm.sh/chart: core-guidedtours-2.6.10
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-guidedtours
-    version: 8.6.6
+    version: 8.6.9
 spec:
   replicas: 1
   selector:
@@ -2467,14 +2475,14 @@ spec:
   template:
     metadata:
       annotations:
-        commit.open-xchange.com/core-guidedtours: ae6b84c50b8de374b3b61033c26047d82a25d7fb
+        commit.open-xchange.com/core-guidedtours: b4c3cb5bbfe464dd6e3f8a9cba895dd8a30fb9a9
       labels:
         app.kubernetes.io/name: core-guidedtours
-        helm.sh/chart: core-guidedtours-2.6.7
+        helm.sh/chart: core-guidedtours-2.6.10
         app.kubernetes.io/instance: open-xchange
         app.kubernetes.io/managed-by: Helm
         app: core-guidedtours
-        version: 8.6.6
+        version: 8.6.9
     spec:
       imagePullSecrets: []
       serviceAccountName: default
@@ -2501,7 +2509,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-guidedtours:8.6.6@sha256:3082f3259a03025c03f6b9b77fafcd5b9e391ae5ac4a47b47d5f546d4f1534ee
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-guidedtours:8.6.9@sha256:c6ce1047292937af2f153ffa5f88d54955c90b52ed7b17a80efd112030dd2aa9
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -2522,6 +2530,9 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
           requests:
             cpu: 0.01
             memory: 32Mi
@@ -2539,11 +2550,11 @@ metadata:
   name: open-xchange-core-imageconverter
   labels:
     app.kubernetes.io/name: core-imageconverter
-    helm.sh/chart: core-imageconverter-2.27.4
+    helm.sh/chart: core-imageconverter-2.29.0
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-imageconverter
-    version: 8.28.0
+    version: 8.30.0
 spec:
   replicas: 1
   selector:
@@ -2553,15 +2564,15 @@ spec:
   template:
     metadata:
       annotations:
-        commit.open-xchange.com/backend: 8e83ad228c912acbdb927f7a0aced02cc6ec7a39
-        commit.open-xchange.com/imageconverter: cdaef07dec56eb2762baac82dc7a9e7ed0d05e29
+        commit.open-xchange.com/backend: 8347272db983dbd9f11efed0f107a5d6145fc789
+        commit.open-xchange.com/imageconverter: fbcc4654551274cce4418a91e2f5920742261259
         logging.open-xchange.com/format: appsuite-json
-        checksum/commonEnv: ce5f68442ff7e4d6508b346db82ab342b351cbdef35982c9e6429a9d231af4e7
+        checksum/commonEnv: 80595287dc5845baf7122141939f38c69482a8982d624820f9e6badcd3784089
       labels:
         app.kubernetes.io/name: core-imageconverter
         app.kubernetes.io/instance: open-xchange
         app: core-imageconverter
-        version: 8.28.0
+        version: 8.30.0
     spec:
       imagePullSecrets: []
       serviceAccountName: default
@@ -2584,7 +2595,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/imageconverter:8.28.49@sha256:90d2f7defae974d115654986acb2035e38bb16a9daa9b2bf15078d48c0c24366
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/imageconverter:8.30.61@sha256:816008c99e38a7268a323c2c144f1855275c53ea678cd6fdf2ff2170bd7bcfac
         imagePullPolicy: IfNotPresent
         env:
         - name: CONSOLELOG
@@ -2638,6 +2649,9 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
           requests:
             cpu: 0.5
             memory: 1.25Gi
@@ -2740,6 +2754,9 @@ spec:
             path: /health
             port: http
         resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
           requests:
             cpu: 0.05
             memory: 32Mi
@@ -2760,11 +2777,11 @@ metadata:
   name: open-xchange-core-ui-middleware
   labels:
     app.kubernetes.io/name: core-ui-middleware
-    helm.sh/chart: core-ui-middleware-3.0.10
+    helm.sh/chart: core-ui-middleware-3.2.0
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-ui-middleware
-    version: 2.0.4
+    version: 2.1.0
 spec:
   replicas: 1
   selector:
@@ -2774,13 +2791,13 @@ spec:
   template:
     metadata:
       annotations:
-        commit.open-xchange.com/core-ui-middleware: 630571ae69f657f8eef6218c5aa2204c33540c32
+        commit.open-xchange.com/core-ui-middleware: e402ee0e6f74e8f44beefc0d883cc4b967a4226f
         logging.open-xchange.com/format: appsuite-json
       labels:
         app.kubernetes.io/name: core-ui-middleware
         app.kubernetes.io/instance: open-xchange
         app: core-ui-middleware
-        version: 2.0.4
+        version: 2.1.0
     spec:
       imagePullSecrets: []
       serviceAccountName: default
@@ -2807,7 +2824,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-ui-middleware:2.0.4@sha256:e1d647cca13e7c433a9d643aa1a350197511274b239ead100aa1682ffe2fa116
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-ui-middleware:2.1.1@sha256:1a3e96243353a53e06bf3d90067d7d07de449e8273fa60a043d7ac4a5e6464c3
         imagePullPolicy: IfNotPresent
         env:
         - name: CACHE_TTL
@@ -2827,7 +2844,7 @@ spec:
         - name: REDIS_MODE
           value: standalone
         - name: REDIS_HOSTS
-          value: redis-master:6379
+          value: redis-headless:6379
         - name: REDIS_DB
           value: '0'
         - name: REDIS_USERNAME
@@ -2866,6 +2883,9 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
+          limits:
+            cpu: 99
+            memory: 768Mi
           requests:
             cpu: 0.5
             memory: 192Mi
@@ -2884,11 +2904,11 @@ metadata:
   name: open-xchange-core-ui-middleware-updater
   labels:
     app.kubernetes.io/name: core-ui-middleware
-    helm.sh/chart: core-ui-middleware-3.0.10
+    helm.sh/chart: core-ui-middleware-3.2.0
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-ui-middleware
-    version: 2.0.4
+    version: 2.1.0
 spec:
   replicas: 1
   selector:
@@ -2898,13 +2918,13 @@ spec:
   template:
     metadata:
       annotations:
-        commit.open-xchange.com/core-ui-middleware: 630571ae69f657f8eef6218c5aa2204c33540c32
+        commit.open-xchange.com/core-ui-middleware: e402ee0e6f74e8f44beefc0d883cc4b967a4226f
         logging.open-xchange.com/format: appsuite-json
       labels:
         app.kubernetes.io/name: core-ui-middleware
         app.kubernetes.io/instance: open-xchange
         app: core-ui-middleware
-        version: 2.0.4
+        version: 2.1.0
     spec:
       imagePullSecrets: []
       serviceAccountName: default
@@ -2931,10 +2951,12 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-ui-middleware:2.0.4@sha256:e1d647cca13e7c433a9d643aa1a350197511274b239ead100aa1682ffe2fa116
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-ui-middleware:2.1.1@sha256:1a3e96243353a53e06bf3d90067d7d07de449e8273fa60a043d7ac4a5e6464c3
         command: [/nodejs/bin/node, src/updater.js]
         imagePullPolicy: IfNotPresent
         env:
+        - name: PROPAGATE_UPGRADES
+          value: 'true'
         - name: CACHE_TTL
           value: '30000'
         - name: LOG_LEVEL
@@ -2952,7 +2974,7 @@ spec:
         - name: REDIS_MODE
           value: standalone
         - name: REDIS_HOSTS
-          value: redis-master:6379
+          value: redis-headless:6379
         - name: REDIS_DB
           value: '0'
         - name: REDIS_USERNAME
@@ -2988,6 +3010,9 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
+          limits:
+            cpu: 99
+            memory: 768Mi
           requests:
             cpu: 0.5
             memory: 192Mi
@@ -3006,11 +3031,11 @@ metadata:
   name: open-xchange-core-ui
   labels:
     app.kubernetes.io/name: core-ui
-    helm.sh/chart: core-ui-2.30.0
+    helm.sh/chart: core-ui-2.32.1
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-ui
-    version: 8.28.0
+    version: 8.30.1
 spec:
   replicas: 1
   selector:
@@ -3020,12 +3045,12 @@ spec:
   template:
     metadata:
       annotations:
-        commit.open-xchange.com/core-ui: 15e1f6d46e3a13af9712fc0d3cf2ad8b49b9aa73
+        commit.open-xchange.com/core-ui: 9d562a65c47c16f90243d290b83ee66e33dd98a3
       labels:
         app.kubernetes.io/name: core-ui
         app.kubernetes.io/instance: open-xchange
         app: core-ui
-        version: 8.28.0
+        version: 8.30.1
     spec:
       imagePullSecrets: []
       serviceAccountName: default
@@ -3052,13 +3077,16 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-ui:8.28.1@sha256:be9cfb5a1d9389a151b057884857ddebba982cfde621e432c55a17c03fff28d0
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-ui:8.30.1@sha256:bd15c87f0bd929be56dea260e35de0e089758eaf394c0eb4ece2991371c7ad5e
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
           containerPort: 8080
           protocol: TCP
         resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
           requests:
             cpu: 0.01
             memory: 32Mi
@@ -3076,11 +3104,11 @@ metadata:
   name: open-xchange-core-user-guide
   labels:
     app.kubernetes.io/name: core-user-guide
-    helm.sh/chart: core-user-guide-2.28.0
+    helm.sh/chart: core-user-guide-2.30.0
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-user-guide
-    version: 8.28.0
+    version: 8.30.0
 spec:
   replicas: 1
   selector:
@@ -3090,7 +3118,7 @@ spec:
   template:
     metadata:
       annotations:
-        commit.open-xchange.com/core-user-guide: fb5de4583d386e1d1f2dc79d247037a67cefa943
+        commit.open-xchange.com/core-user-guide: 98a34b028f56303345665da0e55e8e4cbdf4382b
       labels:
         app.kubernetes.io/name: core-user-guide
         app.kubernetes.io/instance: open-xchange
@@ -3120,7 +3148,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-user-guide:8.28.1107609@sha256:96a700ef71b4c723146ed0a274482422e09f5a9ccd035c351e192ea4de81eb9f
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/core-user-guide:8.30.1161251@sha256:a082bcf5768c2cba22f36a4299665474af92fd18307a1de719fc541717aee0b7
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -3141,6 +3169,9 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
           requests:
             cpu: 0.02
             memory: 32Mi
@@ -3158,11 +3189,11 @@ metadata:
   name: open-xchange-guard-ui
   labels:
     app.kubernetes.io/name: guard-ui
-    helm.sh/chart: guard-ui-2.5.2
+    helm.sh/chart: guard-ui-2.6.0
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: guard-ui
-    version: 8.28.0
+    version: 8.29.0
 spec:
   replicas: 1
   selector:
@@ -3172,14 +3203,14 @@ spec:
   template:
     metadata:
       annotations:
-        commit.open-xchange.com/guard-ui: 8adc97b8a855554a4a069ebe43be0c42d5da5acf
+        commit.open-xchange.com/guard-ui: d763be9e536ccc7009eea779f3de5cdeebc3a84a
       labels:
         app.kubernetes.io/name: guard-ui
-        helm.sh/chart: guard-ui-2.5.2
+        helm.sh/chart: guard-ui-2.6.0
         app.kubernetes.io/instance: open-xchange
         app.kubernetes.io/managed-by: Helm
         app: guard-ui
-        version: 8.28.0
+        version: 8.29.0
     spec:
       imagePullSecrets: []
       serviceAccountName: default
@@ -3206,7 +3237,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/guard-ui:8.28.0@sha256:950dd4ec4633fb920502392e8e93d9f497eaf920ae4fe79629b53a835f129741
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/guard-ui:8.28.1@sha256:eed6a81f8393ce6ecdc8ea83507e0a734431a0eb8d30221f4cabe9fc7906e4e6
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -3221,6 +3252,9 @@ spec:
             path: /
             port: http
         resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
           requests:
             cpu: 0.01
             memory: 32Mi
@@ -3307,6 +3341,9 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
           requests:
             cpu: 0.01
             memory: 32Mi
@@ -3393,6 +3430,9 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 5
         resources:
+          limits:
+            cpu: 99
+            memory: 96Mi
           requests:
             cpu: 0.01
             memory: 32Mi
@@ -3410,17 +3450,17 @@ metadata:
   name: open-xchange-core-mw-default
   labels:
     app.kubernetes.io/name: core-mw
-    helm.sh/chart: core-mw-5.9.0
+    helm.sh/chart: core-mw-6.0.3
     app.kubernetes.io/instance: open-xchange
     app.kubernetes.io/managed-by: Helm
     app: core-mw
-    version: 8.28.5
-    roles.middleware.open-xchange.com/hazelcast-data-holding: 'true'
+    version: 8.30.63
     roles.middleware.open-xchange.com/http-api: 'true'
     roles.middleware.open-xchange.com/sync: 'true'
     roles.middleware.open-xchange.com/admin: 'true'
     roles.middleware.open-xchange.com/businessmobility: 'true'
     roles.middleware.open-xchange.com/request-analyzer: 'true'
+    roles.middleware.open-xchange.com/documents: 'true'
 
 spec:
   serviceName: open-xchange-core-mw-hazelcast-headless
@@ -3435,29 +3475,29 @@ spec:
     metadata:
       annotations:
 
-        commit.open-xchange.com/backend: 8e83ad228c912acbdb927f7a0aced02cc6ec7a39
-        commit.open-xchange.com/documentconverter-api: eac2c9cf393a5e33f1a13c5b8544c207226f86a6
-        commit.open-xchange.com/exchange-interop: b67d1ab1ddc782452678873f9fd2a432529e8bda
-        commit.open-xchange.com/guard: 9625a840ff9ef8a2a262fbfcdf6b390d11f1c55e
-        commit.open-xchange.com/imageconverter: cdaef07dec56eb2762baac82dc7a9e7ed0d05e29
-        commit.open-xchange.com/nextcloud-integration: b1980e5fccade85528d740889971d9cf1120052f
-        commit.open-xchange.com/office: dfa0e72788dcfb6f3327bc655159406bae4d3b62
-        commit.open-xchange.com/public-sector: 5bbe7fd702fbda60bdcb367ec2abf358833cbd7b
-        commit.open-xchange.com/weakforced: d05c7b48f8a3fd2b87ec2074651aa0508d7bfacf
+        commit.open-xchange.com/backend: 8347272db983dbd9f11efed0f107a5d6145fc789
+        commit.open-xchange.com/documentconverter-api: 6903464ecc527debdcaacf2a603067cc8bd5b723
+        commit.open-xchange.com/exchange-interop: 7dba363002de2d05f1f5f80cad02e707bb2bac6c
+        commit.open-xchange.com/guard: ce7022310b622add5778381f709c2a455910b7e9
+        commit.open-xchange.com/imageconverter: fbcc4654551274cce4418a91e2f5920742261259
+        commit.open-xchange.com/nextcloud-integration: 903305bef41bfa2cf977589c658f431c33ba8e7e
+        commit.open-xchange.com/office: b56fb4193176fdc2e6b25f773bc033cd46b18c68
+        commit.open-xchange.com/public-sector: e83e04cd026ecc3d004a4099e07f67f47bde50f1
+        commit.open-xchange.com/weakforced: 7e517a2d71f788ac8e48a16b498638ca62265dc3
         logging.open-xchange.com/format: appsuite-json
-        checksum/allConfig: baa789697b1dd10320a0bc7f0c96c81ab21c3b67764da0d092e847ba8e51b31
-        checksum/commonEnv: 0b469be00f5e25cb1605a0c21246d64cd63fa2c7d07a01c5d83b839183663aec
+        checksum/allConfig: 115c191ac808df45cf0af392efe7d452e693ffd350fbc9a4d8eaf71047ca2ff
+        checksum/commonEnv: d1ed19924b358a119e36a58973c762f85f980d8688908c660e374a4bdce304dc
       labels:
         app.kubernetes.io/name: core-mw
         app.kubernetes.io/instance: open-xchange
         app: core-mw
-        version: 8.28.5
-        roles.middleware.open-xchange.com/hazelcast-data-holding: 'true'
+        version: 8.30.63
         roles.middleware.open-xchange.com/http-api: 'true'
         roles.middleware.open-xchange.com/sync: 'true'
         roles.middleware.open-xchange.com/admin: 'true'
         roles.middleware.open-xchange.com/businessmobility: 'true'
         roles.middleware.open-xchange.com/request-analyzer: 'true'
+        roles.middleware.open-xchange.com/documents: 'true'
 
     spec:
       imagePullSecrets: []
@@ -3469,7 +3509,7 @@ spec:
       initContainers:
       - name: init-middleware
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/middleware-public-sector:8.28.50@sha256:38447bd607c497977a5ba9189d957eebe7f82f09fa329ebc38c0785c70b04558
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/middleware-public-sector:8.30.62@sha256:9e4341c723cf6671479dfaad37635f8b28bb510decb9b7f0fd2616faacbf0d1a
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
@@ -3486,8 +3526,6 @@ spec:
         env:
         - name: MYSQL_ROOT_PASSWORD
           value: ''
-        - name: HZ_LITE_MEMBER
-          value: 'false'
         - name: SERVER_NAME
           value: server
         - name: RELEASE_NAMESPACE
@@ -3499,9 +3537,10 @@ spec:
             open-xchange-authentication-database open-xchange-authentication-imap
             open-xchange-authentication-ldap open-xchange-authentication-masterpassword
             open-xchange-cassandra open-xchange-dataretention-csv open-xchange-documents-backend
-            open-xchange-eas-provisioning open-xchange-eas-provisioning-mail open-xchange-eas-provisioning-sms
-            open-xchange-hostname-config-cascade open-xchange-hostname-ldap open-xchange-multifactor
-            open-xchange-omf-source open-xchange-omf-source-dualprovisioning open-xchange-omf-source-dualprovisioning-cloudplugins
+            open-xchange-documents-monitoring open-xchange-documents-templates open-xchange-eas-provisioning
+            open-xchange-eas-provisioning-mail open-xchange-eas-provisioning-sms open-xchange-hostname-config-cascade
+            open-xchange-hostname-ldap open-xchange-multifactor open-xchange-omf-source
+            open-xchange-omf-source-dualprovisioning open-xchange-omf-source-dualprovisioning-cloudplugins
             open-xchange-omf-source-guard open-xchange-omf-source-mailfilter open-xchange-parallels
             open-xchange-passwordchange-script open-xchange-plugins-antiphishing open-xchange-plugins-antiphishing-vadesecure
             open-xchange-plugins-blackwhitelist open-xchange-plugins-blackwhitelist-sieve
@@ -3513,8 +3552,6 @@ spec:
             open-xchange-weakforced
         - name: OX_APPSUITE_APPROOT
           value: /appsuite
-        - name: HZ_SERVICE_DNS
-          value: open-xchange-core-mw-hazelcast-headless.tn-openbsw-opendesk.svc.cluster.local
         - name: DCS_SERVICENAME
           value: open-xchange-core-documents-collaboration
         - name: DC_SERVER_URL
@@ -3539,7 +3576,7 @@ spec:
               fieldPath: status.podIP
         - name: HELM_RELEASE_NAME
           value: open-xchange
-        - name: JAVA_OPTS_MEMORY_MAXHEAP
+        - name: JAVA_OPTS_MEM
           value: -XX:MaxHeapSize=2048M
         envFrom:
         - secretRef:
@@ -3548,6 +3585,13 @@ spec:
             name: open-xchange-common-env
         - secretRef:
             name: open-xchange-core-mw-secret-envvars
+        resources:
+          limits:
+            cpu: 99
+            memory: 8Gi
+          requests:
+            cpu: 1
+            memory: 1.25Gi
         volumeMounts:
 
         - name: logs-default
@@ -3593,7 +3637,7 @@ spec:
       containers:
       - name: core-mw
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/middleware-public-sector:8.28.50@sha256:38447bd607c497977a5ba9189d957eebe7f82f09fa329ebc38c0785c70b04558
+          registry.opencode.de/bmi/opendesk/components/supplier/open-xchange/images-mirror/middleware-public-sector:8.30.62@sha256:9e4341c723cf6671479dfaad37635f8b28bb510decb9b7f0fd2616faacbf0d1a
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
@@ -3641,9 +3685,10 @@ spec:
             open-xchange-authentication-database open-xchange-authentication-imap
             open-xchange-authentication-ldap open-xchange-authentication-masterpassword
             open-xchange-cassandra open-xchange-dataretention-csv open-xchange-documents-backend
-            open-xchange-eas-provisioning open-xchange-eas-provisioning-mail open-xchange-eas-provisioning-sms
-            open-xchange-hostname-config-cascade open-xchange-hostname-ldap open-xchange-multifactor
-            open-xchange-omf-source open-xchange-omf-source-dualprovisioning open-xchange-omf-source-dualprovisioning-cloudplugins
+            open-xchange-documents-monitoring open-xchange-documents-templates open-xchange-eas-provisioning
+            open-xchange-eas-provisioning-mail open-xchange-eas-provisioning-sms open-xchange-hostname-config-cascade
+            open-xchange-hostname-ldap open-xchange-multifactor open-xchange-omf-source
+            open-xchange-omf-source-dualprovisioning open-xchange-omf-source-dualprovisioning-cloudplugins
             open-xchange-omf-source-guard open-xchange-omf-source-mailfilter open-xchange-parallels
             open-xchange-passwordchange-script open-xchange-plugins-antiphishing open-xchange-plugins-antiphishing-vadesecure
             open-xchange-plugins-blackwhitelist open-xchange-plugins-blackwhitelist-sieve
@@ -3655,8 +3700,6 @@ spec:
             open-xchange-weakforced
         - name: OX_APPSUITE_APPROOT
           value: /appsuite
-        - name: HZ_SERVICE_DNS
-          value: open-xchange-core-mw-hazelcast-headless.tn-openbsw-opendesk.svc.cluster.local
         - name: DCS_SERVICENAME
           value: open-xchange-core-documents-collaboration
         - name: DC_SERVER_URL
@@ -3681,9 +3724,15 @@ spec:
               fieldPath: status.podIP
         - name: HELM_RELEASE_NAME
           value: open-xchange
-        - name: HZ_LITE_MEMBER
-          value: 'false'
-        - name: JAVA_OPTS_MEMORY_MAXHEAP
+        - name: HZ_ENABLED
+          value: 'true'
+        - name: HZ_SERVICE_DNS
+          value: open-xchange-core-mw-hazelcast-headless.tn-openbsw-opendesk.svc.cluster.local
+        - name: HZ_GROUP_NAME
+          value: hzgroup
+        - name: HZ_GROUP_PASSWORD
+          value: f648cf10e0f330c15809fe55f347a8beb73c141e
+        - name: JAVA_OPTS_MEM
           value: -XX:MaxHeapSize=2048M
         envFrom:
         - secretRef:
@@ -3693,6 +3742,9 @@ spec:
         - secretRef:
             name: open-xchange-core-mw-secret-envvars
         resources:
+          limits:
+            cpu: 99
+            memory: 8Gi
           requests:
             cpu: 1
             memory: 1.25Gi
@@ -4120,33 +4172,6 @@ spec:
     http:
       paths:
       - path: /infostore
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: open-xchange-core-mw-http-api
-            port:
-              number: 80
----
-# Source: appsuite-public-sector/charts/appsuite/templates/ingress.yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: open-xchange-appsuite-static-routes-socket-io
-  annotations:
-    nginx.ingress.kubernetes.io/affinity: cookie
-    nginx.ingress.kubernetes.io/session-cookie-name: appsuite-core-mw-http-api-route
-    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: 'true'
-spec:
-
-  tls:
-  - hosts:
-    - webmail.opendesk.apps.digilab.network
-    secretName: opendesk-certificates-tls
-  rules:
-  - host: webmail.opendesk.apps.digilab.network
-    http:
-      paths:
-      - path: /socket.io
         pathType: ImplementationSpecific
         backend:
           service:
@@ -4644,10 +4669,10 @@ kind: Pod
 metadata:
   name: open-xchange-core-guidedtours-test-connection
   labels:
-    helm.sh/chart: core-guidedtours-2.6.7
+    helm.sh/chart: core-guidedtours-2.6.10
     app.kubernetes.io/name: core-guidedtours
     app.kubernetes.io/instance: open-xchange
-    app.kubernetes.io/version: 8.6.6
+    app.kubernetes.io/version: 8.6.9
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: test
@@ -4665,10 +4690,10 @@ kind: Pod
 metadata:
   name: open-xchange-core-ui-test-connection
   labels:
-    helm.sh/chart: core-ui-2.30.0
+    helm.sh/chart: core-ui-2.32.1
     app.kubernetes.io/name: core-ui
     app.kubernetes.io/instance: open-xchange
-    app.kubernetes.io/version: 8.28.0
+    app.kubernetes.io/version: 8.30.1
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: test
@@ -4686,10 +4711,10 @@ kind: Pod
 metadata:
   name: open-xchange-core-user-guide-test-connection
   labels:
-    helm.sh/chart: core-user-guide-2.28.0
+    helm.sh/chart: core-user-guide-2.30.0
     app.kubernetes.io/name: core-user-guide
     app.kubernetes.io/instance: open-xchange
-    app.kubernetes.io/version: 8.28.0
+    app.kubernetes.io/version: 8.30.0
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: test
@@ -4839,9 +4864,12 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry-1.docker.io/alpine/k8s:1.26.8@sha256:acde24d2a8ebaafda76f464591a5ddc7d0acd08bb38b12560961c1b1c4fc85ec
+          registry-1.docker.io/alpine/k8s:1.31.3@sha256:77812543abe5649b286d5f0dc17a7dbaa4056433225f6f695150f329cb4b6803
         imagePullPolicy: IfNotPresent
         resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
           requests:
             cpu: 500m
             memory: 256Mi
@@ -4922,7 +4950,7 @@ metadata:
   name: ox-connector
   labels:
     app.kubernetes.io/name: ox-connector
-    helm.sh/chart: ox-connector-0.14.5
+    helm.sh/chart: ox-connector-0.14.11
     app.kubernetes.io/instance: ox-connector
     app.kubernetes.io/managed-by: Helm
 ---
@@ -4932,7 +4960,7 @@ data:
   DEFAULT_CONTEXT: '1'
   DOMAINNAME: opendesk.apps.digilab.network
   LOCAL_TIMEZONE: Europe/Berlin
-  LOG_LEVEL: INFO
+  LOG_LEVEL: DEBUG
   MAX_ACKNOWLEDGEMENT_RETRIES: '3'
   OX_IMAP_SERVER: imap://127.0.0.1:143
   OX_LANGUAGE: de_DE
@@ -4956,7 +4984,7 @@ metadata:
     app.kubernetes.io/instance: ox-connector
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: ox-connector
-    helm.sh/chart: ox-connector-0.14.5
+    helm.sh/chart: ox-connector-0.14.11
   name: ox-connector
 ---
 # Source: ox-connector/templates/statefulset.yaml
@@ -4966,7 +4994,7 @@ metadata:
   name: ox-connector
   labels:
     app.kubernetes.io/name: ox-connector
-    helm.sh/chart: ox-connector-0.14.5
+    helm.sh/chart: ox-connector-0.14.11
     app.kubernetes.io/instance: ox-connector
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -4979,8 +5007,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: a47aaa992203ca9dde0525c543d73c6215c3d794a91016319363a8f957657057
-        checksum/secret: 107fada84d654a45b51e8255a7763dcb4233672a9a049adfc7d18a1c81787d54
+        checksum/config: 59de32079af4e02bb591f9ae9d38428bde3f1c42c2af5f89230db3ed93dea26f
+        checksum/secret: f69dd1c5f7c6a697428acc4c3e95473141e8b818dd11f0191b92578b3e947054
       labels:
         app.kubernetes.io/name: ox-connector
         app.kubernetes.io/instance: ox-connector
@@ -4989,6 +5017,30 @@ spec:
       securityContext: {}
       initContainers:
       - name: wait-for-api
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - CHOWN
+            - DAC_OVERRIDE
+            - FOWNER
+            - FSETID
+            - KILL
+            - SETGID
+            - SETUID
+            - SETPCAP
+            - NET_BIND_SERVICE
+            - SYS_CHROOT
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+          seLinuxOptions:
+          seccompProfile:
+            type: RuntimeDefault
         command: [/bin/bash, /scripts/wait-for-api.sh]
 
         image:
@@ -5001,7 +5053,14 @@ spec:
         volumeMounts:
         - name: wait-for-api
           mountPath: /scripts
-        resources: {}
+        resources:
+          limits:
+            cpu: 99
+            memory: 512Mi
+          requests:
+            cpu: 0.1
+            memory: 64Mi
+
       containers:
       - name: ox-connector
         securityContext:
@@ -5041,7 +5100,34 @@ spec:
           mountPath: /etc/ox-secrets
         - name: ox-connector-appcenter
           mountPath: /var/lib/univention-appcenter/apps/ox-connector
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - |
+              exit 0
+          failureThreshold: 3
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - |
+              exit 0
+          failureThreshold: 30
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 3
         resources:
+          limits:
+            cpu: 99
+            memory: 512Mi
           requests:
             cpu: 0.1
             memory: 64Mi

@@ -16,7 +16,7 @@ kind: ConfigMap
 metadata:
   name: collabora
   annotations:
-    confighash: config-583854b8559f211f26d630547459ea9f
+    confighash: config-557ffd45164594601a6afa26ff804fe8
   labels:
     helm.sh/chart: collabora-online-1.1.21
     app.kubernetes.io/name: collabora-online
@@ -25,8 +25,9 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 data:
   extra_params: --o:ssl.enable=false --o:ssl.termination=true --o:fetch_update_check=0
+    --o:num_prespawn_children=4 
     --o:remote_font_config.url=https://files.opendesk.apps.digilab.network/apps/richdocuments/settings/fonts.json
-    --o:net.proto=all
+    --o:net.proto=all --o:logging.level=debug
 
   aliasgroup1: https://files.opendesk.apps.digilab.network
 ---
@@ -81,7 +82,7 @@ spec:
   template:
     metadata:
       annotations:
-        confighash: config-583854b8559f211f26d630547459ea9f
+        confighash: config-557ffd45164594601a6afa26ff804fe8
         cluster-autoscaler.kubernetes.io/safe-to-evict: 'true'
       labels:
         app.kubernetes.io/name: collabora-online
@@ -111,8 +112,8 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
-          registry.opencode.de/bmi/opendesk/components/supplier/collabora/images/collabora-online-for-opendesk:24.04.7.2.1@sha256:5b00478f2c6c7372b2a67e68783d9b1a91265679bbd4afdc1416e50720d50ce6
+        image: 
+          registry.opencode.de/bmi/opendesk/components/supplier/collabora/images/collabora-online-for-opendesk:24.04.9.2.1@sha256:749917bf9146d8507b3a63d422a30ebe4f499700421c30527e32f322a015c73d
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -160,7 +161,15 @@ spec:
             secretKeyRef:
               name: collabora
               key: password
+
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
           requests:
             cpu: 0.5
             memory: 512Mi
@@ -183,19 +192,6 @@ metadata:
     app.kubernetes.io/version: 24.04.7.2.1
     app.kubernetes.io/managed-by: Helm
   annotations:
-    haproxy-ingress.github.io/balance-algorithm: url_param WOPISrc check_post
-    haproxy-ingress.github.io/config-backend: |
-      hash-type consistent
-      # block admin urls from outside
-      acl admin_url path_beg /cool/getMetrics
-      acl admin_url path_beg /cool/adminws/
-      acl admin_url path_beg /browser/dist/admin/admin.html
-      http-request deny if admin_url
-    haproxy-ingress.github.io/timeout-tunnel: 600s
-    haproxy.org/backend-config-snippet: |
-      balance url_param WOPISrc check_post
-      hash-type consistent
-    haproxy.org/timeout-tunnel: 600s
     nginx.ingress.kubernetes.io/proxy-body-size: 100M
     nginx.ingress.kubernetes.io/proxy-read-timeout: '600'
     nginx.ingress.kubernetes.io/proxy-send-timeout: '600'
@@ -205,16 +201,6 @@ metadata:
       location /cool/adminws/ { deny all; return 403; }
       location /browser/dist/admin/admin.html { deny all; return 403; }
     nginx.ingress.kubernetes.io/upstream-hash-by: $arg_WOPISrc
-    nginx.org/client-max-body-size: 100M
-    nginx.org/lb-method: hash $arg_WOPISrc consistent
-    nginx.org/proxy-read-timeout: 600s
-    nginx.org/proxy-send-timeout: 600s
-    nginx.org/server-snippets: |
-      # block admin and metrics endpoint from outside by default
-      location /cool/getMetrics { deny all; return 403; }
-      location /cool/adminws/ { deny all; return 403; }
-      location /browser/dist/admin/admin.html { deny all; return 403; }
-    nginx.org/websocket-services: collabora
 spec:
   tls:
   - hosts:

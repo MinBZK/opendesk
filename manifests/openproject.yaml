@@ -5,10 +5,10 @@ metadata:
   name: openproject
   labels:
     app.kubernetes.io/name: openproject
-    helm.sh/chart: openproject-8.0.0
+    helm.sh/chart: openproject-9.2.0
     app.kubernetes.io/instance: openproject
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: '14'
+    app.kubernetes.io/version: 15.1.0
 ---
 # Source: openproject/templates/service.yaml
 apiVersion: v1
@@ -17,10 +17,10 @@ metadata:
   name: openproject
   labels:
     app.kubernetes.io/name: openproject
-    helm.sh/chart: openproject-8.0.0
+    helm.sh/chart: openproject-9.2.0
     app.kubernetes.io/instance: openproject
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: '14'
+    app.kubernetes.io/version: 15.1.0
 spec:
   type: ClusterIP
   ports:
@@ -40,10 +40,10 @@ metadata:
   name: openproject-web
   labels:
     app.kubernetes.io/name: openproject
-    helm.sh/chart: openproject-8.0.0
+    helm.sh/chart: openproject-9.2.0
     app.kubernetes.io/instance: openproject
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: '14'
+    app.kubernetes.io/version: 15.1.0
     openproject/process: web
 spec:
   replicas: 1
@@ -58,17 +58,17 @@ spec:
     metadata:
       annotations:
         # annotate pods with env value checksums so changes trigger re-deployments
-        checksum/env-core: b21b819a4fe16e45ec4c4ff1bef74ad89e7b4ba3f0d2a6599f7dcab57fbbaf08
-        checksum/env-memcached: 2108ee378b9475c3091a258d8277b81271c0c61b1107ab9ae9dee9f1103cbf69
-        checksum/env-oidc: 45febd990f4103c64b53ad279da64f4e9be1d3472ba1dcdf35c700e970fbb8f7
-        checksum/env-s3: 75b8573637845a4834f21919121ded141467669083c4e3fd5e6a1716c48884f6
-        checksum/env-environment: 7dfae8244e268296401d617770ebc477b01f691a226150bc9e19946bdf37ea26
+        checksum/env-core: 00c70832f909c6398f1d8a056442e72437c49248f44c01557be8df2aacb7fd8b
+        checksum/env-memcached: b72d46e2164c4e1abb103d09b75c7d6dadbfee6bed6d005c835dd55f70323985
+        checksum/env-oidc: a95b3eb2b76d9e23c74b7b12670342622f4487fb3669c12dad8f82806b9b3af9
+        checksum/env-s3: 9858e7b164da50bd4dccc0195a8f9a645b2ee68256b26ffd372b1acbc954b60b
+        checksum/env-environment: 1e349aa3b543ddf2db792e4efd7b1382c2b45484511b0cb0244681a013848883
       labels:
         app.kubernetes.io/name: openproject
-        helm.sh/chart: openproject-8.0.0
+        helm.sh/chart: openproject-9.2.0
         app.kubernetes.io/instance: openproject
         app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/version: '14'
+        app.kubernetes.io/version: 15.1.0
         openproject/process: web
     spec:
       securityContext:
@@ -114,8 +114,8 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
-          registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:14.6.1@sha256:3c9828b1ab4dc91f2b3887f9bfddda8ba79b92a2f335dd2db2295d14a98deab0
+        image: 
+          registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:15.1.0-20241220@sha256:ac582a338986442f2820dc1467d0e85c66f2408f6a7f8e945fc6471ebed0ad56
         imagePullPolicy: IfNotPresent
         envFrom:
         - secretRef:
@@ -135,6 +135,9 @@ spec:
         - bash
         - /app/docker/prod/wait-for-db
         resources:
+          limits:
+            cpu: 99
+            memory: 768Mi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -153,8 +156,8 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
-          registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:14.6.1@sha256:3c9828b1ab4dc91f2b3887f9bfddda8ba79b92a2f335dd2db2295d14a98deab0
+        image: 
+          registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:15.1.0-20241220@sha256:ac582a338986442f2820dc1467d0e85c66f2408f6a7f8e945fc6471ebed0ad56
         imagePullPolicy: IfNotPresent
         envFrom:
         - secretRef:
@@ -209,6 +212,9 @@ spec:
           failureThreshold: 30
           successThreshold: 1
         resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 768Mi
@@ -220,10 +226,10 @@ metadata:
   name: openproject-worker-default
   labels:
     app.kubernetes.io/name: openproject
-    helm.sh/chart: openproject-8.0.0
+    helm.sh/chart: openproject-9.2.0
     app.kubernetes.io/instance: openproject
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: '14'
+    app.kubernetes.io/version: 15.1.0
     openproject/process: worker-default
 spec:
   replicas: 1
@@ -238,17 +244,17 @@ spec:
     metadata:
       annotations:
         # annotate pods with env value checksums so changes trigger re-deployments
-        checksum/env-core: b21b819a4fe16e45ec4c4ff1bef74ad89e7b4ba3f0d2a6599f7dcab57fbbaf08
-        checksum/env-memcached: 2108ee378b9475c3091a258d8277b81271c0c61b1107ab9ae9dee9f1103cbf69
-        checksum/env-oidc: 45febd990f4103c64b53ad279da64f4e9be1d3472ba1dcdf35c700e970fbb8f7
-        checksum/env-s3: 75b8573637845a4834f21919121ded141467669083c4e3fd5e6a1716c48884f6
-        checksum/env-environment: 7dfae8244e268296401d617770ebc477b01f691a226150bc9e19946bdf37ea26
+        checksum/env-core: 00c70832f909c6398f1d8a056442e72437c49248f44c01557be8df2aacb7fd8b
+        checksum/env-memcached: b72d46e2164c4e1abb103d09b75c7d6dadbfee6bed6d005c835dd55f70323985
+        checksum/env-oidc: a95b3eb2b76d9e23c74b7b12670342622f4487fb3669c12dad8f82806b9b3af9
+        checksum/env-s3: 9858e7b164da50bd4dccc0195a8f9a645b2ee68256b26ffd372b1acbc954b60b
+        checksum/env-environment: 1e349aa3b543ddf2db792e4efd7b1382c2b45484511b0cb0244681a013848883
       labels:
         app.kubernetes.io/name: openproject
-        helm.sh/chart: openproject-8.0.0
+        helm.sh/chart: openproject-9.2.0
         app.kubernetes.io/instance: openproject
         app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/version: '14'
+        app.kubernetes.io/version: 15.1.0
         openproject/process: worker-default
     spec:
       securityContext:
@@ -294,8 +300,8 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
-          registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:14.6.1@sha256:3c9828b1ab4dc91f2b3887f9bfddda8ba79b92a2f335dd2db2295d14a98deab0
+        image: 
+          registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:15.1.0-20241220@sha256:ac582a338986442f2820dc1467d0e85c66f2408f6a7f8e945fc6471ebed0ad56
         imagePullPolicy: IfNotPresent
         envFrom:
         - secretRef:
@@ -315,6 +321,9 @@ spec:
         - bash
         - /app/docker/prod/wait-for-db
         resources:
+          limits:
+            cpu: 99
+            memory: 768Mi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -333,8 +342,8 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
-          registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:14.6.1@sha256:3c9828b1ab4dc91f2b3887f9bfddda8ba79b92a2f335dd2db2295d14a98deab0
+        image: 
+          registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:15.1.0-20241220@sha256:ac582a338986442f2820dc1467d0e85c66f2408f6a7f8e945fc6471ebed0ad56
         imagePullPolicy: IfNotPresent
         envFrom:
         - secretRef:
@@ -353,7 +362,7 @@ spec:
         env:
         - name: OPENPROJECT_DB_PASSWORD
           value: 5baeeb8674fca48695591fdbdb0591cac48afc94
-        - name: QUEUE
+        - name: OPENPROJECT_GOOD_JOB_QUEUES
           value: ''
         volumeMounts:
         - mountPath: /tmp
@@ -361,6 +370,9 @@ spec:
         - mountPath: /app/tmp
           name: app-tmp
         resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
           requests:
             cpu: 0.25
             memory: 512Mi
@@ -372,10 +384,10 @@ metadata:
   name: openproject-seeder-1
   labels:
     app.kubernetes.io/name: openproject
-    helm.sh/chart: openproject-8.0.0
+    helm.sh/chart: openproject-9.2.0
     app.kubernetes.io/instance: openproject
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: '14'
+    app.kubernetes.io/version: 15.1.0
   annotations:
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded
@@ -386,10 +398,10 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: openproject
-        helm.sh/chart: openproject-8.0.0
+        helm.sh/chart: openproject-9.2.0
         app.kubernetes.io/instance: openproject
         app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/version: '14'
+        app.kubernetes.io/version: 15.1.0
         openproject/process: seeder
       annotations:
         argocd.argoproj.io/hook: Sync
@@ -425,7 +437,7 @@ spec:
                   storage: 5Gi
       initContainers:
       - name: check-db-ready
-        image:
+        image: 
           registry-1.docker.io/library/postgres:16.3-alpine3.20@sha256:de3d7b6e4b5b3fe899e997579d6dfe95a99539d154abe03f0b6839133ed05065
         imagePullPolicy: IfNotPresent
         command: [sh, -c, until pg_isready -h $DATABASE_HOST -p $DATABASE_PORT -U
@@ -446,6 +458,9 @@ spec:
         - name: OPENPROJECT_DB_PASSWORD
           value: 5baeeb8674fca48695591fdbdb0591cac48afc94
         resources:
+          limits:
+            cpu: 99
+            memory: 768Mi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -464,8 +479,8 @@ spec:
             type: RuntimeDefault
       containers:
       - name: seeder
-        image:
-          registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:14.6.1@sha256:3c9828b1ab4dc91f2b3887f9bfddda8ba79b92a2f335dd2db2295d14a98deab0
+        image: 
+          registry.opencode.de/bmi/opendesk/components/supplier/openproject/images-mirror/open_desk:15.1.0-20241220@sha256:ac582a338986442f2820dc1467d0e85c66f2408f6a7f8e945fc6471ebed0ad56
         imagePullPolicy: IfNotPresent
         args:
         - bash
@@ -485,6 +500,9 @@ spec:
         - name: OPENPROJECT_DB_PASSWORD
           value: 5baeeb8674fca48695591fdbdb0591cac48afc94
         resources:
+          limits:
+            cpu: 99
+            memory: 768Mi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -515,10 +533,10 @@ metadata:
   name: openproject
   labels:
     app.kubernetes.io/name: openproject
-    helm.sh/chart: openproject-8.0.0
+    helm.sh/chart: openproject-9.2.0
     app.kubernetes.io/instance: openproject
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: '14'
+    app.kubernetes.io/version: 15.1.0
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: 100M
     nginx.ingress.kubernetes.io/proxy-read-timeout: '60'
@@ -550,10 +568,10 @@ metadata:
   name: openproject-test-connection
   labels:
     app.kubernetes.io/name: openproject
-    helm.sh/chart: openproject-8.0.0
+    helm.sh/chart: openproject-9.2.0
     app.kubernetes.io/instance: openproject
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: '14'
+    app.kubernetes.io/version: 15.1.0
   annotations:
     helm.sh/hook: test
 spec:

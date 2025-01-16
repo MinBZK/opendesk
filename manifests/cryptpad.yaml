@@ -23,7 +23,7 @@ data:
   config.js: |
     /* globals module */
 
-    module.exports = {
+    module.exports = {  
             httpUnsafeOrigin: 'https://pad.opendesk.apps.digilab.network',
             httpSafeOrigin: 'https://pad.opendesk.apps.digilab.network',
             adminKeys: [],
@@ -127,8 +127,8 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
-          registry.opencode.de/bmi/opendesk/components/supplier/xwiki/images-mirror/cryptpad:opendesk-20231222@sha256:f4d20d5c38c87b11ed1a1b46ef6a3633d32c6758ebdff8556458f040318fa5e2
+        image: 
+          registry.opencode.de/bmi/opendesk/components/supplier/xwiki/images-mirror/cryptpad:opendesk-20241022@sha256:3e5bf06cb9d0a7ec8257874b8b347599200eb677fc428a2e043ccab06ef2be17
         imagePullPolicy: IfNotPresent
         command: [/bin/sh, -c]
         volumeMounts:
@@ -146,6 +146,9 @@ spec:
             echo "$VALUE" >> "$FILE"
           fi
         resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 512Mi
@@ -164,8 +167,8 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
-          registry.opencode.de/bmi/opendesk/components/supplier/xwiki/images-mirror/cryptpad:opendesk-20231222@sha256:f4d20d5c38c87b11ed1a1b46ef6a3633d32c6758ebdff8556458f040318fa5e2
+        image: 
+          registry.opencode.de/bmi/opendesk/components/supplier/xwiki/images-mirror/cryptpad:opendesk-20241022@sha256:3e5bf06cb9d0a7ec8257874b8b347599200eb677fc428a2e043ccab06ef2be17
         imagePullPolicy: IfNotPresent
         env:
         - name: CPAD_MAIN_DOMAIN
@@ -208,6 +211,9 @@ spec:
           failureThreshold: 5
           successThreshold: 1
         resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 512Mi

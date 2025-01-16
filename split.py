@@ -13,8 +13,6 @@ def split_k8s_manifest_by_kind(input_file):
         documents = list(yaml.load_all(file))
 
 
-    print(f"Found {len(documents)} documents")
-
     secrets = []
     others = []
 
@@ -24,8 +22,6 @@ def split_k8s_manifest_by_kind(input_file):
             continue
 
         kind = doc.get('kind', 'Unknown')
-
-        print(f"Processing {kind}")
 
         if kind == 'Secret':
             secrets.append(doc)
@@ -53,11 +49,14 @@ if __name__ == "__main__":
 
     for file in folder.rglob("*.yaml"):  # Recursively iterate through all files
         if file.is_file() and not file.name.endswith('secrets.yaml') and not file.name.endswith('others.yaml'):
-            print(f"Processing: {file}")
+            pass
         else:
-            print(f"skipping: {file}")
             continue
 
-        split_k8s_manifest_by_kind(file)
+        try:
+            split_k8s_manifest_by_kind(file)
+        except Exception as e:
+            print(f"Error: {e}")
+            continue
 
 

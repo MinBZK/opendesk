@@ -4,10 +4,10 @@ kind: ServiceAccount
 metadata:
   name: jitsi-prosody
   labels:
-    helm.sh/chart: prosody-1.3.8
+    helm.sh/chart: prosody-1.4.1
     app.kubernetes.io/name: prosody
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
 ---
 # Source: opendesk-jitsi/charts/jitsi/templates/serviceaccount.yaml
@@ -16,10 +16,10 @@ kind: ServiceAccount
 metadata:
   name: jitsi
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
 ---
 # Source: opendesk-jitsi/templates/serviceaccount.yaml
@@ -30,10 +30,46 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-jitsi
-    helm.sh/chart: opendesk-jitsi-1.12.5
+    helm.sh/chart: opendesk-jitsi-3.0.1
     app.kubernetes.io/instance: jitsi
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: true
+---
+# Source: opendesk-jitsi/charts/jitsi/charts/prosody/templates/configmaps-cont-init.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jitsi-prosody-cont-inits
+  labels:
+    helm.sh/chart: prosody-1.4.1
+    app.kubernetes.io/name: prosody
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/version: stable-9646
+    app.kubernetes.io/managed-by: Helm
+data:
+  10-config: |
+    # Using prosody /etc/cont-init.d/10-config from container image
+---
+# Source: opendesk-jitsi/charts/jitsi/charts/prosody/templates/configmaps-defaults.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jitsi-prosody-defaults
+  labels:
+    helm.sh/chart: prosody-1.4.1
+    app.kubernetes.io/name: prosody
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/version: stable-9646
+    app.kubernetes.io/managed-by: Helm
+data:
+  prosody.cfg.lua: |
+    # Using prosody /default/prosody.cfg.lua from container image
+
+  saslauthd.conf: |
+    # Using prosody /default/saslauthd.conf from container image
+
+  jitsi-meet.cfg.lua: |
+    # Using prosody /default/conf.d/jitsi-meet.cfg.lua from container image
 ---
 # Source: opendesk-jitsi/charts/jitsi/charts/prosody/templates/envs-configmap.yaml
 apiVersion: v1
@@ -41,10 +77,10 @@ kind: ConfigMap
 metadata:
   name: jitsi-prosody
   labels:
-    helm.sh/chart: prosody-1.3.8
+    helm.sh/chart: prosody-1.4.1
     app.kubernetes.io/name: prosody
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
 data:
 ---
@@ -54,10 +90,10 @@ kind: ConfigMap
 metadata:
   name: jitsi-prosody-common
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
 data:
   ENABLE_AUTH: '1'
@@ -87,10 +123,10 @@ kind: ConfigMap
 metadata:
   name: jitsi-jibri
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: jibri
 data:
@@ -102,16 +138,57 @@ data:
   DISPLAY: :0
   JIBRI_SINGLE_USE_MODE: 'false'
 ---
+# Source: opendesk-jitsi/charts/jitsi/templates/jibri/configmaps-cont-init.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jitsi-jibri-cont-inits
+  labels:
+    helm.sh/chart: jitsi-1.4.1
+    app.kubernetes.io/name: jitsi
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/version: stable-9646
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: jibri
+data:
+  10-config: |
+    # Using jibri /etc/cont-init.d/10-config from container image
+---
+# Source: opendesk-jitsi/charts/jitsi/templates/jibri/configmaps-defaults.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jitsi-jibri-defaults
+  labels:
+    helm.sh/chart: jitsi-1.4.1
+    app.kubernetes.io/name: jitsi
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/version: stable-9646
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: jibri
+data:
+  jibri.conf: |
+    # Using jibri /default/jibri.conf from container image
+
+  logging.properties: |
+    # Using jibri /default/logging.properties from container image
+
+  autoscaler-sidecar.config: |
+    # Using jibri /default/autoscaler-sidecar.config from container image
+
+  xorg-video-dummy.conf: |
+    # Using jibri /default/xorg-video-dummy.conf from container image
+---
 # Source: opendesk-jitsi/charts/jitsi/templates/jicofo/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: jitsi-jicofo
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: jicofo
 data:
@@ -123,16 +200,51 @@ data:
   ENABLE_AUTO_LOGIN: 'false'
   JICOFO_AUTH_LIFETIME: 100 milliseconds
 ---
+# Source: opendesk-jitsi/charts/jitsi/templates/jicofo/configmaps-cont-init.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jitsi-jicofo-cont-inits
+  labels:
+    helm.sh/chart: jitsi-1.4.1
+    app.kubernetes.io/name: jitsi
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/version: stable-9646
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: jicofo
+data:
+  10-config: |
+    # Using jicofo /etc/cont-init.d/10-config from container image
+---
+# Source: opendesk-jitsi/charts/jitsi/templates/jicofo/configmaps-defaults.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jitsi-jicofo-defaults
+  labels:
+    helm.sh/chart: jitsi-1.4.1
+    app.kubernetes.io/name: jitsi
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/version: stable-9646
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: jicofo
+data:
+  jicofo.conf: |
+    # Using jicofo /default/jicofo.conf from container image
+
+  logging.properties: |
+    # Using jicofo /default/logging.properties from container image
+---
 # Source: opendesk-jitsi/charts/jitsi/templates/jvb/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: jitsi-jvb
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: jvb
 data:
@@ -143,16 +255,66 @@ data:
   XMPP_SERVER: jitsi-prosody.tn-openbsw-opendesk.svc.cluster.local
   COLIBRI_REST_ENABLED: 'true'
 ---
+# Source: opendesk-jitsi/charts/jitsi/templates/web/configmap-conffiles.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jitsi-web-conffiles
+  labels:
+    helm.sh/chart: jitsi-1.4.1
+    app.kubernetes.io/name: jitsi
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/version: stable-9646
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: web
+data:
+  custom-config.js: |
+  # Not providing /config/custom-config.js
+  custom-interface_config.js: |
+  # Not providing /config/custom-interface_config.js
+  default: |
+  # Using web /defaults/default from container image
+  ffdhe2048.txt: |
+  # Using web /defaults/ffdhe2048.txt from container image
+  interface_config.js: |
+  # Using web /defaults/interface_config.js from container image
+  meet.conf: |
+  # Using web /defaults/meet.conf from container image
+  nginx.conf: |
+  # Using web /defaults/nginx.conf from container image
+  settings-config.js: |
+  # Using web /defaults/settings-config.js from container image
+  ssl.conf: |
+  # Using web /defaults/ssl.conf from container image
+  system-config.js: |
+  # Using web /defaults/system-config.js from container image
+---
+# Source: opendesk-jitsi/charts/jitsi/templates/web/configmap-init.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jitsi-web-init
+  labels:
+    helm.sh/chart: jitsi-1.4.1
+    app.kubernetes.io/name: jitsi
+    app.kubernetes.io/instance: jitsi
+    app.kubernetes.io/version: stable-9646
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: web
+data:
+  10-config: |
+  # Using web /etc/cont-init.d/10-config from container image
+---
 # Source: opendesk-jitsi/charts/jitsi/templates/web/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: jitsi-web
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: web
 data:
@@ -169,30 +331,13 @@ apiVersion: v1
 metadata:
   name: jitsi-meet-files
 data:
-  favicon.svg: |2
-
-    <?xml version="1.0" encoding="UTF-8"?>
-    <svg id="Ebene_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-      <defs>
-        <style>
-          .cls-1 {
-            fill: #571efa;
-          }
-
-          .cls-2 {
-            fill: #927afa;
-          }
-        </style>
-      </defs>
-      <path class="cls-2" d="M83.1,97.26v2.12c0,8.97-7.3,16.27-16.27,16.27H28.62c-8.97,0-16.27-7.3-16.27-16.27v-38.2c0-8.97,7.3-16.27,16.27-16.27h2.12v52.35h52.35Z"/>
-      <path class="cls-1" d="M83.81,84.52h-40.33v-44.57c0-15.22,12.38-27.59,27.59-27.59h12.74c17.56,0,31.84,14.28,31.84,31.84v8.49c0,17.56-14.28,31.84-31.84,31.84ZM61.88,66.12h21.93c7.41,0,13.44-6.03,13.44-13.44v-8.49c0-7.41-6.03-13.44-13.44-13.44h-12.74c-5.07,0-9.2,4.13-9.2,9.2v26.18Z"/>
-    </svg>
+  favicon.svg: |
+    <svg width="1" height="1" xmlns="http://www.w3.org/2000/svg"/>
   url-ics: |
     https://ics.opendesk.apps.digilab.network
   url-portal: |
     https://portal.opendesk.apps.digilab.network
-  watermark.svg: |2
-
+  watermark.svg: |
     <?xml version="1.0" encoding="UTF-8"?>
     <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 510.5 135.5">
       <defs>
@@ -237,196 +382,212 @@ data:
 
   body.html: "<!--\nSPDX-FileCopyrightText: 2023 Bundesministerium des Innern und
     für Heimat, PG ZenDiS \"Projektgruppe für Aufbau ZenDiS\"\nSPDX-License-Identifier:
-    Apache-2.0\n-->\n<script>\n// -----------------------------------------------------------------------------\n
-    // This script manages OIDC flow.\n// -----------------------------------------------------------------------------\n
-    let failedAttempt = 0;\n\nfunction oidcRedirect() {\n  const qs = new URLSearchParams(window.location.search.substring(1));\n\
-    \  qs.delete('oidc');\n\n  const path = encodeURIComponent(window.location.pathname);\n\
-    \  const search = encodeURIComponent(qs.toString());\n  const hash = encodeURIComponent(window.location.hash.substring(1));\n\
-    \n  window.location = `/oidc/auth?path=${path}&search=${search}&hash=${hash}`;\n\
-    \n  try {\n    // remove react from DOM to prevent UI distortion\n    document.all.react.remove();\n\
-    \  } catch {\n    // do nothing\n  }\n}\n\nfunction interceptLoginRequest() {\n\
-    \  try {\n    // if conference is already started, dont wait for an auth request\n\
-    \    if (APP.conference.isJoined()) return;\n\n    // check if login or IamHost
-    button is created in DOM\n    const _button = document.getElementById(\"modal-dialog-ok-button\"\
-    );\n    if (!_button) throw(\"button is not created yet\");\n\n    let labelKey;\n\
-    \    try {\n      labelKey = Object.values(_button)[0].return.memoizedProps.labelKey;\n\
-    \    } catch {\n      // do nothing\n    }\n\n    if (labelKey === \"dialog.login\"\
-    ) {\n      // if this is a login screen, redirect to OIDC login page\n      oidcRedirect();\n\
-    \    } else if (labelKey === \"dialog.IamHost\") {\n      // if this is an IamHost
-    screen, redirect to OIDC login page when clicked\n      _button.onclick = oidcRedirect\n\
-    \    }\n  } catch(e) {\n    failedAttempt += 1;\n\n    if (failedAttempt < 180)
-    {\n      setTimeout(function() {interceptLoginRequest();}, 1000);\n    }\n  }\n
-    }\n\ninterceptLoginRequest();\n</script>\n\n<script>\n// -----------------------------------------------------------------------------\n
-    // This script customizes Jitsi UI if the room is created by Element Jitsi\n//
-    Widget. It senses the room created by Element by checking its name. The room\n
-    // created by Element has a special name format:\n//\n//   base32decode(room_name)
-    should match RegExp(\"^(!.*:.*[.][a-z]*)$\")\n//   or\n//   room_name should match
-    RegExp(\"^(Jitsi[A-Z][a-z]{23})$\")\n// -----------------------------------------------------------------------------\n
-    \nfunction base32decode(s) {\n  const a = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567\"\
-    ;\n  const pad = \"=\";\n  const len = s.length;\n  const apad = a + pad;\n  let
-    v, x, r=0, bits=0, c, o=\"\";\n\n  s = s.toUpperCase();\n\n  for(i=0; i<len; i+=1)
-    {\n    v = apad.indexOf(s.charAt(i));\n    if (v>=0 && v<32) {\n      x = (x <<
-    5) | v;\n      bits += 5;\n      if (bits >= 8) {\n        c = (x >> (bits - 8))
-    & 0xff;\n        o = o + String.fromCharCode(c);\n        bits -= 8;\n      }\n\
-    \    }\n  }\n\n  // remaining bits are < 8\n  if (bits>0) {\n    c = ((x << (8
-    - bits)) & 0xff) >> (8 - bits);\n    // Dont append a null terminator.\n    if
-    (c!==0) {\n      o = o + String.fromCharCode(c);\n    }\n  }\n\n  return o;\n
-    }\n\nfunction updateUIforElement() {\n  try {\n    if (!APP.conference.isJoined())
-    throw new Error(\"not joined yet\");\n\n    try {\n      const roomName = APP.store.getState()[\"\
-    features/base/conference\"].room;\n      const decoded = base32decode(roomName);\n\
-    \      const reg1 = new RegExp(\"^(!.*:.*[.][a-z]*)$\");\n      const reg2 = new
-    RegExp(\"^(Jitsi[A-Z][a-z]{23})$\");\n      if (!reg1.test(decoded) && !reg2.test(roomName))
-    {\n        throw new Error(\"not a Matrix room\");\n      }\n\n      APP.store.getState()[\"\
-    features/base/config\"].toolbarButtons = [\n        \"camera\",\n        \"closedcaptions\"\
-    ,\n        \"desktop\",\n        \"download\",\n        \"feedback\",\n      \
-    \  \"filmstrip\",\n        \"fullscreen\",\n        \"hangup\",\n        \"help\"\
-    ,\n        \"livestreaming\",\n        \"microphone\",\n        \"mute-everyone\"\
-    ,\n        \"mute-video-everyone\",\n        \"participants-pane\",\n        \"\
-    profile\",\n        \"raisehand\",\n        \"security\",\n        \"select-background\"\
-    ,\n        \"settings\",\n        \"shareaudio\",\n        \"shortcuts\",\n  \
-    \      \"stats\",\n        \"tileview\",\n        \"toggle-camera\",\n       \
-    \ \"videoquality\",\n      ];\n    } catch {\n      // do nothing\n    }\n\n \
-    \ } catch {\n    setTimeout(updateUIforElement, 1000);\n  }\n}\n\nupdateUIforElement();\n
-    </script>\n\n<script>\n// -----------------------------------------------------------------------------\n
-    // This script manages the OpenDesk menu in Jitsi. The menu will be activated
-    if\n// Jitsi is opened as a standalone application. It will not be activated if
-    it\n// is inside an iframe (such as inside Element chat).\n//\n// It uses the
-    language of the browser while getting the navigation data.\n//\n// This script
-    silently refreshes the portal session by using a hidden iframe\n// and uses this
-    session while fetching the navigation data.\n// -----------------------------------------------------------------------------\n
-    let ICS = \"\";\nlet PORTAL = \"\";\n\n// -----------------------------------------------------------------------------\n
-    // Get the ICS URL from Jitsi setup and set it as a global variable.\n// -----------------------------------------------------------------------------\n
-    async function setIcsUrl() {\n  try {\n    const url = \"/static/url-ics\";\n\
-    \    const res = await fetch(url);\n\n    ICS = await res.text();\n  } catch {\n\
-    \    // Do nothing\n  }\n}\n\n// -----------------------------------------------------------------------------\n
-    // Get the portal URL from Jitsi setup and set it as a global variable.\n// -----------------------------------------------------------------------------\n
-    async function setPortalUrl() {\n  try {\n    const url = \"/static/url-portal\"\
-    ;\n    const res = await fetch(url);\n\n    PORTAL = await res.text();\n  } catch
-    {\n    // Do nothing\n  }\n}\n\n// -----------------------------------------------------------------------------\n
-    // Get the navigation data\n// -----------------------------------------------------------------------------\n
-    async function getNavigation() {\n  try {\n    // Get the browser language.\n\
-    \    let lang = navigator.language || \"de-DE\";\n    if (lang === \"de\") lang
-    = \"de-DE\";\n    if (lang === \"en\") lang = \"en-US\";\n\n    const url = `${ICS}/navigation.json?language=${lang}`;\n\
-    \    const res = await fetch(url, {\n      credentials: \"include\",\n      headers:
-    {\n        Accept: \"application/json\",\n      },\n    });\n\n    return await
-    res.json();\n  } catch {\n    return {};\n  }\n}\n\n// -----------------------------------------------------------------------------\n
-    // Toggle menu. It will be triggered after clicking the menu icon.\n// -----------------------------------------------------------------------------\n
-    function _toggleMenu() {\n  try {\n    const menu = document.getElementById(\"\
-    opendeskMenu\");\n\n    if (menu.style.display !== \"block\") {\n      menu.style.display
-    = \"block\";\n    } else {\n      menu.style.display = \"none\";\n    }\n  } catch
-    {\n    // Do nothing\n  }\n}\n\n// -----------------------------------------------------------------------------\n
-    // Return the html content of the category (menu items of category)\n// -----------------------------------------------------------------------------\n
-    function getCategoryItems(entries) {\n  try {\n    let items = \"\";\n    for
-    (const entry of entries) {\n      items += `\n        <div style=\"display: flex;
-    align-items:center; gap:16px; padding:8px;\n                    font-size:14;\"\
-    \n        >\n          <img src=\"${entry.icon_url}\" height=\"20px\" style=\"\
-    margin-left:12px;\">\n          <a href=\"${entry.link}\" target=\"${entry.target}\"\
-    \n             style=\"text-decoration:none; font-weight:normal; color:#1F1F1F;\"\
-    >\n            ${entry.display_name}\n          </a>\n        </div>\n      `;\n\
-    \    }\n\n    return items;\n  } catch {\n    return \"\";\n  }\n}\n\n// -----------------------------------------------------------------------------\n
-    // Return the hmtl content of the navigation menu\n// -----------------------------------------------------------------------------\n
-    function getMenuItems(nav) {\n  try {\n    // Skip if no portal session (anonymous
-    user).\n    const identifier = nav.categories?.[0]?.identifier;\n    if (!identifier
-    || identifier === \"swp.anonymous\") {\n      throw new Error(\"no item\");\n\
-    \    }\n\n    let items = \"\";\n    for (const cat of nav.categories) {\n   \
-    \   // Category title in menu.\n      items += `\n        <div style=\"font-size:17;
-    font-weight:700; letter-spacing: 0.05em;\n                    padding:16px 60px
-    4px 12px;\"\n        >${cat.display_name}</div>\n      `;\n\n      // Category
-    content (links) in menu.\n      items += getCategoryItems(cat.entries);\n    }\n\
-    \n    return items;\n  } catch {\n    return \"\";\n  }\n}\n\n// -----------------------------------------------------------------------------\n
-    // Create the navigation menu\n// -----------------------------------------------------------------------------\n
-    function createNavigationMenu(nav) {\n  try {\n    const menuItems = getMenuItems(nav);\n\
-    \    const menu = `\n      <button id=\"opendeskMenuButton\" tabindex=\"0\" onclick=\"\
-    _toggleMenu()\"\n        aria-label=\"Toogle menu\" style=\"background:none; border:none;\"\
-    \n      >\n        <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\" width=\"\
-    24px\"\n          viewBox=\"0 0 24 24\" fill=\"#000000\" style=\"margin:12px 8px;\"\
-    \n        >\n          <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\n          <path
-    d=\"M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6\n           \
-    \        0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0\n       \
-    \            6h4v-4h-4v4z\"/>\n        </svg>\n        <div id=\"opendeskMenu\"\
+    Apache-2.0\n-->\n<script>\n  // ---------------------------------------------------------------------------\n\
+    \  // This script manages OIDC flow.\n  // ---------------------------------------------------------------------------\n\
+    \  let failedAttempt = 0;\n\n  function oidcRedirect() {\n    const qs = new URLSearchParams(window.location.search.substring(1));\n\
+    \    qs.delete(\"oidc\");\n\n    const path = encodeURIComponent(window.location.pathname);\n\
+    \    const search = encodeURIComponent(qs.toString());\n\n    let hash = \"config.prejoinConfig.enabled=false\"\
+    ;\n    if (window.location.hash) {\n      hash = `${hash}&${window.location.hash.substring(1)}`;\n\
+    \    }\n    hash = encodeURIComponent(hash);\n\n    window.location = `/oidc/auth?path=${path}&search=${search}&hash=${hash}`;\n\
+    \n    try {\n      // remove react from DOM to prevent UI distortion\n      document.all.react.remove();\n\
+    \    } catch {\n      // do nothing\n    }\n  }\n\n  function interceptLoginRequest()
+    {\n    try {\n      // if conference is already started, dont wait for an auth
+    request\n      if (APP.conference.isJoined()) return;\n\n      // check if login
+    or IamHost button is created in DOM\n      const _button = document.getElementById(\"\
+    modal-dialog-ok-button\");\n      if (!_button) throw (\"button is not created
+    yet\");\n\n      let labelKey;\n      try {\n        labelKey = Object.values(_button)[0].return.memoizedProps.labelKey;\n\
+    \      } catch {\n        // do nothing\n      }\n\n      if (labelKey === \"\
+    dialog.login\") {\n        // if this is a login screen, redirect to OIDC login
+    page\n        oidcRedirect();\n      } else if (labelKey === \"dialog.IamHost\"\
+    ) {\n        // if this is an IamHost screen, redirect to OIDC login when clicked\n\
+    \        _button.onclick = oidcRedirect;\n      }\n    } catch (e) {\n      failedAttempt
+    += 1;\n\n      if (failedAttempt < 180) {\n        setTimeout(function () {\n\
+    \          interceptLoginRequest();\n        }, 1000);\n      }\n    }\n  }\n\n\
+    \  interceptLoginRequest();\n</script>\n\n<script>\n  // ---------------------------------------------------------------------------\n\
+    \  // This script customizes Jitsi UI if the room is created by Element Jitsi\n\
+    \  // Widget. It senses the room created by Element by checking its name. The\n\
+    \  // room created by Element has a special name format:\n  //\n  //   base32decode(room_name)
+    should match RegExp(\"^(!.*:.*[.][a-z]*)$\")\n  //   or\n  //   room_name should
+    match RegExp(\"^(Jitsi[A-Z][a-z]{23})$\")\n  // ---------------------------------------------------------------------------\n\
+    \n  function base32decode(s) {\n    const a = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567\"\
+    ;\n    const pad = \"=\";\n    const len = s.length;\n    const apad = a + pad;\n\
+    \    let v, x, r = 0, bits = 0, c, o = \"\";\n\n    s = s.toUpperCase();\n\n \
+    \   for (i = 0; i < len; i += 1) {\n      v = apad.indexOf(s.charAt(i));\n   \
+    \   if (v >= 0 && v < 32) {\n        x = (x << 5) | v;\n        bits += 5;\n \
+    \       if (bits >= 8) {\n          c = (x >> (bits - 8)) & 0xff;\n          o
+    = o + String.fromCharCode(c);\n          bits -= 8;\n        }\n      }\n    }\n\
+    \n    // remaining bits are < 8\n    if (bits > 0) {\n      c = ((x << (8 - bits))
+    & 0xff) >> (8 - bits);\n      // Dont append a null terminator.\n      if (c !==
+    0) {\n        o = o + String.fromCharCode(c);\n      }\n    }\n\n    return o;\n\
+    \  }\n\n  function updateUIforElement() {\n    try {\n      if (!APP.conference.isJoined())
+    throw new Error(\"not joined yet\");\n\n      try {\n        const roomName =
+    APP.store.getState()[\"features/base/conference\"].room;\n        const decoded
+    = base32decode(roomName);\n        const reg1 = new RegExp(\"^(!.*:.*[.][a-z]*)$\"\
+    );\n        const reg2 = new RegExp(\"^(Jitsi[A-Z][a-z]{23})$\");\n        if
+    (!reg1.test(decoded) && !reg2.test(roomName)) {\n          throw new Error(\"
+    not a Matrix room\");\n        }\n\n        APP.store.getState()[\"features/toolbox\"\
+    ].toolbarButtons = [\n          \"camera\",\n          \"closedcaptions\",\n \
+    \         \"desktop\",\n          \"download\",\n          \"feedback\",\n   \
+    \       \"filmstrip\",\n          \"fullscreen\",\n          \"hangup\",\n   \
+    \       \"help\",\n          \"livestreaming\",\n          \"microphone\",\n \
+    \         \"mute-everyone\",\n          \"mute-video-everyone\",\n          \"\
+    participants-pane\",\n          \"profile\",\n          \"raisehand\",\n     \
+    \     \"security\",\n          \"select-background\",\n          \"settings\"\
+    ,\n          \"shareaudio\",\n          \"shortcuts\",\n          \"stats\",\n\
+    \          \"tileview\",\n          \"toggle-camera\",\n          \"videoquality\"\
+    ,\n        ];\n      } catch {\n        // do nothing\n      }\n    } catch {\n\
+    \      setTimeout(updateUIforElement, 1000);\n    }\n  }\n\n  updateUIforElement();\n\
+    </script>\n\n<script>\n  // ---------------------------------------------------------------------------\n\
+    \  // This script manages the OpenDesk menu in Jitsi. The menu will be activated\n\
+    \  // if Jitsi is opened as a standalone application. It will not be activated
+    if\n  // it is inside an iframe (such as inside Element chat).\n  //\n  // It
+    uses the language of the browser while getting the navigation data.\n  //\n  //
+    This script silently refreshes the portal session by using a hidden iframe\n \
+    \ // and uses this session while fetching the navigation data.\n  // ---------------------------------------------------------------------------\n\
+    \  let ICS = \"\";\n  let PORTAL = \"\";\n\n  // ---------------------------------------------------------------------------\n\
+    \  // Get the ICS URL from Jitsi setup and set it as a global variable.\n  //
+    ---------------------------------------------------------------------------\n\
+    \  async function setIcsUrl() {\n    try {\n      const url = \"/static/url-ics\"\
+    ;\n      const res = await fetch(url);\n\n      ICS = await res.text();\n    }
+    catch {\n      // Do nothing\n    }\n  }\n\n  // ---------------------------------------------------------------------------\n\
+    \  // Get the portal URL from Jitsi setup and set it as a global variable.\n \
+    \ // ---------------------------------------------------------------------------\n\
+    \  async function setPortalUrl() {\n    try {\n      const url = \"/static/url-portal\"\
+    ;\n      const res = await fetch(url);\n\n      PORTAL = await res.text();\n \
+    \   } catch {\n      // Do nothing\n    }\n  }\n\n  // ---------------------------------------------------------------------------\n\
+    \  // Get the navigation data\n  // ---------------------------------------------------------------------------\n\
+    \  async function getNavigation() {\n    try {\n      // Get the browser language.\n\
+    \      let lang = navigator.language || \"de-DE\";\n      if (lang === \"de\"
+    ) lang = \"de-DE\";\n      if (lang === \"en\") lang = \"en-US\";\n\n      const
+    url = `${ICS}/navigation.json?language=${lang}`;\n      const res = await fetch(url,
+    {\n        credentials: \"include\",\n        headers: {\n          Accept: \"\
+    application/json\",\n        },\n      });\n\n      return await res.json();\n\
+    \    } catch {\n      return {};\n    }\n  }\n\n  // ---------------------------------------------------------------------------\n\
+    \  // Toggle menu. It will be triggered after clicking the menu icon.\n  // ---------------------------------------------------------------------------\n\
+    \  function _toggleMenu() {\n    try {\n      const menu = document.getElementById(\"\
+    opendeskMenu\");\n\n      if (menu.style.display !== \"block\") {\n        menu.style.display
+    = \"block\";\n      } else {\n        menu.style.display = \"none\";\n      }\n\
+    \    } catch {\n      // Do nothing\n    }\n  }\n\n  // ---------------------------------------------------------------------------\n\
+    \  // Return the html content of the category (menu items of category)\n  // ---------------------------------------------------------------------------\n\
+    \  function getCategoryItems(entries) {\n    try {\n      let items = \"\";\n\
+    \      for (const entry of entries) {\n        items += `\n        <div style=\"\
+    display: flex; align-items:center; gap:16px; padding:8px;\n                  \
+    \  font-size:14;\"\n        >\n          <img src=\"${entry.icon_url}\" height=\"\
+    20px\" style=\"margin-left:12px;\">\n          <a href=\"${entry.link}\" target=\"\
+    ${entry.target}\"\n             style=\"text-decoration:none; font-weight:normal;
+    color:#1F1F1F;\">\n            ${entry.display_name}\n          </a>\n       \
+    \ </div>\n      `;\n      }\n\n      return items;\n    } catch {\n      return
+    \"\";\n    }\n  }\n\n  // ---------------------------------------------------------------------------\n\
+    \  // Return the hmtl content of the navigation menu\n  // ---------------------------------------------------------------------------\n\
+    \  function getMenuItems(nav) {\n    try {\n      // Skip if no portal session
+    (anonymous user).\n      const identifier = nav.categories?.[0]?.identifier;\n\
+    \      if (!identifier || identifier === \"swp.anonymous\") {\n        throw new
+    Error(\"no item\");\n      }\n\n      let items = \"\";\n      for (const cat
+    of nav.categories) {\n        // Category title in menu.\n        items += `\n\
+    \        <div style=\"font-size:17; font-weight:700; letter-spacing: 0.05em;\n\
+    \                    padding:16px 60px 4px 12px;\"\n        >${cat.display_name}</div>\n\
+    \      `;\n\n        // Category content (links) in menu.\n        items += getCategoryItems(cat.entries);\n\
+    \      }\n\n      return items;\n    } catch {\n      return \"\";\n    }\n  }\n\
+    \n  // ---------------------------------------------------------------------------\n\
+    \  // Create the navigation menu\n  // ---------------------------------------------------------------------------\n\
+    \  function createNavigationMenu(nav) {\n    try {\n      const menuItems = getMenuItems(nav);\n\
+    \      const menu = `\n      <button id=\"opendeskMenuButton\" tabindex=\"0\"
+    onclick=\"_toggleMenu()\"\n        aria-label=\"Toogle menu\" style=\"background:none;
+    border:none;\"\n      >\n        <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"\
+    24px\" width=\"24px\"\n          viewBox=\"0 0 24 24\" fill=\"#000000\" style=\"\
+    margin:12px 8px;\"\n        >\n          <path d=\"M0 0h24v24H0z\" fill=\"none\"\
+    />\n          <path d=\"M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6\n\
+    \                   0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0\n\
+    \                   6h4v-4h-4v4z\"/>\n        </svg>\n        <div id=\"opendeskMenu\"\
     \n          style=\"position:absolute; top:63px; left:8px; z-index:10;\n     \
     \            padding: 4px; background-color:white; color:#1F1F1F;\n          \
     \       border-radius: 4px; border: 1px solid; border-color:#e8e6e3; \n      \
     \           box-shadow: rgba(118, 131, 156, 0.6) 4px 4px 12px 0px;\n         \
     \        text-align:left; cursor: default; display:none;\"\n        >${menuItems}</div>\n\
-    \      </button>\n    `;\n\n    // Close menu if clicked somewhere else.\n   \
-    \ document.addEventListener(\"click\", (event) => {\n      try {\n        // Skip
-    if clicked to the menu button or to the menu.\n        const menuButton = document.getElementById(\"\
-    opendeskMenuButton\");\n        if (menuButton.contains(event.target)) return;\n\
-    \n        // Close menu if already visible.\n        const menu = document.getElementById(\"\
-    opendeskMenu\");\n        if (menu.style.display !== \"none\") menu.style.display
-    = \"none\";\n      } catch {\n        // Do nothing\n      }\n    });\n\n    return
-    menu;\n  } catch {\n    return \"\";\n  }\n}\n\n// -----------------------------------------------------------------------------\n
-    // Remove the header watermark. We dont want to see Jitsi's logo in the welcome\n
-    // screen since this screen has already a topbar and a logo inside this topbar.\n
-    // -----------------------------------------------------------------------------\n
-    function removeHeaderWatermark() {\n  try {\n    const elist = document.getElementsByClassName(\"\
-    header-watermark-container\");\n    const el = elist?.[0];\n    if (el) el.remove();\n\
-    \  } catch {\n    // Do nothing\n  }\n}\n\n// -----------------------------------------------------------------------------\n
-    // Create topbar\n// -----------------------------------------------------------------------------\n
-    function createTopbar(nav) {\n  try {\n    // Remove topbar if already exists
-    to prevent duplicated topbars.\n    const el = document.getElementById(\"opendeskTopbar\"\
-    );\n    if (el) el.remove();\n\n    // Create topbar\n    const topDiv = document.createElement(\"\
-    div\");\n    topDiv.id = \"opendeskTopbar\";\n    topDiv.style.gap = \"14px\"\
-    ;\n    topDiv.style.height = \"63px\";\n    topDiv.style.display = \"flex\";\n\
-    \    topDiv.style.alignItems = \"center\";\n    topDiv.style.backgroundColor =
-    \"white\";\n    topDiv.innerHTML = `\n      <a href=\"${PORTAL}\" tabindex=\"\
-    0\" target=\"_blank\" aria-label=\"Show portal\"\n         style=\"margin-left:16px\"\
-    \n      >\n        <img src=\"${PORTAL}/univention/portal/icons/logos/domain.svg\"\
+    \      </button>\n    `;\n\n      // Close menu if clicked somewhere else.\n \
+    \     document.addEventListener(\"click\", (event) => {\n        try {\n     \
+    \     // Skip if clicked to the menu button or to the menu.\n          const menuButton
+    = document.getElementById(\"opendeskMenuButton\");\n          if (menuButton.contains(event.target))
+    return;\n\n          // Close menu if already visible.\n          const menu =
+    document.getElementById(\"opendeskMenu\");\n          if (menu.style.display !==
+    \"none\") menu.style.display = \"none\";\n        } catch {\n          // Do nothing\n\
+    \        }\n      });\n\n      return menu;\n    } catch {\n      return \"\"\
+    ;\n    }\n  }\n\n  // ---------------------------------------------------------------------------\n\
+    \  // Remove the header watermark. We dont want to see Jitsi's logo in the\n \
+    \ // welcome screen since this screen has already a topbar and a logo inside\n\
+    \  // this topbar.\n  // ---------------------------------------------------------------------------\n\
+    \  function removeHeaderWatermark() {\n    try {\n      const elist = document.getElementsByClassName(\n\
+    \        \"header-watermark-container\",\n      );\n      const el = elist?.[0];\n\
+    \      if (el) el.remove();\n    } catch {\n      // Do nothing\n    }\n  }\n\n\
+    \  // ---------------------------------------------------------------------------\n\
+    \  // Create topbar\n  // ---------------------------------------------------------------------------\n\
+    \  function createTopbar(nav) {\n    try {\n      // Remove topbar if already
+    exists to prevent duplicated topbars.\n      const el = document.getElementById(\"\
+    opendeskTopbar\");\n      if (el) el.remove();\n\n      // Create topbar\n   \
+    \   const topDiv = document.createElement(\"div\");\n      topDiv.id = \"opendeskTopbar\"\
+    ;\n      topDiv.style.gap = \"14px\";\n      topDiv.style.height = \"63px\";\n\
+    \      topDiv.style.display = \"flex\";\n      topDiv.style.alignItems = \"center\"\
+    ;\n      topDiv.style.backgroundColor = \"white\";\n      topDiv.innerHTML = `\n\
+    \      <a href=\"${PORTAL}\" tabindex=\"0\" target=\"_blank\" aria-label=\"Show
+    portal\"\n         style=\"margin-left:16px\"\n      >\n        <img src=\"${PORTAL}/univention/portal/icons/logos/domain.svg\"\
     \n          style=\"width:82px; margin:16px 8px;\"\n          alt=\"OpenDesk\"\
-    >\n      </a>\n    `;\n\n    // If the navigation data exists then add the navigation
-    menu.\n    const identifier = nav.categories?.[0]?.identifier;\n    if (identifier
-    && identifier !== \"swp.anonymous\") {\n      topDiv.innerHTML += createNavigationMenu(nav);\n\
-    \    }\n\n    // If this is a welcome page then add topbar in the welcome div,\n\
-    \    // otherwise add as the first elemenent.\n    const welcomeDiv = document.getElementById(\"\
-    welcome_page\");\n    if (welcomeDiv) {\n      welcomeDiv.insertBefore(topDiv,
-    welcomeDiv.firstChild);\n      removeHeaderWatermark();\n    } else {\n      document.body.insertBefore(topDiv,
-    document.body.firstChild);\n    }\n  } catch {\n    // Do nothing\n  }\n}\n\n
-    // -----------------------------------------------------------------------------\n
-    // Remove the hidden iframes after refreshing the portal session\n// -----------------------------------------------------------------------------\n
-    function removeIframe() {\n  try {\n    const el = document.getElementById(\"\
-    opendeskIframeSilentLogin\");\n    if (el) el.remove();\n  } catch {\n    // Do
-    nothing\n  }\n\n  try {\n    const el = document.getElementById(\"opendeskIframeNavigation\"\
-    );\n    if (el) el.remove();\n  } catch {\n    // Do nothing\n  }\n}\n\n// -----------------------------------------------------------------------------\n
-    // Try refreshing the session and recreate topbar\n// -----------------------------------------------------------------------------\n
-    function recreateTopbarAfterSilentLogin() {\n  try {\n    // Silent login inside
-    a hidden iframe.\n    const iframeSilentLogin = document.createElement(\"iframe\"\
-    );\n    iframeSilentLogin.id = \"opendeskIframeSilentLogin\";\n    iframeSilentLogin.src
-    = `${ICS}/silent`;\n    iframeSilentLogin.style.display = \"none\";\n    document.body.appendChild(iframeSilentLogin);\n\
-    \n    // Trigger the navigation iframe after the silent login is completed.\n\
-    \    iframeSilentLogin.onload = () => {\n      // Navigation.json inside this
-    hidden iframe is only to refresh the\n      // session. The silent login is not
-    enough in some cases.\n      const iframeNavigation = document.createElement(\"\
-    iframe\");\n      iframeNavigation.id = \"opendeskIframeNavigation\";\n      iframeNavigation.src
-    = `${ICS}/navigation.json`;\n      iframeNavigation.style.display = \"none\";\n\
-    \      document.body.appendChild(iframeNavigation);\n\n      // Get the navigation
-    data and recreate topbar after the session is\n      // refreshed.\n      iframeNavigation.onload
-    = async () => {\n        const nav = await getNavigation();\n        const identifier
-    = nav.categories?.[0]?.identifier;\n        if (identifier && identifier !== \"\
-    swp.anonymous\") createTopbar(nav);\n      };\n    };\n  } catch {\n    // Do
-    nothing\n  } finally {\n    // Wait a bit before removing the iframes.\n    setTimeout(removeIframe,
-    10000);\n  }\n}\n\n// -----------------------------------------------------------------------------\n
-    // Remove topbar after joining the meeting. Topbar breaks Jitsi UI if it is\n
-    // visible during the session.\n// -----------------------------------------------------------------------------\n
-    function removeTopbarAfterJoining() {\n  try {\n    // Dont continue if no Jitsi
-    session yet.\n    if (!APP.conference.isJoined()) throw new Error(\"no session
-    yet\");\n\n    // Remove topbar since the session started.\n    const el = document.getElementById(\"\
-    opendeskTopbar\");\n    if (el) el.remove();\n  } catch {\n    // Try again after
-    a while.\n    setTimeout(removeTopbarAfterJoining, 1000);\n  }\n}\n\n// -----------------------------------------------------------------------------\n
-    // Add topbar\n// -----------------------------------------------------------------------------\n
-    async function addTopbar() {\n  try {\n    // Set the ICS URL as a global variable
-    (ICS)\n    await setIcsUrl();\n    if (!ICS) throw new Error(\"unknown ics url\"\
-    );\n\n    // Set the portal URL as a global variable (PORTAL)\n    await setPortalUrl();\n\
-    \    if (!PORTAL) throw new Error(\"unknown portal url\");\n\n    // Trigger the
-    event listener which will remove topbar after joining the\n    // meeting. Dont
-    show the toolbar during the meeting session.\n    removeTopbarAfterJoining();\n\
-    \n    // Create the topbar (initially without navigation data). We want the topbar\n\
-    \    // immediately even the navigation data is not available yet.\n    createTopbar({});\n\
-    \n    // Recreate the topbar after silent login.\n    recreateTopbarAfterSilentLogin();\n\
-    \  } catch {\n    // Do nothing\n  }\n}\n\n// -----------------------------------------------------------------------------\n
-    // Main\n// -----------------------------------------------------------------------------\n
-    // Add topbar if this is a standalone window (not an iframe)\nif (!self.name ||
-    self.name === \"tab_realtime_videoconference\") addTopbar();\n\n</script>\n"
+    >\n      </a>\n    `;\n\n      // If the navigation data exists then add the navigation
+    menu.\n      const identifier = nav.categories?.[0]?.identifier;\n      if (identifier
+    && identifier !== \"swp.anonymous\") {\n        topDiv.innerHTML += createNavigationMenu(nav);\n\
+    \      }\n\n      // If this is a welcome page then add topbar in the welcome
+    div,\n      // otherwise add as the first elemenent.\n      const welcomeDiv =
+    document.getElementById(\"welcome_page\");\n      if (welcomeDiv) {\n        welcomeDiv.insertBefore(topDiv,
+    welcomeDiv.firstChild);\n        removeHeaderWatermark();\n      } else {\n  \
+    \      document.body.insertBefore(topDiv, document.body.firstChild);\n      }\n\
+    \    } catch {\n      // Do nothing\n    }\n  }\n\n  // ---------------------------------------------------------------------------\n\
+    \  // Remove the hidden iframes after refreshing the portal session\n  // ---------------------------------------------------------------------------\n\
+    \  function removeIframe() {\n    try {\n      const el = document.getElementById(\"\
+    opendeskIframeSilentLogin\");\n      if (el) el.remove();\n    } catch {\n   \
+    \   // Do nothing\n    }\n\n    try {\n      const el = document.getElementById(\"\
+    opendeskIframeNavigation\");\n      if (el) el.remove();\n    } catch {\n    \
+    \  // Do nothing\n    }\n  }\n\n  // ---------------------------------------------------------------------------\n\
+    \  // Try refreshing the session and recreate topbar\n  // ---------------------------------------------------------------------------\n\
+    \  function recreateTopbarAfterSilentLogin() {\n    try {\n      // Silent login
+    inside a hidden iframe.\n      const iframeSilentLogin = document.createElement(\"\
+    iframe\");\n      iframeSilentLogin.id = \"opendeskIframeSilentLogin\";\n    \
+    \  iframeSilentLogin.src = `${ICS}/silent`;\n      iframeSilentLogin.style.display
+    = \"none\";\n      document.body.appendChild(iframeSilentLogin);\n\n      // Trigger
+    the navigation iframe after the silent login is completed.\n      iframeSilentLogin.onload
+    = () => {\n        // Navigation.json inside this hidden iframe is only to refresh
+    the\n        // session. The silent login is not enough in some cases.\n     \
+    \   const iframeNavigation = document.createElement(\"iframe\");\n        iframeNavigation.id
+    = \"opendeskIframeNavigation\";\n        iframeNavigation.src = `${ICS}/navigation.json`;\n\
+    \        iframeNavigation.style.display = \"none\";\n        document.body.appendChild(iframeNavigation);\n\
+    \n        // Get the navigation data and recreate topbar after the session is\n\
+    \        // refreshed.\n        iframeNavigation.onload = async () => {\n    \
+    \      const nav = await getNavigation();\n          const identifier = nav.categories?.[0]?.identifier;\n\
+    \          if (identifier && identifier !== \"swp.anonymous\") createTopbar(nav);\n\
+    \        };\n      };\n    } catch {\n      // Do nothing\n    } finally {\n \
+    \     // Wait a bit before removing the iframes.\n      setTimeout(removeIframe,
+    10000);\n    }\n  }\n\n  // ---------------------------------------------------------------------------\n\
+    \  // Remove topbar after joining the meeting. Topbar breaks Jitsi UI if it is\n\
+    \  // visible during the session.\n  // ---------------------------------------------------------------------------\n\
+    \  function removeTopbarAfterJoining() {\n    try {\n      // Dont continue if
+    no Jitsi session yet.\n      if (!APP.conference.isJoined()) throw new Error(\"\
+    no session yet\");\n\n      // Remove topbar since the session started.\n    \
+    \  const el = document.getElementById(\"opendeskTopbar\");\n      if (el) el.remove();\n\
+    \    } catch {\n      // Try again after a while.\n      setTimeout(removeTopbarAfterJoining,
+    1000);\n    }\n  }\n\n  // ---------------------------------------------------------------------------\n\
+    \  // Add topbar\n  // ---------------------------------------------------------------------------\n\
+    \  async function addTopbar() {\n    try {\n      // Set the ICS URL as a global
+    variable (ICS)\n      await setIcsUrl();\n      if (!ICS) throw new Error(\"unknown
+    ics url\");\n\n      // Set the portal URL as a global variable (PORTAL)\n   \
+    \   await setPortalUrl();\n      if (!PORTAL) throw new Error(\"unknown portal
+    url\");\n\n      // Trigger the event listener which will remove topbar after
+    joining the\n      // meeting. Dont show the toolbar during the meeting session.\n\
+    \      removeTopbarAfterJoining();\n\n      // Create the topbar (initially without
+    navigation data). We want the\n      // topbar immediately even the navigation
+    data is not available yet.\n      createTopbar({});\n\n      // Recreate the topbar
+    after silent login.\n      recreateTopbarAfterSilentLogin();\n    } catch {\n\
+    \      // Do nothing\n    }\n  }\n\n  // ---------------------------------------------------------------------------\n\
+    \  // Main\n  // ---------------------------------------------------------------------------\n\
+    \  // Add topbar if this is a standalone window (not an iframe)\n  if (!self.name
+    || self.name === \"tab_realtime_videoconference\") addTopbar();\n</script>\n"
 
   lang-overwritten-de.json: |
     {
@@ -450,7 +611,7 @@ data:
       ],
       "welcomepage": {
         "headerSubtitle": "Please enter the conference name",
-        "headerTitle": "Video Conferencing"
+        "headerTitle": "Video Conference"
       }
     }
 
@@ -780,24 +941,24 @@ data:
             const hash = qs.get("hash") || "";
 
             let target = `${path}?` +
-              `${search}${search?"&":""}` +
+              `${search}${search ? "&" : ""}` +
               `oidc=unauthorized` +
-              `${hash?"#":""}${hash}`;
+              `${hash ? "#" : ""}${hash}`;
 
             if (!err) {
               const token = await getToken(code, path, search, hash);
 
               if (token) {
                 target = `${path}?` +
-                  `${search}${search?"&":""}` +
+                  `${search}${search ? "&" : ""}` +
                   `oidc=authorized` +
                   `&jwt=${token}` +
-                  `${hash?"#":""}${hash}`;
+                  `${hash ? "#" : ""}${hash}`;
               } else {
                 target = `${path}?` +
-                  `${search}${search?"&":""}` +
+                  `${search}${search ? "&" : ""}` +
                   `oidc=failed` +
-                  `${hash?"#":""}${hash}`;
+                  `${hash ? "#" : ""}${hash}`;
               }
             }
 
@@ -806,7 +967,7 @@ data:
         </script>
       </head>
       <body onload="adapter()">
-      adapting...
+        adapting...
       </body>
     </html>
 
@@ -850,32 +1011,31 @@ data:
       "logoImageUrl": "/images/watermark.svg",
       "customTheme": {
         "palette": {
-          "action01": "#6af56a",
-          "action01Hover": "#6af56a"
+          "action01": "#571EFA",
+          "action01Hover": "#571EFA"
         }
       }
     }
 
   custom-config.js: |
+    // SPDX-FileCopyrightText: 2024 Zentrum für Digitale Souveränität der Öffentlichen Verwaltung (ZenDiS) GmbH
     // SPDX-FileCopyrightText: 2023 Bundesministerium des Innern und für Heimat, PG ZenDiS "Projektgruppe für Aufbau ZenDiS"
     // SPDX-License-Identifier: Apache-2.0
-    config.liveStreaming={};
-    config.liveStreaming.enabled = true;
-    config.liveStreaming.termsLink='https://corp.kaltura.com/terms-of-use/';
-    config.liveStreaming.dataPrivacyLink='https://corp.kaltura.com/terms-of-use/';
-    config.liveStreaming.validatorRegExpString='^rtmp://[_a-zA-Z0-9]{10}\\.[a-z]\\.kpublish\\.kaltura\\.com';
-    config.liveStreaming.helpLink = 'https://knowledge.kaltura.com/help/getting-started-with-kaltura-live';
-
-    config.dynamicBrandingUrl = '/static/branding.json';
-    config.disabledSounds = [
-      'INCOMING_MSG_SOUND',
+    config.disabledNotifications = [
+      "notify.moderator",
     ];
-    config.doNotStoreRoom = true;
+    config.disabledSounds = [
+      "INCOMING_MSG_SOUND",
+    ];
+    config.doNotStoreRoom = false;
+    config.dynamicBrandingUrl = "/static/branding.json";
 
   custom-interface_config.js: |
+    // SPDX-FileCopyrightText: 2024 Zentrum für Digitale Souveränität der Öffentlichen Verwaltung (ZenDiS) GmbH
     // SPDX-FileCopyrightText: 2023 Bundesministerium des Innern und für Heimat, PG ZenDiS "Projektgruppe für Aufbau ZenDiS"
     // SPDX-License-Identifier: Apache-2.0
-    interfaceConfig.APP_NAME = 'MijnBureau Videoconference';
+    interfaceConfig.APP_NAME =
+      "Videokonferenz - openDesk";
     interfaceConfig.DISABLE_JOIN_LEAVE_NOTIFICATIONS = true;
     interfaceConfig.DISABLE_PRESENCE_STATUS = true;
     interfaceConfig.DISABLE_TRANSCRIPTION_SUBTITLES = true;
@@ -883,11 +1043,17 @@ data:
     interfaceConfig.DISPLAY_WELCOME_FOOTER = false;
     interfaceConfig.ENABLE_DIAL_OUT = false;
     interfaceConfig.GENERATE_ROOMNAMES_ON_WELCOME_PAGE = true;
-    interfaceConfig.RECENT_LIST_ENABLED = true;
+    interfaceConfig.RECENT_LIST_ENABLED =
+      true;
     interfaceConfig.SHOW_JITSI_WATERMARK = true;
-    interfaceConfig.JITSI_WATERMARK_LINK = 'https://portal.opendesk.apps.digilab.network';
+    interfaceConfig.JITSI_WATERMARK_LINK =
+      "https://portal.opendesk.apps.digilab.network";
 
   plugin.head.html: |
+    <!--
+    SPDX-FileCopyrightText: 2023 Bundesministerium des Innern und für Heimat, PG ZenDiS "Projektgruppe für Aufbau ZenDiS"
+    SPDX-License-Identifier: Apache-2.0
+    -->
     <style>
       .meetings-list .item {
         border-color: #f5f5f5;
@@ -923,7 +1089,11 @@ data:
         margin-top: 4px;
       }
 
-      .welcome .header #enter_room .enter-room-input-container .enter-room-input.focus-visible {
+      .welcome
+        .header
+        #enter_room
+        .enter-room-input-container
+        .enter-room-input.focus-visible {
         outline: unset;
       }
 
@@ -933,7 +1103,9 @@ data:
       }
 
       .welcome .header {
-        background-image: linear-gradient(0deg,rgba(0,0,0,.2),rgba(0,0,0,.2)),url(../images/welcome-background.jpg) !important;
+        background-image:
+          linear-gradient(0deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+          url(../images/welcome-background.jpg) !important;
       }
 
       .welcome .header .header-container {
@@ -948,20 +1120,35 @@ data:
         font-weight: 600;
       }
 
+      /* Set a border color for the recent meeting list if it is enabled */
+
       .welcome .welcome-card--blue {
         background: unset;
-        border-color: #6af56a;
+        border-color: #571EFA;
         border-radius: 0px;
         border-style: solid;
         border-width: 3px 0px;
       }
 
+
       .welcome .welcome-page-button {
-        background: #6af56a;
+        background: #571EFA;
         border-radius: 0px 8px 8px 0px;
         font-size: 18px;
         font-weight: 600;
         padding: 8px 20px;
+      }
+
+      /* "End for all" button changed to "secondary" colors */
+      div[class$="hangupMenu"] button[class$="destructive-medium-fullWidth"] {
+        background-color: #e0e0e0;
+        color: #3d3d3d;
+      }
+
+      /* Regular hangup button changed to "destructive" colors */
+      div[class$="hangupMenu"] button[class$="secondary-medium-fullWidth"] {
+        background-color: #cb2233;
+        color: #fff;
       }
     </style>
 ---
@@ -1036,10 +1223,15 @@ data:
     fi;
 
     echo "Patching JVB to advertise IP: ${ip}"
-    kubectl patch cm jitsi-jvb --type json --patch \
-      "[{ \"op\": \"add\", \"path\": \"/data/JVB_ADVERTISE_IPS\", \"value\": \"${ip}\" },
-       { \"op\": \"add\", \"path\": \"/data/DOCKER_HOST_ADDRESS\", \"value\": \"${ip}\" }]"
+    INDEX_JVB_ADVERTISE_IPS=$(kubectl get deployment jitsi-jvb -o json | jq '.spec.template.spec.containers[0].env | to_entries | map(select(.value.name == "JVB_ADVERTISE_IPS")) | .[0].key')
+    INDEX_DOCKER_HOST_ADDRESS=$(kubectl get deployment jitsi-jvb -o json | jq '.spec.template.spec.containers[0].env | to_entries | map(select(.value.name == "DOCKER_HOST_ADDRESS")) | .[0].key')
+    kubectl patch deployment jitsi-jvb --type json --patch \
+      "[{ \"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/env/${INDEX_JVB_ADVERTISE_IPS}/value\", \"value\": \"${ip}\" },
+       { \"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/env/${INDEX_DOCKER_HOST_ADDRESS}/value\", \"value\": \"${ip}\" }]"
+    # Ensure jitsi-jvb is restarted after changes above have been applied.
     kubectl rollout restart deployment jitsi-jvb
+    # As the jitsi-web subchart does not realize when files in the folder /files/web are changed, we restart jitsi-web forcefully.
+    kubectl rollout restart deployment jitsi-web
 ---
 # Source: opendesk-jitsi/templates/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -1048,11 +1240,11 @@ metadata:
   name: jitsi-opendesk-jitsi
   labels:
     app.kubernetes.io/name: opendesk-jitsi
-    helm.sh/chart: opendesk-jitsi-1.12.5
+    helm.sh/chart: opendesk-jitsi-3.0.1
     app.kubernetes.io/instance: jitsi
     app.kubernetes.io/managed-by: Helm
 rules:
-  # Get IP/Port from service.
+  # Get IP/Port from service
   # Update target port for nodePort
 - apiGroups: ['']
   resources:
@@ -1063,7 +1255,7 @@ rules:
   - get
   - update
   - patch
-  # Update configmap for env vars.
+  # Update configmap for env vars
 - apiGroups: ['']
   resources:
   - configmaps
@@ -1073,7 +1265,7 @@ rules:
   - get
   - update
   - patch
-  # Restart JVB after patch.
+  # Get resources for jitsi-jvb and restart deployment.
 - apiGroups: [apps]
   resources:
   - deployments
@@ -1081,7 +1273,15 @@ rules:
   - jitsi-jvb
   verbs:
   - get
-  - update
+  - patch
+  # Restart jitsi-web deployment to pickup changes even when templated in one of the configMap files
+- apiGroups: [apps]
+  resources:
+  - deployments
+  resourceNames:
+  - jitsi-web
+  verbs:
+  - get
   - patch
 ---
 # Source: opendesk-jitsi/templates/rolebinding.yaml
@@ -1091,7 +1291,7 @@ metadata:
   name: jitsi-opendesk-jitsi
   labels:
     app.kubernetes.io/name: opendesk-jitsi
-    helm.sh/chart: opendesk-jitsi-1.12.5
+    helm.sh/chart: opendesk-jitsi-3.0.1
     app.kubernetes.io/instance: jitsi
     app.kubernetes.io/managed-by: Helm
 roleRef:
@@ -1108,10 +1308,10 @@ kind: Service
 metadata:
   name: jitsi-prosody
   labels:
-    helm.sh/chart: prosody-1.3.8
+    helm.sh/chart: prosody-1.4.1
     app.kubernetes.io/name: prosody
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
 spec:
   type: ClusterIP
@@ -1141,10 +1341,10 @@ kind: Service
 metadata:
   name: jitsi-jibri
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: jibri
 spec:
@@ -1170,10 +1370,10 @@ metadata:
   name: jitsi-jvb
   annotations:
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: jvb
 spec:
@@ -1194,10 +1394,10 @@ kind: Service
 metadata:
   name: jitsi-web
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: web
 spec:
@@ -1219,7 +1419,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-jitsi
-    helm.sh/chart: opendesk-jitsi-1.12.5
+    helm.sh/chart: opendesk-jitsi-3.0.1
     app.kubernetes.io/instance: jitsi
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -1239,10 +1439,10 @@ kind: Deployment
 metadata:
   name: jitsi-jibri
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: jibri
 spec:
@@ -1259,8 +1459,8 @@ spec:
         app.kubernetes.io/instance: jitsi
         app.kubernetes.io/component: jibri
       annotations:
-        checksum/config: 2ec9a015a1a4493f8c5b49c320c674c728a72105fa0742a4f6696e6bc8017c0d
-        checksum/secret: 2a5e7358ebacb5162d331dc9b87cf04552da279220cbc3f17dc4fbff82db7323
+        checksum/config: b67ad2da5d1ac1a7b5b26a8621ebfad80757f8eb67a015a7703fcdc449ce0e10
+        checksum/secret: d7ce1df13503065b9282dfbaa045c0acec4a7931300fde723b77dc8e065e7f9b
     spec:
       serviceAccountName: jitsi
       containers:
@@ -1269,7 +1469,7 @@ spec:
           capabilities:
             add: [SYS_ADMIN]
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/jibri:stable-9646@sha256:30173d35449d78f8958eaf4de77e76c534806db0e49bdbb930f8c81e003e5a3b
+          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/jibri:stable-9823@sha256:dd7a330cb14d95b7661167d7b4e1a8f2e988952ba4ea24baa0a96e09bebd40b1
         imagePullPolicy: IfNotPresent
         ports:
         - name: http-internal
@@ -1308,17 +1508,43 @@ spec:
             name: jitsi-jibri
 
         resources:
+          limits:
+            cpu: 99
+            memory: 3Gi
           requests:
             cpu: 0.1
             memory: 384Mi
 
         volumeMounts:
+        - name: config
+          mountPath: /config
         - name: jibri-data
           mountPath: /data
         - name: dev-shm
           mountPath: /dev/shm
 
       volumes:
+      - name: config
+        emptyDir: {}
+      - name: custom-cont-inits
+        configMap:
+          defaultMode: 493
+          name: jitsi-jibri-cont-inits
+          items:
+          - key: 10-config
+            path: 10-config
+      - name: custom-defaults
+        configMap:
+          name: jitsi-jibri-defaults
+          items:
+          - key: jibri.conf
+            path: jibri.conf
+          - key: logging.properties
+            path: logging.properties
+          - key: autoscaler-sidecar.config
+            path: autoscaler-sidecar.config
+          - key: xorg-video-dummy.conf
+            path: xorg-video-dummy.conf
       - name: jibri-data
         emptyDir: {}
       - name: dev-shm
@@ -1332,10 +1558,10 @@ kind: Deployment
 metadata:
   name: jitsi-jicofo
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: jicofo
 spec:
@@ -1352,11 +1578,29 @@ spec:
         app.kubernetes.io/instance: jitsi
         app.kubernetes.io/component: jicofo
       annotations:
-        checksum/config: 4771209fa79f21c5693d5b6a90eb1c8c204eed585055c521bcaabd479498a9de
-        checksum/secret: 75dec4ca56b7f906b800f011241ad621bf42592d649d2d1aa52cb9ba9ba1e30c
+        checksum/config: fbd62f00b5ee90a6f37535b1a60e78f2cf0cd02f6927989beea26eae89c06674
+        checksum/secret: 56ad188975433d18db170ebf5c86448d29300deeeba29f65696626a197c04e03
     spec:
       serviceAccountName: jitsi
       securityContext: {}
+      volumes:
+      - name: config
+        emptyDir: {}
+      - name: custom-cont-inits
+        configMap:
+          defaultMode: 493
+          name: jitsi-jicofo-cont-inits
+          items:
+          - key: 10-config
+            path: 10-config
+      - name: custom-defaults
+        configMap:
+          name: jitsi-jicofo-defaults
+          items:
+          - key: jicofo.conf
+            path: jicofo.conf
+          - key: logging.properties
+            path: logging.properties
       containers:
       - name: jitsi
         securityContext:
@@ -1371,7 +1615,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/jicofo:stable-9646@sha256:c2c72b6e4b6655d8758145f5c4d4201265626b7c3c1a03f41c7dda060ca7165d
+          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/jicofo:stable-9823@sha256:551aa2adf078f8872474481a9bda7b7526fc5cae2853ce0be2aa1f6d91bf2ecc
         imagePullPolicy: IfNotPresent
         envFrom:
         - secretRef:
@@ -1391,9 +1635,16 @@ spec:
           tcpSocket:
             port: 8888
         resources:
+          limits:
+            cpu: 99
+            memory: 3584Mi
           requests:
             cpu: 0.1
             memory: 256Mi
+        volumeMounts:
+          # to support readOnlyRootFilesystem
+        - name: config
+          mountPath: /config
 ---
 # Source: opendesk-jitsi/charts/jitsi/templates/jvb/deployment.yaml
 apiVersion: apps/v1
@@ -1401,10 +1652,10 @@ kind: Deployment
 metadata:
   name: jitsi-jvb
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: jvb
 spec:
@@ -1421,8 +1672,8 @@ spec:
         app.kubernetes.io/instance: jitsi
         app.kubernetes.io/component: jvb
       annotations:
-        checksum/config: 515160429a7602eb9e29d22b25524f7149feaa9493a8cde81e8f8cd404305199
-        checksum/secret: 4d53833bba33ce030a879a67f7053754028464686f612252c15e62feb6a2fd65
+        checksum/config: a122e93ceed1313beded34f7278150cdb353d6086a34f4b2e46523d480af03f9
+        checksum/secret: 2760d330736e2ec50b1af9b75aca7b5f5bf3324a60a3b20b0cd80dbcf0d2fbb2
     spec:
       serviceAccountName: jitsi
       securityContext: {}
@@ -1440,7 +1691,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/jvb:stable-9646@sha256:22dfb237cdda8142dcf2b141c28d40ec8a675dd379dda5e851dac49e43e677b7
+          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/jvb:stable-9823@sha256:e6e43071ce26628c816bea46a259c7462c8d5edbbd2ed66f983b1e0f2d9a6cb2
         imagePullPolicy: IfNotPresent
         envFrom:
         - secretRef:
@@ -1450,6 +1701,10 @@ spec:
         - configMapRef:
             name: jitsi-jvb
         env:
+        - name: DOCKER_HOST_ADDRESS
+          value: 0.0.0.0
+        - name: JVB_ADVERTISE_IPS
+          value: 0.0.0.0
         - name: JVB_WS_SERVER_ID
           valueFrom:
             fieldRef:
@@ -1470,6 +1725,9 @@ spec:
             path: /about/health
             port: 8080
         resources:
+          limits:
+            cpu: 99
+            memory: 3584Mi
           requests:
             cpu: 0.1
             memory: 384Mi
@@ -1480,10 +1738,10 @@ kind: Deployment
 metadata:
   name: jitsi-web
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: web
 spec:
@@ -1500,7 +1758,7 @@ spec:
         app.kubernetes.io/instance: jitsi
         app.kubernetes.io/component: web
       annotations:
-        checksum/config: a612da82fee8d59a0e7a2490a75ff02f1bacc24b25cefbd375d2f7691fdf3f0c
+        checksum/config: 8c27b02deaa54a30d1a7afd0c755333b24fad166f43b16aabd13cde2e8d4b4c6
     spec:
       serviceAccountName: jitsi
       securityContext: {}
@@ -1518,7 +1776,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/web:stable-9646@sha256:04157797558743fa9c478b76d7332a45c6fbfbe4e34d6550f8716dd8526a1c6c
+          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/web:stable-9823@sha256:d37d0d34715a0089437c5c030251010e068926f93395d46753e1767d0ee16247
         imagePullPolicy: IfNotPresent
         envFrom:
         - configMapRef:
@@ -1541,10 +1799,15 @@ spec:
             path: /
             port: 80
         resources:
+          limits:
+            cpu: 99
+            memory: 512Mi
           requests:
             cpu: 0.1
             memory: 32Mi
         volumeMounts:
+        - name: config
+          mountPath: /config
         - mountPath: /config/custom-config.js
           name: jitsi-meet-files
           subPath: custom-config.js
@@ -1591,6 +1854,39 @@ spec:
           name: jitsi-meet-files
           subPath: url-portal
       volumes:
+      - name: config
+        emptyDir: {}
+      - name: custom-init
+        configMap:
+          defaultMode: 493
+          name: jitsi-web-init
+          items:
+          - key: 10-config
+            path: 10-config
+      - name: custom-conffiles
+        configMap:
+          name: jitsi-web-conffiles
+          items:
+          - key: custom-config.js
+            path: custom-config.js
+          - key: custom-interface_config.js
+            path: custom-interface_config.js
+          - key: default
+            path: default
+          - key: ffdhe2048.txt
+            path: ffdhe2048.txt
+          - key: interface_config.js
+            path: interface_config.js
+          - key: meet.conf
+            path: meet.conf
+          - key: nginx.conf
+            path: nginx.conf
+          - key: settings-config.js
+            path: settings-config.js
+          - key: ssl.conf
+            path: ssl.conf
+          - key: system-config.js
+            path: system-config.js
       - configMap:
           items:
           - key: body.html
@@ -1638,7 +1934,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-jitsi
-    helm.sh/chart: opendesk-jitsi-1.12.5
+    helm.sh/chart: opendesk-jitsi-3.0.1
     app.kubernetes.io/instance: jitsi
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -1654,7 +1950,7 @@ spec:
       annotations:
       labels:
         app.kubernetes.io/name: opendesk-jitsi
-        helm.sh/chart: opendesk-jitsi-1.12.5
+        helm.sh/chart: opendesk-jitsi-3.0.1
         app.kubernetes.io/instance: jitsi
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -1662,7 +1958,7 @@ spec:
       containers:
       - name: keycloak
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/jitsi-keycloak-adapter:v20240808@sha256:73db5ae9bb617d076b6a877500dbeece38fd15f8ae933ffadbd72d9aa82ad8da
+          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/jitsi-keycloak-adapter:v20241023@sha256:2391799c5168222f0e3ebb94d7c3cb3bcea6f075399458197f0c1bbbb8f293fe
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -1687,7 +1983,10 @@ spec:
         - name: JWT_APP_ID
           value: meet.opendesk.apps.digilab.network
         - name: JWT_APP_SECRET
-          value: 4305e3ad11d3600c7ccbdcee94ef12f16e0890b7
+          valueFrom:
+            secretKeyRef:
+              name: jitsi-opendesk-jitsi-keycloak-adapter
+              key: jwtAppSecret
         - name: JWT_ALG
           value: HS256
         - name: JWT_HASH
@@ -1703,8 +2002,11 @@ spec:
           containerPort: 9000
           protocol: TCP
         resources:
+          limits:
+            cpu: 99
+            memory: 128Mi
           requests:
-            cpu: 10m
+            cpu: 0.01
             memory: 48Mi
         livenessProbe:
           httpGet:
@@ -1747,10 +2049,10 @@ kind: StatefulSet
 metadata:
   name: jitsi-prosody
   labels:
-    helm.sh/chart: prosody-1.3.8
+    helm.sh/chart: prosody-1.4.1
     app.kubernetes.io/name: prosody
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
 spec:
   serviceName: jitsi-prosody
@@ -1766,7 +2068,7 @@ spec:
         app.kubernetes.io/instance: jitsi
       annotations:
         si.jit.meet/hash-secret: 44136fa355b3678a1146ad16f7e8649e
-        si.jit.meet/hash-configmap: 74234e98afe7498fb5daf1f36ac2d78a
+        si.jit.meet/hash-configmap: 5c1fcdcdae94404d5afd164d48dfedd2
     spec:
       serviceAccountName: jitsi-prosody
       securityContext: {}
@@ -1784,7 +2086,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/prosody:stable-9457-2@sha256:5364b0c9c6de654b7b31b5821e9cd7a39660a19010348e7ac56b85be2944daa0
+          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/prosody:stable-9823@sha256:1c52b4ca8397545d54067c67a54c50473d83242c75f001fbf20ee628dfc80b7b
         imagePullPolicy: IfNotPresent
         envFrom:
         - configMapRef:
@@ -1792,7 +2094,11 @@ spec:
         - secretRef:
             name: jitsi-prosody
         - secretRef:
+            name: jitsi-prosody-jibri
+        - secretRef:
             name: jitsi-prosody-jicofo
+        - secretRef:
+            name: jitsi-prosody-jigasi
         - secretRef:
             name: jitsi-prosody-jvb
         - configMapRef:
@@ -1845,13 +2151,37 @@ spec:
             path: /http-bind
             port: bosh-insecure
         resources:
+          limits:
+            cpu: 99
+            memory: 512Mi
           requests:
             cpu: 0.1
             memory: 32Mi
         volumeMounts:
+        - name: config
+          mountPath: /config
         - name: prosody-data
           mountPath: /config/data
       volumes:
+      - name: config
+        emptyDir: {}
+      - name: custom-cont-inits
+        configMap:
+          defaultMode: 493
+          name: jitsi-prosody-cont-inits
+          items:
+          - key: 10-config
+            path: 10-config
+      - name: custom-defaults
+        configMap:
+          name: jitsi-prosody-defaults
+          items:
+          - key: prosody.cfg.lua
+            path: prosody.cfg.lua
+          - key: saslauthd.conf
+            path: saslauthd.conf
+          - key: jitsi-meet.cfg.lua
+            path: jitsi-meet.cfg.lua
       - name: prosody-data
         persistentVolumeClaim:
           claimName: prosody-data
@@ -1873,10 +2203,10 @@ kind: Ingress
 metadata:
   name: jitsi-web
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: web
   annotations:
@@ -1908,10 +2238,10 @@ kind: Pod
 metadata:
   name: jitsi-prosody-test-connection
   labels:
-    helm.sh/chart: prosody-1.3.8
+    helm.sh/chart: prosody-1.4.1
     app.kubernetes.io/name: prosody
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: test-success
@@ -1929,10 +2259,10 @@ kind: Pod
 metadata:
   name: jitsi-web-test-connection
   labels:
-    helm.sh/chart: jitsi-1.3.8
+    helm.sh/chart: jitsi-1.4.1
     app.kubernetes.io/name: jitsi
     app.kubernetes.io/instance: jitsi
-    app.kubernetes.io/version: stable-9111
+    app.kubernetes.io/version: stable-9646
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: web
   annotations:
@@ -1952,7 +2282,7 @@ metadata:
   name: jitsi-opendesk-jitsi
   labels:
     app.kubernetes.io/name: opendesk-jitsi
-    helm.sh/chart: opendesk-jitsi-1.12.5
+    helm.sh/chart: opendesk-jitsi-3.0.1
     app.kubernetes.io/instance: jitsi
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -1966,7 +2296,7 @@ spec:
       containers:
       - name: advertise-ip
         image:
-          registry-1.docker.io/bitnami/kubectl:1.30.2@sha256:3ec696e5ce1b79f78eb0eac1fed4ef20fa6584662cdf3c7ad933b0b03b9ce3f6
+          registry-1.docker.io/bitnami/kubectl:1.31.3@sha256:e90b9642d3daeabcfe73cf9aadcbbc624d1de7f88185095307c785f1c266bdb9
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
@@ -1988,6 +2318,9 @@ spec:
         - name: init
           mountPath: /init
         resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
           requests:
             cpu: 10m
             memory: 16Mi

@@ -6,11 +6,11 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-nextcloud-management
-    helm.sh/chart: opendesk-nextcloud-management-3.4.1
+    helm.sh/chart: opendesk-nextcloud-management-3.6.2
     app.kubernetes.io/instance: opendesk-nextcloud-management
     app.kubernetes.io/managed-by: Helm
   annotations:
-    intents.otterize.com/service-name: opendesk-nextcloud-php
+    intents.otterize.com/service-name: opendesk-nextcloud-management
 automountServiceAccountToken: false
 ---
 # Source: opendesk-nextcloud-management/templates/job.yaml
@@ -21,11 +21,11 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-nextcloud-management
-    helm.sh/chart: opendesk-nextcloud-management-3.4.1
+    helm.sh/chart: opendesk-nextcloud-management-3.6.2
     app.kubernetes.io/instance: opendesk-nextcloud-management
     app.kubernetes.io/managed-by: Helm
   annotations:
-    intents.otterize.com/service-name: opendesk-nextcloud-php
+    intents.otterize.com/service-name: opendesk-nextcloud-management
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
@@ -35,12 +35,12 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: opendesk-nextcloud-management
-        helm.sh/chart: opendesk-nextcloud-management-3.4.1
+        helm.sh/chart: opendesk-nextcloud-management-3.6.2
         app.kubernetes.io/instance: opendesk-nextcloud-management
         app.kubernetes.io/managed-by: Helm
       annotations:
-        checksum/configmap: acde1e61e095f29a11e2beccf5f9fddf452025a1ba4608d42f0e7733a028b5fd
-        intents.otterize.com/service-name: opendesk-nextcloud-php
+        checksum/configmap: 95d83ca20e9f319ddb6ef4a7d8b9bc0b9e6991c212ca7a3c1684c059cd37a752
+        intents.otterize.com/service-name: opendesk-nextcloud-management
     spec:
       securityContext:
         fsGroup: 101
@@ -66,7 +66,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nextcloud:2.2.2@sha256:90f8e64ef9156c87dbd9befef99c6e3222f87daa393231d393d728c5b64506ee
+          registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nextcloud:2.3.4@sha256:46c596818861486ee621cf8a454c2539a4e230e58b1aebb5735022de849de8e6
         imagePullPolicy: IfNotPresent
         env:
         - name: FS_ENV_SUBSCRIPTION_KEY
@@ -80,11 +80,11 @@ spec:
         - name: FS_ENV_RETENTION_OBLIGATION_TRASHBIN
           value: auto
         - name: FS_ENV_DEV_MODE
-          value: 'false'
+          value: 'true'
         - name: FS_ENV_RUN_MODE
           value: init
         - name: FS_ENV_LOGLEVEL
-          value: '2'
+          value: '0'
         - name: FS_ENV_DBTYPE
           value: mysql
         - name: FS_ENV_DBHOST
@@ -133,6 +133,8 @@ spec:
             secretKeyRef:
               name: opendesk-nextcloud-management-cache
               key: password
+        - name: FS_ENV_REDIS_TLS_ENABLED
+          value: 'false'
         - name: FS_ENV_MAIL_SMTPAUTH
           value: 'false'
         - name: FS_ENV_MAIL_SMTPMODE
@@ -189,7 +191,7 @@ spec:
           value: opendesk_useruuid
         - name: FS_ENV_LDAP
           value:
-            ewogICJsZGFwQWdlbnROYW1lIjogICJ1aWQ9bGRhcHNlYXJjaF9uZXh0Y2xvdWQsY249dXNlcnMsZGM9c3dwLWxkYXAsZGM9aW50ZXJuYWwiLAogICJsZGFwQmFzZSI6ICJkYz1zd3AtbGRhcCxkYz1pbnRlcm5hbCIsCiAgImxkYXBCYXNlR3JvdXBzIjogImRjPXN3cC1sZGFwLGRjPWludGVybmFsIiwKICAibGRhcEJhc2VVc2VycyI6ICJkYz1zd3AtbGRhcCxkYz1pbnRlcm5hbCIsCiAgImxkYXBIb3N0IjogImxkYXA6Ly91bXMtbGRhcC1zZXJ2ZXIiLAogICJsZGFwUG9ydCI6ICIzODkiLAogICJsZGFwQWRtaW5Hcm91cCI6ICJtYW5hZ2VkLWJ5LWF0dHJpYnV0ZS1GaWxlc2hhcmVBZG1pbiIKfQo=
+            ewogICJsZGFwQWdlbnROYW1lIjogICJ1aWQ9bGRhcHNlYXJjaF9uZXh0Y2xvdWQsY249dXNlcnMsZGM9c3dwLWxkYXAsZGM9aW50ZXJuYWwiLAogICJsZGFwQmFzZSI6ICJkYz1zd3AtbGRhcCxkYz1pbnRlcm5hbCIsCiAgImxkYXBCYXNlR3JvdXBzIjogImRjPXN3cC1sZGFwLGRjPWludGVybmFsIiwKICAibGRhcEJhc2VVc2VycyI6ICJkYz1zd3AtbGRhcCxkYz1pbnRlcm5hbCIsCiAgImxkYXBIb3N0IjogImxkYXA6Ly91bXMtbGRhcC1zZXJ2ZXIiLAogICJsZGFwUG9ydCI6ICIzODkiLAogICJsZGFwQWRtaW5Hcm91cCI6ICJtYW5hZ2VkLWJ5LWF0dHJpYnV0ZS1GaWxlc2hhcmVBZG1pbiIsCiAgImxkYXBHcm91cERpc3BsYXlOYW1lIjogImNuIgp9Cg==
         - name: FS_ENV_LDAP_AGENT_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -248,9 +250,9 @@ spec:
         - name: FS_ENV_TRUSTED_PROXIES
           value: 127.0.0.1
         - name: FS_ENV_THEMING_COLOR
-          value: '#6af56a'
+          value: '#571EFA'
         - name: FS_ENV_NCADMINENABLED
-          value: 'false'
+          value: 'true'
         - name: FS_ENV_SHAREAPI_ALLOW_LINKS
           value: 'false'
         - name: FS_ENV_SHAREAPI_ALLOW_MAIL_NOTIFICATION
@@ -271,11 +273,18 @@ spec:
           value: '30'
         - name: FS_ENV_SHAREAPI_ENFORCE_LINKS_PASSWORD
           value: 'false'
-        - name: FS_ENV_ENFORCE_PASSWORD_PROTECTION
+        - name: FS_ENV_SHAREBYMAIL_ENFORCE_PASSWORD_PROTECTION
+          value: 'false'
+        - name: FS_ENV_SHAREBYMAIL_SEND_PASSWORD_MAIL
+          value: 'true'
+        - name: FS_ENV_FEATURE_CIRCLES_ENABLED
           value: 'false'
         - name: FS_ENV_CREATE_OCDATA
           value: 'true'
         resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 512Mi
@@ -302,11 +311,11 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: aio
-    helm.sh/chart: aio-3.4.0
+    helm.sh/chart: aio-3.6.1
     app.kubernetes.io/instance: opendesk-nextcloud
     app.kubernetes.io/managed-by: Helm
   annotations:
-    intents.otterize.com/service-name: opendesk-nextcloud
+    intents.otterize.com/service-name: opendesk-nextcloud-aio
 automountServiceAccountToken: false
 ---
 # Source: opendesk-nextcloud/charts/exporter/templates/serviceaccount.yaml
@@ -317,7 +326,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: exporter
-    helm.sh/chart: exporter-3.4.0
+    helm.sh/chart: exporter-3.6.1
     app.kubernetes.io/instance: opendesk-nextcloud
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -331,11 +340,11 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: aio
-    helm.sh/chart: aio-3.4.0
+    helm.sh/chart: aio-3.6.1
     app.kubernetes.io/instance: opendesk-nextcloud
     app.kubernetes.io/managed-by: Helm
   annotations:
-    intents.otterize.com/service-name: opendesk-nextcloud
+    intents.otterize.com/service-name: opendesk-nextcloud-aio
 spec:
   type: ClusterIP
   ports:
@@ -363,7 +372,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: exporter
-    helm.sh/chart: exporter-3.4.0
+    helm.sh/chart: exporter-3.6.1
     app.kubernetes.io/instance: opendesk-nextcloud
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -386,11 +395,11 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: aio
-    helm.sh/chart: aio-3.4.0
+    helm.sh/chart: aio-3.6.1
     app.kubernetes.io/instance: opendesk-nextcloud
     app.kubernetes.io/managed-by: Helm
   annotations:
-    intents.otterize.com/service-name: opendesk-nextcloud
+    intents.otterize.com/service-name: opendesk-nextcloud-aio
 spec:
   replicas: 1
   selector:
@@ -402,10 +411,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: 20ce1bee6f4077107f59a3803c440d9b3f2172b951ddc4fced90b0819758415a
+        checksum/configmap: aa026645e949bf35d189386a419f30c9b18b2f9ad32ca6e447debcd918a89c56
       labels:
         app.kubernetes.io/name: aio
-        helm.sh/chart: aio-3.4.0
+        helm.sh/chart: aio-3.6.1
         app.kubernetes.io/instance: opendesk-nextcloud
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -429,13 +438,13 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nextcloud:2.2.2@sha256:90f8e64ef9156c87dbd9befef99c6e3222f87daa393231d393d728c5b64506ee
+          registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nextcloud:2.3.4@sha256:46c596818861486ee621cf8a454c2539a4e230e58b1aebb5735022de849de8e6
         imagePullPolicy: IfNotPresent
         env:
         - name: FS_ENV_OVERWRITE_PROTOCOL
           value: https
         - name: FS_ENV_TRUSTED_PROXIES
-          value: 127.0.0.1
+          value: 10.0.0.0/8
         - name: FS_ENV_RUN_MODE
           value: runtime
         - name: FS_ENV_DBTYPE
@@ -476,6 +485,8 @@ spec:
             secretKeyRef:
               name: opendesk-nextcloud-aio-cache
               key: password
+        - name: FS_ENV_REDIS_TLS_ENABLED
+          value: 'false'
         - name: FS_ENV_CREATE_OCDATA
           value: 'true'
         - name: FS_ENV_TRUSTED_DOMAINS
@@ -527,6 +538,9 @@ spec:
           containerPort: 8081
           protocol: TCP
         resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 512Mi
@@ -569,7 +583,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: exporter
-    helm.sh/chart: exporter-3.4.0
+    helm.sh/chart: exporter-3.6.1
     app.kubernetes.io/instance: opendesk-nextcloud
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -583,10 +597,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: 614cec74e25da6ae59051a15248ffb9cce958acedb91240f2817fd703e66909a
+        checksum/configmap: 4d7ce2a608caac6ffae80c45b2ad9fcf925848b6f5915f029d7db4a90b3f91ee
       labels:
         app.kubernetes.io/name: exporter
-        helm.sh/chart: exporter-3.4.0
+        helm.sh/chart: exporter-3.6.1
         app.kubernetes.io/instance: opendesk-nextcloud
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -623,7 +637,7 @@ spec:
               name: opendesk-nextcloud-exporter
               key: token
         - name: NEXTCLOUD_SERVER
-          value: http://opendesk-nextcloud-apache2
+          value: http://opendesk-nextcloud-aio
         livenessProbe:
           tcpSocket:
             port: 9205
@@ -653,6 +667,9 @@ spec:
           containerPort: 9205
           protocol: TCP
         resources:
+          limits:
+            cpu: 99
+            memory: 128Mi
           requests:
             cpu: 0.1
             memory: 32Mi
@@ -667,15 +684,15 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: aio
-    helm.sh/chart: aio-3.4.0
+    helm.sh/chart: aio-3.6.1
     app.kubernetes.io/instance: opendesk-nextcloud
     app.kubernetes.io/managed-by: Helm
   annotations:
-    intents.otterize.com/service-name: opendesk-nextcloud
+    intents.otterize.com/service-name: opendesk-nextcloud-aio
 spec:
   schedule: '*/5 * * * *'
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 0
+  successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
@@ -685,12 +702,12 @@ spec:
         metadata:
           labels:
             app.kubernetes.io/name: aio
-            helm.sh/chart: aio-3.4.0
+            helm.sh/chart: aio-3.6.1
             app.kubernetes.io/instance: opendesk-nextcloud
             app.kubernetes.io/managed-by: Helm
           annotations:
-            checksum/configmap: 20ce1bee6f4077107f59a3803c440d9b3f2172b951ddc4fced90b0819758415a
-            intents.otterize.com/service-name: opendesk-nextcloud
+            checksum/configmap: aa026645e949bf35d189386a419f30c9b18b2f9ad32ca6e447debcd918a89c56
+            intents.otterize.com/service-name: opendesk-nextcloud-aio
         spec:
           securityContext:
             fsGroup: 101
@@ -713,7 +730,7 @@ spec:
               seccompProfile:
                 type: RuntimeDefault
             image:
-              registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nextcloud:2.2.2@sha256:90f8e64ef9156c87dbd9befef99c6e3222f87daa393231d393d728c5b64506ee
+              registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-nextcloud:2.3.4@sha256:46c596818861486ee621cf8a454c2539a4e230e58b1aebb5735022de849de8e6
             command:
             - /usr/bin/php
             - /usr/local/bin/entrypoint/entrypoint.php
@@ -742,6 +759,9 @@ spec:
             - name: FS_ENV_CREATE_OCDATA
               value: 'true'
             resources:
+              limits:
+                cpu: 99
+                memory: 1Gi
               requests:
                 cpu: 0.1
                 memory: 512Mi
@@ -769,11 +789,11 @@ metadata:
   name: opendesk-nextcloud-aio
   labels:
     app.kubernetes.io/name: aio
-    helm.sh/chart: aio-3.4.0
+    helm.sh/chart: aio-3.6.1
     app.kubernetes.io/instance: opendesk-nextcloud
     app.kubernetes.io/managed-by: Helm
   annotations:
-    intents.otterize.com/service-name: opendesk-nextcloud
+    intents.otterize.com/service-name: opendesk-nextcloud-aio
     nginx.ingress.kubernetes.io/proxy-body-size: 100M
     nginx.ingress.kubernetes.io/proxy-read-timeout: '600'
     nginx.ingress.kubernetes.io/proxy-send-timeout: '600'

@@ -6,7 +6,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-migrations
-    helm.sh/chart: opendesk-migrations-1.3.5
+    helm.sh/chart: opendesk-migrations-1.4.0
     app.kubernetes.io/instance: opendesk-migrations-pre
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: true
@@ -18,7 +18,7 @@ metadata:
   name: opendesk-migrations-pre
   labels:
     app.kubernetes.io/name: opendesk-migrations
-    helm.sh/chart: opendesk-migrations-1.3.5
+    helm.sh/chart: opendesk-migrations-1.4.0
     app.kubernetes.io/instance: opendesk-migrations-pre
     app.kubernetes.io/managed-by: Helm
 rules:
@@ -33,63 +33,14 @@ rules:
   resourceNames: [migrations-status]
   verbs: ['*']
   #
-  # run_2.py
+  # run_3.py
   #
-  # Delete of StatefulSet ox-connector.
-- apiGroups: [apps]
-  resources: [statefulsets]
-  resourceNames: [ox-connector]
-  verbs: [delete]
-  # Delete services ums-keycloak, ums-udm-rest-api
+  # Add UMS LDAP ConfigMap.
+  # Ref.: https://docs.software-univention.de/nubus-kubernetes-release-notes/1.5.1/en/changelog.html#migrate-existing-ldap-server-to-mirror-mode-readiness
 - apiGroups: ['']
-  resources: [services]
-  resourceNames: [ums-keycloak, ums-udm-rest-api]
-  verbs: [delete]
-  # Delete old "hooked" OX bootstrap job
-- apiGroups: [batch]
-  resources: [jobs]
-  resourceNames: [opendesk-open-xchange-bootstrap]
-  verbs: [delete]
-  # Delete deployment ums-umc-server
-- apiGroups: [apps]
-  resources: [deployments]
-  resourceNames: [ums-umc-server]
-  verbs: [delete]
-  # Execute slacpcat in LDAP Pod
-- apiGroups: ['']
-  resources: [pods/exec]
-  resourceNames: [ums-ldap-server-0]
-  verbs: [get, create]
-  # PVC get (current size of)
-- apiGroups: ['']
-  resources: [persistentvolumeclaims]
-  resourceNames: [shared-data-ums-ldap-server-0, ox-connector-ox-contexts-ox-connector-0]
-  verbs: [get]
-  # Rescaling of LDAP stateful sets before copying the PVC.
-- apiGroups: [apps]
-  resources: [statefulsets/scale]
-  resourceNames: [ums-ldap-notifier, ums-ldap-server]
-  verbs: [get, update, patch]
-  # PVC create [with copy].
-- apiGroups: ['']
-  resources: [persistentvolumeclaims]
+  resources: [configmaps]
+  resourceNames: [ums-ldap-server-status]
   verbs: [create]
-  # PVC delete that are no longer in use.
-- apiGroups: ['']
-  resources: [persistentvolumeclaims]
-  resourceNames: [shared-data-ums-ldap-server-0, shared-run-ums-ldap-server-0, ox-connector-appcenter-ox-connector-0,
-    ox-connector-data-ox-connector-0, ox-connector-ox-contexts-ox-connector-0]
-  verbs: [delete]
-  # Restart of Deployments.
-- apiGroups: [apps]
-  resources: [deployments]
-  resourceNames: [ums-keycloak, opendesk-nextcloud-php, ums-umc-server]
-  verbs: [update, patch]
-  # Restart of StatefulSets.
-- apiGroups: [apps]
-  resources: [statefulsets]
-  resourceNames: [ums-selfservice-listener, opendesk-synapse]
-  verbs: [update, patch]
 ---
 # Source: opendesk-migrations/templates/rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -98,7 +49,7 @@ metadata:
   name: opendesk-migrations-pre
   labels:
     app.kubernetes.io/name: opendesk-migrations
-    helm.sh/chart: opendesk-migrations-1.3.5
+    helm.sh/chart: opendesk-migrations-1.4.0
     app.kubernetes.io/instance: opendesk-migrations-pre
     app.kubernetes.io/managed-by: Helm
 roleRef:
@@ -116,20 +67,20 @@ metadata:
   name: opendesk-migrations-pre-1
   labels:
     app.kubernetes.io/name: opendesk-migrations
-    helm.sh/chart: opendesk-migrations-1.3.5
+    helm.sh/chart: opendesk-migrations-1.4.0
     app.kubernetes.io/instance: opendesk-migrations-pre
     app.kubernetes.io/managed-by: Helm
   annotations:
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
-  ttlSecondsAfterFinished:
+  ttlSecondsAfterFinished: 60
   template:
     metadata:
       annotations:
       labels:
         app.kubernetes.io/name: opendesk-migrations
-        helm.sh/chart: opendesk-migrations-1.3.5
+        helm.sh/chart: opendesk-migrations-1.4.0
         app.kubernetes.io/instance: opendesk-migrations-pre
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -153,8 +104,8 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
-          registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-migrations:1.3.18@sha256:d7f13322cc9cc7ab157f926280070850b0dfc6169c93a306ec4c3cf7c21eff69
+        image: 
+          registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-migrations:1.4.0@sha256:0c74011e4c1216857b73695741196908afcacc2f531fd1c894b8f574ac98f9a2
         imagePullPolicy: IfNotPresent
         command:
         - /app/odmigs.py
@@ -163,20 +114,22 @@ spec:
           mountPath: /app/etc/
           readOnly: true
         resources:
+          limits:
+            memory: 256Mi
           requests:
             cpu: 100m
             memory: 128Mi
         env:
         - name: MIGRATIONS_LOGLEVEL
-          value: INFO
+          value: DEBUG
         - name: MIGRATIONS_CLEANUP
           value: 'false'
         - name: MIGRATIONS_STAGE
           value: PRE
         - name: MIGRATIONS_RUN_ID
-          value: '2'
+          value: '3'
         - name: MIGRATIONS_NAMESPACE
-          value: 'tn-openbsw-opendesk'
+          value: ''
         - name: MIGRATIONS_FAIL_ON_UNEXPECTED_STATE
           value: 'true'
       volumes:

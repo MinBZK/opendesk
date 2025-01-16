@@ -1,72 +1,3 @@
-# Source: opendesk-home/templates/ingress.yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: opendesk-home
-  labels:
-    app.kubernetes.io/name: opendesk-home
-    helm.sh/chart: opendesk-home-1.0.2
-    app.kubernetes.io/instance: opendesk-home
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    nginx.ingress.kubernetes.io/server-snippet: |
-      location ~* "^/$" {
-        return 302 https://portal.opendesk.apps.digilab.network;
-      }
-    nginx.org/server-snippets: |
-      location ~* "^/$" {
-        return 302 https://portal.opendesk.apps.digilab.network;
-      }
-    haproxy.org/request-redirect: https://portal.opendesk.apps.digilab.network
-    haproxy-ingress.github.io/redirect-to: https://portal.opendesk.apps.digilab.network
-spec:
-  tls:
-  - hosts:
-    - opendesk.apps.digilab.network
-    secretName: opendesk-certificates-tls
-  rules:
-  - host: opendesk.apps.digilab.network
----
-# Source: opendesk-certificates/templates/certificate.yaml
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: opendesk-certificates
-  annotations:
-    helm.sh/resource-policy: keep
-  labels:
-    app.kubernetes.io/name: opendesk-certificates
-    helm.sh/chart: opendesk-certificates-2.1.3
-    app.kubernetes.io/instance: opendesk-certificates
-    app.kubernetes.io/managed-by: Helm
-spec:
-  dnsNames:
-  - opendesk.apps.digilab.network
-  - office.opendesk.apps.digilab.network
-  - pad.opendesk.apps.digilab.network
-  - chat.opendesk.apps.digilab.network
-  - ics.opendesk.apps.digilab.network
-  - meet.opendesk.apps.digilab.network
-  - id.opendesk.apps.digilab.network
-  - matrix-neoboard-widget.opendesk.apps.digilab.network
-  - matrix-neochoice-widget.opendesk.apps.digilab.network
-  - matrix-neodatefix-bot.opendesk.apps.digilab.network
-  - matrix-neodatefix-widget.opendesk.apps.digilab.network
-  - objectstore.opendesk.apps.digilab.network
-  - objectstore-ui.opendesk.apps.digilab.network
-  - files.opendesk.apps.digilab.network
-  - portal.opendesk.apps.digilab.network
-  - projects.opendesk.apps.digilab.network
-  - webmail.opendesk.apps.digilab.network
-  - matrix.opendesk.apps.digilab.network
-  - matrix-federation.opendesk.apps.digilab.network
-  - whiteboard.opendesk.apps.digilab.network
-  - wiki.opendesk.apps.digilab.network
-  issuerRef:
-    kind: ClusterIssuer
-    name: letsencrypt-prod
-  secretName: opendesk-certificates-tls
----
 # Source: redis/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -362,8 +293,8 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: redis
-        image:
-          registry-1.docker.io/bitnami/redis:7.2.3-debian-11-r2@sha256:9ac3bbf7740969d32689e360ddcfa5f672538c47f6f6cf296173c3078de0edf2
+        image: 
+          registry-1.docker.io/bitnami/redis:7.4.1-debian-12-r2@sha256:3cfa11e8fef45c006a101ed7cfaae2cdaed7a5167c8ada2a3f76a1de54488cd0
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
@@ -426,6 +357,9 @@ spec:
             - -c
             - /health/ping_readiness_local.sh 1
         resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 32Mi
@@ -560,7 +494,7 @@ spec:
       serviceAccountName: memcached
       containers:
       - name: memcached
-        image:
+        image: 
           registry-1.docker.io/bitnami/memcached:1.6.21-debian-11-r107@sha256:247ec29efd6030960047a623aef025021154662edf6b6d6e88c97936f164d99d
         imagePullPolicy: IfNotPresent
         securityContext:
@@ -601,6 +535,9 @@ spec:
           tcpSocket:
             port: memcache
         resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 32Mi
@@ -712,7 +649,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
+        image: 
           registry-1.docker.io/library/postgres:15.4-alpine3.18@sha256:f36c528a2dc8747ea40b4cb8578da69fa75c5063fd6a71dcea3e3b2a6404ff7b
         imagePullPolicy: IfNotPresent
         env:
@@ -762,6 +699,9 @@ spec:
             - -c
             - exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
         resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -832,7 +772,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
+        image: 
           registry-1.docker.io/library/postgres:15.4-alpine3.18@sha256:f36c528a2dc8747ea40b4cb8578da69fa75c5063fd6a71dcea3e3b2a6404ff7b
         imagePullPolicy: IfNotPresent
         command:
@@ -853,6 +793,9 @@ spec:
         - name: PGPASSWORD
           value: a826fedc7de54b7b51fef95697c7161a6cbb223a
         resources:
+          limits:
+            cpu: 99
+            memory: 1Gi
           requests:
             cpu: 0.1
             memory: 256Mi
@@ -872,7 +815,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: mariadb
-    helm.sh/chart: mariadb-2.3.1
+    helm.sh/chart: mariadb-3.0.3
     app.kubernetes.io/instance: mariadb
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: false
@@ -884,7 +827,7 @@ metadata:
   name: mariadb
   labels:
     app.kubernetes.io/name: mariadb
-    helm.sh/chart: mariadb-2.3.1
+    helm.sh/chart: mariadb-3.0.3
     app.kubernetes.io/instance: mariadb
     app.kubernetes.io/managed-by: Helm
 data:
@@ -897,7 +840,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: mariadb
-    helm.sh/chart: mariadb-2.3.1
+    helm.sh/chart: mariadb-3.0.3
     app.kubernetes.io/instance: mariadb
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -919,7 +862,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: mariadb
-    helm.sh/chart: mariadb-2.3.1
+    helm.sh/chart: mariadb-3.0.3
     app.kubernetes.io/instance: mariadb
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -938,7 +881,7 @@ spec:
         argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
       labels:
         app.kubernetes.io/name: mariadb
-        helm.sh/chart: mariadb-2.3.1
+        helm.sh/chart: mariadb-3.0.3
         app.kubernetes.io/instance: mariadb
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -964,12 +907,15 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
+        image: 
           registry-1.docker.io/library/mariadb:10.5@sha256:aa1ccc18000c32d1f39ac0b055117b27bffd93e622ec961d682de40fe2a1a95f
         imagePullPolicy: IfNotPresent
         env:
         - name: MARIADB_ROOT_PASSWORD
-          value: 6c3e5177d1196ce1c7e94a3ed70d4536916bc46b
+          valueFrom:
+            secretKeyRef:
+              name: mariadb
+              key: rootPassword
         ports:
         - name: mariadb
           containerPort: 3306
@@ -1008,6 +954,9 @@ spec:
             - -ec
             - mariadb-admin status -uroot -p"${MARIADB_ROOT_PASSWORD}"
         resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 384Mi
@@ -1042,7 +991,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: mariadb
-    helm.sh/chart: mariadb-2.3.1
+    helm.sh/chart: mariadb-3.0.3
     app.kubernetes.io/instance: mariadb
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -1054,7 +1003,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: mariadb
-        helm.sh/chart: mariadb-2.3.1
+        helm.sh/chart: mariadb-3.0.3
         app.kubernetes.io/instance: mariadb
         app.kubernetes.io/managed-by: Helm
       annotations:
@@ -1078,7 +1027,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
+        image: 
           registry-1.docker.io/library/mariadb:10.5@sha256:aa1ccc18000c32d1f39ac0b055117b27bffd93e622ec961d682de40fe2a1a95f
         imagePullPolicy: IfNotPresent
         command:
@@ -1094,8 +1043,14 @@ spec:
         - name: MARIADB_HOST
           value: mariadb
         - name: MARIADB_ROOT_PASSWORD
-          value: 6c3e5177d1196ce1c7e94a3ed70d4536916bc46b
+          valueFrom:
+            secretKeyRef:
+              name: mariadb
+              key: rootPassword
         resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
           requests:
             cpu: 0.1
             memory: 384Mi
@@ -1223,21 +1178,21 @@ data:
     smtp_host_lookup = native
 
     # Relayhost if any is configured
-    relayhost =
+    relayhost = 
 
-    content_filter =
+    content_filter = 
 
     smtp_sasl_auth_enable = yes
     smtp_sasl_password_maps = lmdb:/etc/postfix/sasl_passwd.map
-    smtp_sasl_security_options =
+    smtp_sasl_security_options = 
     smtp_use_tls = yes
-    smtp_tls_CAfile =
+    smtp_tls_CAfile = 
     smtp_tls_mandatory_protocols = !SSLv2, !SSLv3
     smtp_tls_session_cache_database = lmdb:/var/lib/postfix/smtp_scache
 
     virtual_mailbox_domains = opendesk.apps.digilab.network
     virtual_transport = lmtps:dovecot:24
-    transport_maps =
+    transport_maps = 
 
     ###############
     # Restrictions
@@ -1305,6 +1260,32 @@ spec:
     requests:
       storage: 1Gi
   storageClassName: managed
+---
+# Source: postfix/templates/service-external.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postfix-external
+  labels:
+    app.kubernetes.io/name: postfix
+    helm.sh/chart: postfix-2.3.0
+    app.kubernetes.io/instance: postfix
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: postfix
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  internalTrafficPolicy: Cluster
+  ports:
+  - port: 25
+    targetPort: 25
+    protocol: TCP
+    name: smtp
+  selector:
+    app.kubernetes.io/name: postfix
+    app.kubernetes.io/instance: postfix
 ---
 # Source: postfix/templates/service.yaml
 apiVersion: v1
@@ -1403,7 +1384,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
+        image: 
           registry.opencode.de/bmi/opendesk/components/platform-development/images/postfix:2.0.0@sha256:5b2432dc09318db172a593bca860887ee9d713b9987db64f8b265f3e08a1d374
         imagePullPolicy: IfNotPresent
           # for debugging use:
@@ -1433,6 +1414,9 @@ spec:
           failureThreshold: 10
           successThreshold: 1
         resources:
+          limits:
+            cpu: 99
+            memory: 128Mi
           requests:
             cpu: 0.1
             memory: 16Mi
@@ -1774,7 +1758,7 @@ spec:
       serviceAccountName: clamav-simple
       initContainers:
       - name: chown
-        image:
+        image: 
           registry-1.docker.io/clamav/clamav:1.1.1-10_base@sha256:aed8d5a3ef58352c862028fae44241215a50eae0b9acb7ba8892b1edc0a6598f
         securityContext:
           allowPrivilegeEscalation: false
@@ -1791,6 +1775,9 @@ spec:
         - name: clamav-database
           mountPath: /var/lib/clamav/
         resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
           requests:
             cpu: 0.1
             memory: 1.5Gi
@@ -1809,7 +1796,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
+        image: 
           registry-1.docker.io/clamav/clamav:1.1.1-10_base@sha256:aed8d5a3ef58352c862028fae44241215a50eae0b9acb7ba8892b1edc0a6598f
         imagePullPolicy: IfNotPresent
         env:
@@ -1843,7 +1830,9 @@ spec:
           failureThreshold: 10
           successThreshold: 1
         resources:
-
+          limits:
+            cpu: 99
+            memory: 4Gi
           requests:
             cpu: 0.1
             memory: 1.5Gi
@@ -1878,7 +1867,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image:
+        image: 
           registry.opencode.de/bmi/opendesk/components/platform-development/images/clamav-icap:0.5.10@sha256:891f267a6b2a304616854ad2f013dc5d23f6f6c84d535c8b46e76d124fe39b6a
         imagePullPolicy: IfNotPresent
         command:
@@ -1912,6 +1901,9 @@ spec:
           failureThreshold: 10
           successThreshold: 1
         resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
           requests:
             cpu: 0.1
             memory: 1.5Gi
@@ -1979,6 +1971,48 @@ spec:
           storage: 1Gi
       storageClassName: managed
 ---
+# Source: minio/templates/provisioning-networkpolicy.yaml
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: minio-provisioning
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2024.12.13
+    helm.sh/chart: minio-14.10.1
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: minio-provisioning
+  policyTypes:
+  - Ingress
+  - Egress
+  egress:
+  - {}
+  ingress:
+---
+# Source: minio/templates/pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: minio
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2024.12.13
+    helm.sh/chart: minio-14.10.1
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: minio
+      app.kubernetes.io/name: minio
+---
 # Source: minio/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -1989,9 +2023,9 @@ metadata:
     app.kubernetes.io/instance: minio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: minio
-    app.kubernetes.io/version: 2023.12.20
-    helm.sh/chart: minio-12.10.11
-automountServiceAccountToken: true
+    app.kubernetes.io/version: 2024.12.13
+    helm.sh/chart: minio-14.10.1
+automountServiceAccountToken: false
 secrets:
 - name: minio
 ---
@@ -2005,8 +2039,8 @@ metadata:
     app.kubernetes.io/instance: minio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: minio
-    app.kubernetes.io/version: 2023.12.20
-    helm.sh/chart: minio-12.10.11
+    app.kubernetes.io/version: 2024.12.13
+    helm.sh/chart: minio-14.10.1
     app.kubernetes.io/component: minio-provisioning
 data:
   policy-migrations-bucket-policy.json: |
@@ -2038,6 +2072,22 @@ data:
           "Effect": "Allow",
           "Action": ["s3:*"],
           "Resource": ["arn:aws:s3:::nextcloud/*"]
+        }
+      ]
+    }
+  policy-notes-bucket-policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": ["s3:*"],
+          "Resource": ["arn:aws:s3:::notes"]
+        },
+        {
+          "Effect": "Allow",
+          "Action": ["s3:*"],
+          "Resource": ["arn:aws:s3:::notes/*"]
         }
       ]
     }
@@ -2084,8 +2134,8 @@ metadata:
     app.kubernetes.io/instance: minio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: minio
-    app.kubernetes.io/version: 2023.12.20
-    helm.sh/chart: minio-12.10.11
+    app.kubernetes.io/version: 2024.12.13
+    helm.sh/chart: minio-14.10.1
 spec:
   accessModes:
   - ReadWriteOnce
@@ -2104,8 +2154,8 @@ metadata:
     app.kubernetes.io/instance: minio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: minio
-    app.kubernetes.io/version: 2023.12.20
-    helm.sh/chart: minio-12.10.11
+    app.kubernetes.io/version: 2024.12.13
+    helm.sh/chart: minio-14.10.1
 spec:
   type: ClusterIP
   ports:
@@ -2131,8 +2181,8 @@ metadata:
     app.kubernetes.io/instance: minio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: minio
-    app.kubernetes.io/version: 2023.12.20
-    helm.sh/chart: minio-12.10.11
+    app.kubernetes.io/version: 2024.12.13
+    helm.sh/chart: minio-14.10.1
 spec:
   selector:
     matchLabels:
@@ -2146,10 +2196,10 @@ spec:
         app.kubernetes.io/instance: minio
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: minio
-        app.kubernetes.io/version: 2023.12.20
-        helm.sh/chart: minio-12.10.11
+        app.kubernetes.io/version: 2024.12.13
+        helm.sh/chart: minio-14.10.1
       annotations:
-        checksum/credentials-secret: ec25b05261cecae27fc418c9d23b0552f02758d5156bf4adac90a1e7476e8792
+        checksum/credentials-secret: 8d7bd0a8991f7c982692a9dc58e4f88d760c132e94bd2ff1c141888d6469fb43
     spec:
       serviceAccountName: minio
       affinity:
@@ -2164,13 +2214,44 @@ spec:
               topologyKey: kubernetes.io/hostname
             weight: 1
         nodeAffinity:
+      automountServiceAccountToken: false
       securityContext:
-        fsGroup: 1000
+        fsGroup: 1001
         fsGroupChangePolicy: OnRootMismatch
+        supplementalGroups: []
+        sysctls: []
+      initContainers:
+      - name: volume-permissions
+        image: 
+          registry-1.docker.io/bitnami/os-shell:12-debian-12-r34@sha256:41e0561b0f08011c24acc5e8ad4c0d09a36062cfab35d9ec7b3fdd4cfecc01e0
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/bash
+        - -ec
+        - |
+          chown -R 1001:1001 /bitnami/minio/data
+        securityContext:
+          runAsUser: 0
+          seLinuxOptions: {}
+        resources:
+          limits:
+            cpu: 150m
+            ephemeral-storage: 2Gi
+            memory: 192Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 50Mi
+            memory: 128Mi
+        volumeMounts:
+        - name: empty-dir
+          mountPath: /tmp
+          subPath: tmp-dir
+        - name: data
+          mountPath: /bitnami/minio/data
       containers:
       - name: minio
-        image:
-          registry-1.docker.io/bitnami/minio:2023@sha256:bced4f2f9fc48b755ebb3e1b35e76195a978d4331bf2d0c6699dab412d3c0be7
+        image: 
+          registry-1.docker.io/bitnami/minio:2024.12.13-debian-12-r0@sha256:2a258ab6876f6ed3cd5609836d065f20927955a2ae721fd9edde8ca388b52135
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
@@ -2178,11 +2259,10 @@ spec:
             drop:
             - ALL
           privileged: false
-          readOnlyRootFilesystem: false
-          runAsGroup: 0
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
           runAsNonRoot: true
-          runAsUser: 1000
-          seLinuxOptions:
+          runAsUser: 1001
           seccompProfile:
             type: RuntimeDefault
         env:
@@ -2192,6 +2272,8 @@ spec:
           value: http
         - name: MINIO_FORCE_NEW_KEYS
           value: no
+        - name: MINIO_API_PORT_NUMBER
+          value: '9000'
         - name: MINIO_ROOT_USER
           valueFrom:
             secretKeyRef:
@@ -2202,14 +2284,14 @@ spec:
             secretKeyRef:
               name: minio
               key: root-password
-        - name: MINIO_DEFAULT_BUCKETS
-          value: openproject,openxchange,ums,nextcloud
         - name: MINIO_BROWSER
           value: on
         - name: MINIO_PROMETHEUS_AUTH_TYPE
           value: public
         - name: MINIO_CONSOLE_PORT_NUMBER
           value: '9001'
+        - name: MINIO_DATA_DIR
+          value: /bitnami/minio/data
         envFrom:
         ports:
         - name: minio-api
@@ -2245,13 +2327,27 @@ spec:
           successThreshold: 1
           failureThreshold: 60
         resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
           requests:
             cpu: 0.25
             memory: 256Mi
         volumeMounts:
+        - name: empty-dir
+          mountPath: /tmp
+          subPath: tmp-dir
+        - name: empty-dir
+          mountPath: /opt/bitnami/minio/tmp
+          subPath: app-tmp-dir
+        - name: empty-dir
+          mountPath: /.mc
+          subPath: app-mc-dir
         - name: data
           mountPath: /bitnami/minio/data
       volumes:
+      - name: empty-dir
+        emptyDir: {}
       - name: data
         persistentVolumeClaim:
           claimName: minio
@@ -2266,8 +2362,8 @@ metadata:
     app.kubernetes.io/instance: minio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: minio
-    app.kubernetes.io/version: 2023.12.20
-    helm.sh/chart: minio-12.10.11
+    app.kubernetes.io/version: 2024.12.13
+    helm.sh/chart: minio-14.10.1
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: 4G
     nginx.org/client-max-body-size: 4G
@@ -2288,6 +2384,37 @@ spec:
     - objectstore.opendesk.apps.digilab.network
     secretName: opendesk-certificates-tls
 ---
+# Source: minio/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio
+  namespace: tn-openbsw-opendesk
+  labels:
+    app.kubernetes.io/instance: minio
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2024.12.13
+    helm.sh/chart: minio-14.10.1
+  annotations:
+    nginx.org/websocket-services: minio
+spec:
+  rules:
+  - host: objectstore-ui.opendesk.apps.digilab.network
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: minio
+            port:
+              name: minio-console
+  tls:
+  - hosts:
+    - objectstore-ui.opendesk.apps.digilab.network
+    secretName: opendesk-certificates-tls
+---
 # Source: minio/templates/provisioning-job.yaml
 apiVersion: batch/v1
 kind: Job
@@ -2298,8 +2425,8 @@ metadata:
     app.kubernetes.io/instance: minio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: minio
-    app.kubernetes.io/version: 2023.12.20
-    helm.sh/chart: minio-12.10.11
+    app.kubernetes.io/version: 2024.12.13
+    helm.sh/chart: minio-14.10.1
     app.kubernetes.io/component: minio-provisioning
   annotations:
     helm.sh/hook: post-install,post-upgrade
@@ -2311,19 +2438,22 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/version: 2023.12.20
-        helm.sh/chart: minio-12.10.11
+        app.kubernetes.io/version: 2024.12.13
+        helm.sh/chart: minio-14.10.1
         app.kubernetes.io/component: minio-provisioning
     spec:
       restartPolicy: OnFailure
       terminationGracePeriodSeconds: 0
       securityContext:
         fsGroup: 1001
+        fsGroupChangePolicy: Always
+        supplementalGroups: []
+        sysctls: []
       serviceAccountName: minio
       initContainers:
       - name: wait-for-available-minio
-        image:
-          registry-1.docker.io/bitnami/minio:2023@sha256:bced4f2f9fc48b755ebb3e1b35e76195a978d4331bf2d0c6699dab412d3c0be7
+        image: 
+          registry-1.docker.io/bitnami/minio:2024.12.13-debian-12-r0@sha256:2a258ab6876f6ed3cd5609836d065f20927955a2ae721fd9edde8ca388b52135
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
@@ -2331,9 +2461,11 @@ spec:
             drop:
             - ALL
           privileged: false
-          readOnlyRootFilesystem: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
           runAsNonRoot: true
           runAsUser: 1001
+          seLinuxOptions: {}
           seccompProfile:
             type: RuntimeDefault
         command:
@@ -2349,13 +2481,16 @@ spec:
             9000;
           echo "Minio is available";
         resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
           requests:
             cpu: 0.25
             memory: 256Mi
       containers:
       - name: minio
-        image:
-          registry-1.docker.io/bitnami/minio:2023@sha256:bced4f2f9fc48b755ebb3e1b35e76195a978d4331bf2d0c6699dab412d3c0be7
+        image: 
+          registry-1.docker.io/bitnami/minio:2024.12.13-debian-12-r0@sha256:2a258ab6876f6ed3cd5609836d065f20927955a2ae721fd9edde8ca388b52135
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
@@ -2363,21 +2498,22 @@ spec:
             drop:
             - ALL
           privileged: false
-          readOnlyRootFilesystem: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
           runAsNonRoot: true
           runAsUser: 1001
+          seLinuxOptions: {}
           seccompProfile:
             type: RuntimeDefault
         command:
         - /bin/bash
         - -c
-        - >-
+        - |-
           set -e;
           echo "Start Minio provisioning";
 
           function attachPolicy() {
-            local tmp=$(mc admin $1 info provisioning $2 | sed -n -e 's/^Policy.*:
-          \(.*\)$/\1/p');
+            local tmp=$(mc admin $1 info provisioning $2 | sed -n -e 's/^Policy.*: \(.*\)$/\1/p');
             IFS=',' read -r -a CURRENT_POLICIES <<< "$tmp";
             if [[ ! "${CURRENT_POLICIES[*]}" =~ "$3" ]]; then
               mc admin policy attach provisioning $3 --$1=$2;
@@ -2385,8 +2521,7 @@ spec:
           };
 
           function detachDanglingPolicies() {
-            local tmp=$(mc admin $1 info provisioning $2 | sed -n -e 's/^Policy.*:
-          \(.*\)$/\1/p');
+            local tmp=$(mc admin $1 info provisioning $2 | sed -n -e 's/^Policy.*: \(.*\)$/\1/p');
             IFS=',' read -r -a CURRENT_POLICIES <<< "$tmp";
             IFS=',' read -r -a DESIRED_POLICIES <<< "$3";
             for current in "${CURRENT_POLICIES[@]}"; do
@@ -2422,9 +2557,22 @@ spec:
           };
           mc alias set provisioning $MINIO_SCHEME://minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD;
 
-          mc admin service restart provisioning;
+          mc admin service restart provisioning --wait --json;
+
+          # Adding a sleep to ensure that the check below does not cause
+          # a race condition. We check for the MinIO port because the
+          # "mc admin service restart --wait" command is not working as expected
+          sleep 5;
+          echo "Waiting for Minio to be available after restart";
+          wait-for-port \
+            --host=minio \
+            --state=inuse \
+            --timeout=120 \
+            9000;
+          echo "Minio is available. Executing provisioning commands";
           mc admin policy create provisioning migrations-bucket-policy /etc/ilm/policy-migrations-bucket-policy.json;
           mc admin policy create provisioning nextcloud-bucket-policy /etc/ilm/policy-nextcloud-bucket-policy.json;
+          mc admin policy create provisioning notes-bucket-policy /etc/ilm/policy-notes-bucket-policy.json;
           mc admin policy create provisioning openproject-bucket-policy /etc/ilm/policy-openproject-bucket-policy.json;
           mc admin policy create provisioning ums-bucket-policy /etc/ilm/policy-ums-bucket-policy.json;
           mc admin user add provisioning migration_user 1ec1787c2808bfe372500d7baf02a6f22d818c30;
@@ -2435,6 +2583,10 @@ spec:
           attachPolicy user nextcloud_user nextcloud-bucket-policy;
           detachDanglingPolicies user nextcloud_user "nextcloud-bucket-policy";
           mc admin user enable provisioning nextcloud_user;
+          mc admin user add provisioning notes_user 6275e1d8699f8f384003fe87d4c084920fb3f306;
+          attachPolicy user notes_user notes-bucket-policy;
+          detachDanglingPolicies user notes_user "notes-bucket-policy";
+          mc admin user enable provisioning notes_user;
           mc admin user add provisioning openproject_user 72c7ef3354e43700c2890d6d53cff57e7371e968;
           attachPolicy user openproject_user openproject-bucket-policy;
           detachDanglingPolicies user openproject_user "openproject-bucket-policy";
@@ -2444,9 +2596,15 @@ spec:
           detachDanglingPolicies user ums_user "ums-bucket-policy";
           mc admin user enable provisioning ums_user;
           mc mb provisioning/migrations --ignore-existing  ;
+          mc version suspend provisioning/migrations;
           mc mb provisioning/nextcloud --ignore-existing  ;
+          mc version suspend provisioning/nextcloud;
+          mc mb provisioning/notes --ignore-existing  ;
+          mc version enable provisioning/notes;
           mc mb provisioning/openproject --ignore-existing  ;
+          mc version suspend provisioning/openproject;
           mc mb provisioning/ums --ignore-existing  ;
+          mc version suspend provisioning/ums;
 
           mc anonymous set download provisioning/ums/portal-assets;
 
@@ -2466,13 +2624,27 @@ spec:
               key: root-password
         envFrom:
         resources:
+          limits:
+            cpu: 99
+            memory: 2Gi
           requests:
             cpu: 0.25
             memory: 256Mi
         volumeMounts:
+        - name: empty-dir
+          mountPath: /.mc
+          subPath: app-mc-dir
+        - name: empty-dir
+          mountPath: /opt/bitnami/minio/tmp
+          subPath: app-tmp-dir
+        - name: empty-dir
+          mountPath: /tmp
+          subPath: tmp-dir
         - name: minio-provisioning
           mountPath: /etc/ilm
       volumes:
+      - name: empty-dir
+        emptyDir: {}
       - name: minio-provisioning
         configMap:
           name: minio-provisioning

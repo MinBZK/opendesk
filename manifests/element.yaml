@@ -6,7 +6,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-element
-    helm.sh/chart: opendesk-element-3.4.1
+    helm.sh/chart: opendesk-element-6.0.0
     app.kubernetes.io/instance: opendesk-element
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: false
@@ -18,7 +18,7 @@ metadata:
   name: opendesk-element
   labels:
     app.kubernetes.io/name: opendesk-element
-    helm.sh/chart: opendesk-element-3.4.1
+    helm.sh/chart: opendesk-element-6.0.0
     app.kubernetes.io/instance: opendesk-element
     app.kubernetes.io/managed-by: Helm
 data:
@@ -70,7 +70,7 @@ data:
             "fallbackICEServerAllowed": false
         },
         "default_theme": "light",
-        "brand": "MijnBureau Collaboration",
+        "brand": "Chat - openDesk Collaboration",
         "custom_translations_url": "/custom-translations.json",
         "embeddedPages": {
           "homeUrl": "/custom-home.html"
@@ -88,7 +88,7 @@ data:
             "guest_user_homeserver_url": "https://matrix.opendesk.apps.digilab.network"
           }
         },
-        "logout_redirect_url":"https://id.opendesk.apps.digilab.network/realms/opendesk/protocol/openid-connect/logout?client_id=opendesk-matrix\u0026post_logout_redirect_uri=https%3A%2F%2Fportal.opendesk.apps.digilab.network","net.nordeck.element_web.module.opendesk":{"config":{"banner":{"ics_navigation_json_url":"https://ics.opendesk.apps.digilab.network/navigation.json","ics_silent_url":"https://ics.opendesk.apps.digilab.network/silent","portal_logo_svg_url":"https://portal.opendesk.apps.digilab.network/univention/portal/icons/logos/domain.svg","portal_url":"https://portal.opendesk.apps.digilab.network/"},"custom_css_variables":{"--cpd-color-bg-action-primary-rest":"#6af56a","--cpd-color-text-action-accent":"#6af56a"}}},"net.nordeck.element_web.module.widget_lifecycle":{"widget_permissions":{"https://chat.opendesk.apps.digilab.network/jitsi.html":{"identity_approved":true},"https://matrix-neoboard-widget.opendesk.apps.digilab.network/*":{"capabilities_approved":["org.matrix.msc2762.send.event:net.nordeck.whiteboard.document.create","org.matrix.msc2762.receive.event:net.nordeck.whiteboard.document.create","org.matrix.msc2762.send.event:net.nordeck.whiteboard.document.chunk","org.matrix.msc2762.receive.event:net.nordeck.whiteboard.document.chunk","org.matrix.msc2762.send.event:net.nordeck.whiteboard.document.snapshot","org.matrix.msc2762.receive.event:net.nordeck.whiteboard.document.snapshot","org.matrix.msc2762.send.state_event:m.room.power_levels#","org.matrix.msc2762.receive.state_event:m.room.power_levels#","org.matrix.msc2762.receive.state_event:m.room.member","org.matrix.msc2762.receive.state_event:m.room.name","org.matrix.msc2762.send.state_event:net.nordeck.whiteboard","org.matrix.msc2762.receive.state_event:net.nordeck.whiteboard","org.matrix.msc2762.send.state_event:net.nordeck.whiteboard.sessions#*","org.matrix.msc2762.receive.state_event:net.nordeck.whiteboard.sessions","org.matrix.msc3819.send.to_device:net.nordeck.whiteboard.connection_signaling","org.matrix.msc3819.receive.to_device:net.nordeck.whiteboard.connection_signaling","town.robin.msc3846.turn_servers","org.matrix.msc4039.upload_file","org.matrix.msc4039.download_file"],"preload_approved":true},"https://matrix-neochoice-widget.opendesk.apps.digilab.network/*":{"capabilities_approved":["org.matrix.msc2762.send.event:net.nordeck.poll.vote","org.matrix.msc2762.receive.event:net.nordeck.poll.vote","org.matrix.msc2762.send.state_event:net.nordeck.poll","org.matrix.msc2762.receive.state_event:net.nordeck.poll","org.matrix.msc2762.send.state_event:net.nordeck.poll.settings","org.matrix.msc2762.receive.state_event:net.nordeck.poll.settings","org.matrix.msc2762.receive.state_event:m.room.power_levels","org.matrix.msc2762.receive.state_event:m.room.name","org.matrix.msc2762.receive.state_event:m.room.member","org.matrix.msc2762.send.state_event:net.nordeck.poll.group","org.matrix.msc2762.receive.state_event:net.nordeck.poll.group","org.matrix.msc2762.send.event:net.nordeck.poll.start","org.matrix.msc2762.receive.event:net.nordeck.poll.start"],"preload_approved":true},"https://matrix-neodatefix-widget.opendesk.apps.digilab.network/*":{"capabilities_approved":["org.matrix.msc2931.navigate","org.matrix.msc2762.timeline:*","org.matrix.msc2762.receive.state_event:m.room.power_levels","org.matrix.msc2762.receive.event:m.reaction","org.matrix.msc2762.receive.state_event:m.room.create","org.matrix.msc2762.receive.state_event:m.room.tombstone","org.matrix.msc2762.receive.state_event:m.room.member","org.matrix.msc2762.send.state_event:m.room.member","org.matrix.msc2762.receive.state_event:m.room.name","org.matrix.msc2762.receive.state_event:m.room.topic","org.matrix.msc2762.receive.state_event:m.space.parent","org.matrix.msc2762.receive.state_event:m.space.child","org.matrix.msc2762.receive.state_event:net.nordeck.meetings.metadata","org.matrix.msc2762.receive.state_event:im.vector.modular.widgets","org.matrix.msc2762.send.event:net.nordeck.meetings.meeting.create","org.matrix.msc2762.receive.event:net.nordeck.meetings.meeting.create","org.matrix.msc2762.send.event:net.nordeck.meetings.breakoutsessions.create","org.matrix.msc2762.receive.event:net.nordeck.meetings.breakoutsessions.create","org.matrix.msc2762.send.event:net.nordeck.meetings.meeting.close","org.matrix.msc2762.receive.event:net.nordeck.meetings.meeting.close","org.matrix.msc2762.send.event:net.nordeck.meetings.meeting.widgets.handle","org.matrix.msc2762.receive.event:net.nordeck.meetings.meeting.widgets.handle","org.matrix.msc2762.send.event:net.nordeck.meetings.meeting.participants.handle","org.matrix.msc2762.receive.event:net.nordeck.meetings.meeting.participants.handle","org.matrix.msc2762.send.event:net.nordeck.meetings.meeting.update","org.matrix.msc2762.receive.event:net.nordeck.meetings.meeting.update","org.matrix.msc2762.send.event:net.nordeck.meetings.meeting.change.message_permissions","org.matrix.msc2762.receive.event:net.nordeck.meetings.meeting.change.message_permissions","org.matrix.msc2762.send.event:net.nordeck.meetings.sub_meetings.send_message","org.matrix.msc2762.receive.event:net.nordeck.meetings.sub_meetings.send_message","org.matrix.msc3973.user_directory_search"],"identity_approved":true,"preload_approved":true}}},
+        "logout_redirect_url":"https://id.opendesk.apps.digilab.network/realms/opendesk/protocol/openid-connect/logout?client_id=opendesk-matrix\u0026post_logout_redirect_uri=https%3A%2F%2Fportal.opendesk.apps.digilab.network","net.nordeck.element_web.module.opendesk":{"config":{"banner":{"ics_navigation_json_url":"https://ics.opendesk.apps.digilab.network/navigation.json","ics_silent_url":"https://ics.opendesk.apps.digilab.network/silent","portal_logo_svg_url":"https://portal.opendesk.apps.digilab.network/univention/portal/icons/logos/domain.svg","portal_url":"https://portal.opendesk.apps.digilab.network/"},"custom_css_variables":{"--cpd-color-bg-action-primary-rest":"#571EFA","--cpd-color-text-action-accent":"#571EFA"}}},"net.nordeck.element_web.module.widget_lifecycle":{"widget_permissions":{"https://chat.opendesk.apps.digilab.network/jitsi.html":{"identity_approved":true},"https://matrix-neoboard-widget.opendesk.apps.digilab.network/*":{"capabilities_approved":["org.matrix.msc2762.send.event:net.nordeck.whiteboard.document.create","org.matrix.msc2762.receive.event:net.nordeck.whiteboard.document.create","org.matrix.msc2762.send.event:net.nordeck.whiteboard.document.chunk","org.matrix.msc2762.receive.event:net.nordeck.whiteboard.document.chunk","org.matrix.msc2762.send.event:net.nordeck.whiteboard.document.snapshot","org.matrix.msc2762.receive.event:net.nordeck.whiteboard.document.snapshot","org.matrix.msc2762.send.state_event:m.room.power_levels#","org.matrix.msc2762.receive.state_event:m.room.power_levels#","org.matrix.msc2762.receive.state_event:m.room.member","org.matrix.msc2762.receive.state_event:m.room.name","org.matrix.msc2762.send.state_event:net.nordeck.whiteboard","org.matrix.msc2762.receive.state_event:net.nordeck.whiteboard","org.matrix.msc2762.send.state_event:net.nordeck.whiteboard.sessions#*","org.matrix.msc2762.receive.state_event:net.nordeck.whiteboard.sessions","org.matrix.msc3819.send.to_device:net.nordeck.whiteboard.connection_signaling","org.matrix.msc3819.receive.to_device:net.nordeck.whiteboard.connection_signaling","town.robin.msc3846.turn_servers","org.matrix.msc4039.upload_file","org.matrix.msc4039.download_file"],"preload_approved":true},"https://matrix-neochoice-widget.opendesk.apps.digilab.network/*":{"capabilities_approved":["org.matrix.msc2762.send.event:net.nordeck.poll.vote","org.matrix.msc2762.receive.event:net.nordeck.poll.vote","org.matrix.msc2762.send.state_event:net.nordeck.poll","org.matrix.msc2762.receive.state_event:net.nordeck.poll","org.matrix.msc2762.send.state_event:net.nordeck.poll.settings","org.matrix.msc2762.receive.state_event:net.nordeck.poll.settings","org.matrix.msc2762.receive.state_event:m.room.power_levels","org.matrix.msc2762.receive.state_event:m.room.name","org.matrix.msc2762.receive.state_event:m.room.member","org.matrix.msc2762.send.state_event:net.nordeck.poll.group","org.matrix.msc2762.receive.state_event:net.nordeck.poll.group","org.matrix.msc2762.send.event:net.nordeck.poll.start","org.matrix.msc2762.receive.event:net.nordeck.poll.start"],"preload_approved":true},"https://matrix-neodatefix-widget.opendesk.apps.digilab.network/*":{"capabilities_approved":["org.matrix.msc2931.navigate","org.matrix.msc2762.timeline:*","org.matrix.msc2762.receive.state_event:m.room.power_levels","org.matrix.msc2762.receive.event:m.reaction","org.matrix.msc2762.receive.state_event:m.room.create","org.matrix.msc2762.receive.state_event:m.room.tombstone","org.matrix.msc2762.receive.state_event:m.room.member","org.matrix.msc2762.send.state_event:m.room.member","org.matrix.msc2762.receive.state_event:m.room.name","org.matrix.msc2762.receive.state_event:m.room.topic","org.matrix.msc2762.receive.state_event:m.space.parent","org.matrix.msc2762.receive.state_event:m.space.child","org.matrix.msc2762.receive.state_event:net.nordeck.meetings.metadata","org.matrix.msc2762.receive.state_event:im.vector.modular.widgets","org.matrix.msc2762.send.event:net.nordeck.meetings.meeting.create","org.matrix.msc2762.receive.event:net.nordeck.meetings.meeting.create","org.matrix.msc2762.send.event:net.nordeck.meetings.breakoutsessions.create","org.matrix.msc2762.receive.event:net.nordeck.meetings.breakoutsessions.create","org.matrix.msc2762.send.event:net.nordeck.meetings.meeting.close","org.matrix.msc2762.receive.event:net.nordeck.meetings.meeting.close","org.matrix.msc2762.send.event:net.nordeck.meetings.meeting.widgets.handle","org.matrix.msc2762.receive.event:net.nordeck.meetings.meeting.widgets.handle","org.matrix.msc2762.send.event:net.nordeck.meetings.meeting.participants.handle","org.matrix.msc2762.receive.event:net.nordeck.meetings.meeting.participants.handle","org.matrix.msc2762.send.event:net.nordeck.meetings.meeting.update","org.matrix.msc2762.receive.event:net.nordeck.meetings.meeting.update","org.matrix.msc2762.send.event:net.nordeck.meetings.meeting.change.message_permissions","org.matrix.msc2762.receive.event:net.nordeck.meetings.meeting.change.message_permissions","org.matrix.msc2762.send.event:net.nordeck.meetings.sub_meetings.send_message","org.matrix.msc2762.receive.event:net.nordeck.meetings.sub_meetings.send_message","org.matrix.msc3973.user_directory_search"],"identity_approved":true,"preload_approved":true}}},
         "dummy_end": "placeholder"
     }
   custom-home.html: |-
@@ -152,17 +152,15 @@ metadata:
   name: opendesk-element-nginx
   labels:
     app.kubernetes.io/name: opendesk-element
-    helm.sh/chart: opendesk-element-3.4.1
+    helm.sh/chart: opendesk-element-6.0.0
     app.kubernetes.io/instance: opendesk-element
     app.kubernetes.io/managed-by: Helm
 data:
-  nginx.conf: |2-
-
+  nginx.conf: |-
     worker_processes  auto;
 
     error_log  stderr warn;
     pid        /tmp/nginx.pid;
-
 
     events {
         worker_connections  1024;
@@ -225,7 +223,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-element
-    helm.sh/chart: opendesk-element-3.4.1
+    helm.sh/chart: opendesk-element-6.0.0
     app.kubernetes.io/instance: opendesk-element
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -247,7 +245,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-element
-    helm.sh/chart: opendesk-element-3.4.1
+    helm.sh/chart: opendesk-element-6.0.0
     app.kubernetes.io/instance: opendesk-element
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: clamd
@@ -265,10 +263,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: 9849a2f09058498ab21b6a988bc276bec239e5198b06c5f1c13c0b4c5efd799b
+        checksum/configmap: a34b089cfaafb4f6fc8f1035b63534521c429cc91c0c88a8ffda890c640b28bb
       labels:
         app.kubernetes.io/name: opendesk-element
-        helm.sh/chart: opendesk-element-3.4.1
+        helm.sh/chart: opendesk-element-6.0.0
         app.kubernetes.io/instance: opendesk-element
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -277,7 +275,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
               matchExpressions:
-              - key: app.kubernetes.io/instance
+              - key: app.kubernetes.io/name
                 operator: In
                 values:
                 - opendesk-element
@@ -302,7 +300,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images/opendesk-element-web:1.11.2@sha256:faf57be74ff715e0f7c833a977f9f7b974ed3230d5d4e30733be7ed01b295a4c
+          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images/opendesk-element-web:1.11.4@sha256:bfb0ce4afe737e7b6a0404c9e3f2d8dbe341ce72a930d0d5173a0145729cf646
         imagePullPolicy: IfNotPresent
         env:
         ports:
@@ -340,6 +338,9 @@ spec:
           failureThreshold: 3
           successThreshold: 1
         resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 32Mi
@@ -383,7 +384,7 @@ metadata:
   name: opendesk-element
   labels:
     app.kubernetes.io/name: opendesk-element
-    helm.sh/chart: opendesk-element-3.4.1
+    helm.sh/chart: opendesk-element-6.0.0
     app.kubernetes.io/instance: opendesk-element
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -411,7 +412,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-well-known
-    helm.sh/chart: opendesk-well-known-3.4.1
+    helm.sh/chart: opendesk-well-known-6.0.0
     app.kubernetes.io/instance: opendesk-well-known
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: false
@@ -423,7 +424,7 @@ metadata:
   name: opendesk-well-known
   labels:
     app.kubernetes.io/name: opendesk-well-known
-    helm.sh/chart: opendesk-well-known-3.4.1
+    helm.sh/chart: opendesk-well-known-6.0.0
     app.kubernetes.io/instance: opendesk-well-known
     app.kubernetes.io/managed-by: Helm
 data:
@@ -448,7 +449,7 @@ metadata:
   name: opendesk-well-known-nginx
   labels:
     app.kubernetes.io/name: opendesk-well-known
-    helm.sh/chart: opendesk-well-known-3.4.1
+    helm.sh/chart: opendesk-well-known-6.0.0
     app.kubernetes.io/instance: opendesk-well-known
     app.kubernetes.io/managed-by: Helm
 data:
@@ -531,7 +532,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-well-known
-    helm.sh/chart: opendesk-well-known-3.4.1
+    helm.sh/chart: opendesk-well-known-6.0.0
     app.kubernetes.io/instance: opendesk-well-known
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -553,7 +554,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-well-known
-    helm.sh/chart: opendesk-well-known-3.4.1
+    helm.sh/chart: opendesk-well-known-6.0.0
     app.kubernetes.io/instance: opendesk-well-known
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: clamd
@@ -571,10 +572,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: 7f514db788cc7f78eda7062354a85335ec283ec0328ecc2d079c6152af22638d
+        checksum/configmap: d8a45258beb595ac852ee793f0e9921f9519c7ccad3b7d097c880f40ff367444
       labels:
         app.kubernetes.io/name: opendesk-well-known
-        helm.sh/chart: opendesk-well-known-3.4.1
+        helm.sh/chart: opendesk-well-known-6.0.0
         app.kubernetes.io/instance: opendesk-well-known
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -583,7 +584,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
               matchExpressions:
-              - key: app.kubernetes.io/instance
+              - key: app.kubernetes.io/name
                 operator: In
                 values:
                 - opendesk-well-known
@@ -608,7 +609,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry-1.docker.io/library/nginx:1.27.0-bookworm@sha256:1445eb9c6dc5e9619346c836ef6fbd6a95092e4663f27dcfce116f051cdbd232
+          registry-1.docker.io/library/nginx:1.27.3-alpine3.20@sha256:41523187cf7d7a2f2677a80609d9caa14388bf5c1fbca9c410ba3de602aaaab4
         imagePullPolicy: IfNotPresent
         env:
         ports:
@@ -636,6 +637,9 @@ spec:
           failureThreshold: 3
           successThreshold: 1
         resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 32Mi
@@ -670,7 +674,7 @@ metadata:
   name: opendesk-well-known
   labels:
     app.kubernetes.io/name: opendesk-well-known
-    helm.sh/chart: opendesk-well-known-3.4.1
+    helm.sh/chart: opendesk-well-known-6.0.0
     app.kubernetes.io/instance: opendesk-well-known
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -698,7 +702,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-synapse-web
-    helm.sh/chart: opendesk-synapse-web-3.4.1
+    helm.sh/chart: opendesk-synapse-web-6.0.0
     app.kubernetes.io/instance: opendesk-synapse-web
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: false
@@ -710,7 +714,7 @@ metadata:
   name: opendesk-synapse-web
   labels:
     app.kubernetes.io/name: opendesk-synapse-web
-    helm.sh/chart: opendesk-synapse-web-3.4.1
+    helm.sh/chart: opendesk-synapse-web-6.0.0
     app.kubernetes.io/instance: opendesk-synapse-web
     app.kubernetes.io/managed-by: Helm
 data:
@@ -903,7 +907,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-synapse-web
-    helm.sh/chart: opendesk-synapse-web-3.4.1
+    helm.sh/chart: opendesk-synapse-web-6.0.0
     app.kubernetes.io/instance: opendesk-synapse-web
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -925,7 +929,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-synapse-web
-    helm.sh/chart: opendesk-synapse-web-3.4.1
+    helm.sh/chart: opendesk-synapse-web-6.0.0
     app.kubernetes.io/instance: opendesk-synapse-web
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -942,10 +946,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: 7d3a93f721743131a4da2eba9b43a560ae5e7ed9caf2bc61e43aaf5f470ceb1f
+        checksum/configmap: 41ca43e75418256047b49504fb5c072f98ae1ae425506526f1cf558ce30495eb
       labels:
         app.kubernetes.io/name: opendesk-synapse-web
-        helm.sh/chart: opendesk-synapse-web-3.4.1
+        helm.sh/chart: opendesk-synapse-web-6.0.0
         app.kubernetes.io/instance: opendesk-synapse-web
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -954,7 +958,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
               matchExpressions:
-              - key: app.kubernetes.io/instance
+              - key: app.kubernetes.io/name
                 operator: In
                 values:
                 - opendesk-synapse-web
@@ -1007,6 +1011,9 @@ spec:
           failureThreshold: 3
           successThreshold: 1
         resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 64Mi
@@ -1027,7 +1034,7 @@ metadata:
   name: opendesk-synapse-web
   labels:
     app.kubernetes.io/name: opendesk-synapse-web
-    helm.sh/chart: opendesk-synapse-web-3.4.1
+    helm.sh/chart: opendesk-synapse-web-6.0.0
     app.kubernetes.io/instance: opendesk-synapse-web
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -1069,7 +1076,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-synapse
-    helm.sh/chart: opendesk-synapse-3.4.1
+    helm.sh/chart: opendesk-synapse-6.0.1
     app.kubernetes.io/instance: opendesk-synapse
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: false
@@ -1081,7 +1088,7 @@ metadata:
   name: opendesk-synapse-main
   labels:
     app.kubernetes.io/name: opendesk-synapse
-    helm.sh/chart: opendesk-synapse-3.4.1
+    helm.sh/chart: opendesk-synapse-6.0.1
     app.kubernetes.io/instance: opendesk-synapse
     app.kubernetes.io/managed-by: Helm
 data:
@@ -1090,21 +1097,28 @@ data:
     worker_app: synapse.app.homeserver
 
     database:
-      name: psycopg2
+      name: "psycopg2"
       args:
         user: matrix_user
-        password: "8ca06719161716168c6a8f61c50a9236b11092da"
+        passfile: "/config/rendered/pgpass.conf"
         database: matrix
         host: postgresql
         port: 5432
-        cp_min: 5
-        cp_max: 10
+        channel_binding: prefer
+        connect_timeout: 10
+        client_encoding: auto
         application_name: REPLACE_HOSTNAME
-        sslmode: disable
         keepalives: 1
         keepalives_idle: 10
         keepalives_interval: 10
         keepalives_count: 3
+        replication: false
+        gssencmode: prefer
+        sslmode: prefer
+        sslcompression: 0
+        ssl_min_protocol_version: TLSv1.2
+        cp_min: 3
+        cp_max: 5
 ---
 # Source: opendesk-synapse/templates/configmap.yaml
 kind: ConfigMap
@@ -1113,7 +1127,7 @@ metadata:
   name: opendesk-synapse-shared
   labels:
     app.kubernetes.io/name: opendesk-synapse
-    helm.sh/chart: opendesk-synapse-3.4.1
+    helm.sh/chart: opendesk-synapse-6.0.1
     app.kubernetes.io/instance: opendesk-synapse
     app.kubernetes.io/managed-by: Helm
 data:
@@ -1259,8 +1273,8 @@ data:
 
     start_pushers: True
     app_service_config_files:
-      - /secrets/app-service-0.yaml
-      - /secrets/app-service-1.yaml
+      - /secrets/app-service-intercom-service.yaml
+      - /secrets/app-service-ox-appsuite.yaml
 
     rc_login:
       account:
@@ -1311,7 +1325,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-synapse
-    helm.sh/chart: opendesk-synapse-3.4.1
+    helm.sh/chart: opendesk-synapse-6.0.1
     app.kubernetes.io/instance: opendesk-synapse
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -1346,7 +1360,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-synapse
-    helm.sh/chart: opendesk-synapse-3.4.1
+    helm.sh/chart: opendesk-synapse-6.0.1
     app.kubernetes.io/instance: opendesk-synapse
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -1368,7 +1382,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-synapse
-    helm.sh/chart: opendesk-synapse-3.4.1
+    helm.sh/chart: opendesk-synapse-6.0.1
     app.kubernetes.io/instance: opendesk-synapse
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -1383,11 +1397,11 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: 0bb75164b04775666eea3c3be41f56e9ceb33238e9620d06348490086de3fbb1
-        checksum/secret: 3e5475ce4b83ff9f2602397d51a5f9c0fdee4195f9f1db55df51c066c5173c74
+        checksum/configmap: 8be7d8c8f386382093e4a56dfb936de465f558308fe1851e072528cbec49c743
+        checksum/secret: d48484072e00e38c6c7d5a3f58bc28ee57ebe111565bbd889d8048e9745157bc
       labels:
         app.kubernetes.io/name: opendesk-synapse
-        helm.sh/chart: opendesk-synapse-3.4.1
+        helm.sh/chart: opendesk-synapse-6.0.1
         app.kubernetes.io/instance: opendesk-synapse
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -1414,8 +1428,11 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
           requests:
-            cpu: 1
+            cpu: 0.5
             memory: 256Mi
         volumeMounts:
         - name: synapse-modules
@@ -1436,13 +1453,15 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/element/images-mirror/synapse:v1.115.0@sha256:abf4a5b5b2030f7deb555a8ec7b945607db9e98b057eb06364e66ba8308bdd40
+          registry.opencode.de/bmi/opendesk/components/supplier/element/images-mirror/synapse:v1.120.2@sha256:daee887fa4ca6370e297439bb33a61896ff3413c9454540446a94e461f097d33
         imagePullPolicy: IfNotPresent
         command:
         - bash
         - -cx
         - |
           mkdir -p /media/generatedSecrets
+          cp /secret/pgpass.conf /config/rendered/pgpass.conf
+          chmod 0400 /config/rendered/pgpass.conf
           sed "s/REPLACE_HOSTNAME/$(hostname -s)/g" /config/instance_template.yaml > /config/rendered/instance.yaml
           /start.py run --config-path=/config/homeserver.yaml --config-path=/config/rendered/instance.yaml
         env:
@@ -1486,8 +1505,11 @@ spec:
           failureThreshold: 8
           successThreshold: 1
         resources:
+          limits:
+            cpu: 99
+            memory: 4Gi
           requests:
-            cpu: 1
+            cpu: 0.5
             memory: 256Mi
         volumeMounts:
         - mountPath: /config/homeserver.yaml
@@ -1505,6 +1527,10 @@ spec:
         - mountPath: /secrets/
           name: external-secrets
           readOnly: true
+        - mountPath: /secret/pgpass.conf
+          name: database-password
+          readOnly: true
+          subPath: pgpass.conf
         - mountPath: /config/rendered
           name: rendered-config
         - mountPath: /media
@@ -1517,6 +1543,10 @@ spec:
       - name: external-secrets
         secret:
           secretName: opendesk-synapse
+          defaultMode: 420
+      - name: database-password
+        secret:
+          secretName: opendesk-synapse-database-password
           defaultMode: 420
       - name: shared-config
         configMap:
@@ -1556,7 +1586,7 @@ metadata:
   name: opendesk-synapse
   labels:
     app.kubernetes.io/name: opendesk-synapse
-    helm.sh/chart: opendesk-synapse-3.4.1
+    helm.sh/chart: opendesk-synapse-6.0.1
     app.kubernetes.io/instance: opendesk-synapse
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -1584,7 +1614,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-synapse-create-account
-    helm.sh/chart: opendesk-synapse-create-account-3.4.1
+    helm.sh/chart: opendesk-synapse-create-account-6.0.0
     app.kubernetes.io/instance: opendesk-matrix-user-verification-service-bootstrap
     app.kubernetes.io/managed-by: Helm
 ---
@@ -1614,7 +1644,8 @@ rules:
 - apiGroups: ['']
   resources:
   - secrets
-  resourceNames: [opendesk-matrix-user-verification-service-account]
+  resourceNames:
+  - opendesk-matrix-user-verification-service-account
   verbs: [delete]
 ---
 # Source: opendesk-synapse-create-account/templates/rolebinding.yaml
@@ -1639,7 +1670,7 @@ metadata:
   name: opendesk-matrix-user-verification-service-bootstrap
   labels:
     app.kubernetes.io/name: opendesk-synapse-create-account
-    helm.sh/chart: opendesk-synapse-create-account-3.4.1
+    helm.sh/chart: opendesk-synapse-create-account-6.0.0
     app.kubernetes.io/instance: opendesk-matrix-user-verification-service-bootstrap
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -1667,9 +1698,12 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry-1.docker.io/alpine/k8s:1.30.0@sha256:d7a11b7032550e992667fd7725b039dcd639270fbceec368d7e66e3d9e41ee15
+          registry-1.docker.io/alpine/k8s:1.31.3@sha256:77812543abe5649b286d5f0dc17a7dbaa4056433225f6f695150f329cb4b6803
         imagePullPolicy: IfNotPresent
         resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
           requests:
             cpu: 500m
             memory: 256Mi
@@ -1691,11 +1725,11 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: opendesk-matrix-user-verification-service-bootstrap-2
+  name: opendesk-matrix-user-verification-service-bootstrap
   labels:
     app.kubernetes.io/name: opendesk-synapse-create-account
-    helm.sh/chart: opendesk-synapse-create-account-3.4.1
-    app.kubernetes.io/instance: opendesk-matrix-user-verification-service-bootstrap-2
+    helm.sh/chart: opendesk-synapse-create-account-6.0.0
+    app.kubernetes.io/instance: opendesk-matrix-user-verification-service-bootstrap
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: post-install
@@ -1721,9 +1755,12 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry-1.docker.io/alpine/k8s:1.30.0@sha256:d7a11b7032550e992667fd7725b039dcd639270fbceec368d7e66e3d9e41ee15
+          registry-1.docker.io/alpine/k8s:1.31.3@sha256:77812543abe5649b286d5f0dc17a7dbaa4056433225f6f695150f329cb4b6803
         imagePullPolicy: IfNotPresent
         resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
           requests:
             cpu: 500m
             memory: 256Mi
@@ -1748,8 +1785,8 @@ spec:
         - /bin/bash
         - -c
         - |
+          # SPDX-FileCopyrightText: 2024 Zentrum für Digitale Souveränität der Öffentlichen Verwaltung (ZenDiS) GmbH
           # SPDX-FileCopyrightText: 2023 Bundesministerium des Innern und für Heimat, PG ZenDiS "Projektgruppe für Aufbau ZenDiS"
-          #
           # SPDX-License-Identifier: Apache-2.0
 
           until kubectl exec --namespace="${NAMESPACE}" ${SYNAPSE_POD} -c synapse \
@@ -1803,7 +1840,14 @@ spec:
           kubectl delete secret --namespace="${NAMESPACE}" ${SECRET_NAME} --ignore-not-found
           kubectl create secret --namespace="${NAMESPACE}" generic ${SECRET_NAME} --from-literal=access_token=$ACCESS_TOKEN
 
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
       restartPolicy: Never
+      volumes:
+      - name: tmp
+        emptyDir:
+          medium: Memory
   backoffLimit: 4
 ---
 # Source: opendesk-matrix-user-verification-service/templates/serviceaccount.yaml
@@ -1814,7 +1858,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-matrix-user-verification-service
-    helm.sh/chart: opendesk-matrix-user-verification-service-3.4.0
+    helm.sh/chart: opendesk-matrix-user-verification-service-6.0.1
     app.kubernetes.io/instance: opendesk-matrix-user-verification-service
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -1827,7 +1871,7 @@ metadata:
   name: opendesk-matrix-user-verification-service
   labels:
     app.kubernetes.io/name: opendesk-matrix-user-verification-service
-    helm.sh/chart: opendesk-matrix-user-verification-service-3.4.0
+    helm.sh/chart: opendesk-matrix-user-verification-service-6.0.1
     app.kubernetes.io/instance: opendesk-matrix-user-verification-service
     app.kubernetes.io/managed-by: Helm
 data: {}
@@ -1840,7 +1884,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-matrix-user-verification-service
-    helm.sh/chart: opendesk-matrix-user-verification-service-3.4.0
+    helm.sh/chart: opendesk-matrix-user-verification-service-6.0.1
     app.kubernetes.io/instance: opendesk-matrix-user-verification-service
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -1863,7 +1907,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-matrix-user-verification-service
-    helm.sh/chart: opendesk-matrix-user-verification-service-3.4.0
+    helm.sh/chart: opendesk-matrix-user-verification-service-6.0.1
     app.kubernetes.io/instance: opendesk-matrix-user-verification-service
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -1877,10 +1921,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: 069e564416956e1137aea4921885cf9258f54b70e4d0305c48efd453100bb959
+        checksum/configmap: 10a27880c449a33377c998477f9b74c3464eed882b8ca7cc81772c3677339ffe
       labels:
         app.kubernetes.io/name: opendesk-matrix-user-verification-service
-        helm.sh/chart: opendesk-matrix-user-verification-service-3.4.0
+        helm.sh/chart: opendesk-matrix-user-verification-service-6.0.1
         app.kubernetes.io/instance: opendesk-matrix-user-verification-service
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -1939,6 +1983,9 @@ spec:
           containerPort: 3000
           protocol: TCP
         resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 128Mi
@@ -1953,23 +2000,11 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: matrix-neoboard-widget
-    helm.sh/chart: matrix-neoboard-widget-3.5.0
+    helm.sh/chart: matrix-neoboard-widget-3.5.1
     app.kubernetes.io/instance: matrix-neoboard-widget
     app.kubernetes.io/managed-by: Helm
   annotations:
 automountServiceAccountToken: false
----
-# Source: matrix-neoboard-widget/templates/configmap.yaml
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: matrix-neoboard-widget
-  labels:
-    app.kubernetes.io/name: matrix-neoboard-widget
-    helm.sh/chart: matrix-neoboard-widget-3.5.0
-    app.kubernetes.io/instance: matrix-neoboard-widget
-    app.kubernetes.io/managed-by: Helm
-data: {}
 ---
 # Source: matrix-neoboard-widget/templates/service.yaml
 apiVersion: v1
@@ -1979,7 +2014,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: matrix-neoboard-widget
-    helm.sh/chart: matrix-neoboard-widget-3.5.0
+    helm.sh/chart: matrix-neoboard-widget-3.5.1
     app.kubernetes.io/instance: matrix-neoboard-widget
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -2002,7 +2037,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: matrix-neoboard-widget
-    helm.sh/chart: matrix-neoboard-widget-3.5.0
+    helm.sh/chart: matrix-neoboard-widget-3.5.1
     app.kubernetes.io/instance: matrix-neoboard-widget
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -2016,10 +2051,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: 0ca01953c011830f6251e7a760c37ecdf3c0ea4eb5dfbef1a261c2e1917798a2
+        checksum/configmap: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
       labels:
         app.kubernetes.io/name: matrix-neoboard-widget
-        helm.sh/chart: matrix-neoboard-widget-3.5.0
+        helm.sh/chart: matrix-neoboard-widget-3.5.1
         app.kubernetes.io/instance: matrix-neoboard-widget
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -2043,13 +2078,17 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/matrix-neoboard-widget:1.20.0@sha256:e72bca018af1c0087587f6bcd1748c820ff520c8cf2a042b9b58354cdc878345
+          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/matrix-neoboard-widget:2.0.0@sha256:dea11481404c2368d0089543d977fb26af51753073e9e5cb73e389bde82c4004
         imagePullPolicy: IfNotPresent
         env:
         - name: REACT_APP_HOME_SERVER_URL
           value: https://matrix.opendesk.apps.digilab.network
         - name: REACT_APP_PRIMARY_COLOR
-          value: '#6af56a'
+          value: '#571EFA'
+        - name: REACT_APP_LIGHT_PRIMARY_COLOR
+          value: '#571EFA'
+        - name: REACT_APP_DARK_PRIMARY_COLOR
+          value: '#571EFA'
         livenessProbe:
           httpGet:
             path: /
@@ -2073,6 +2112,9 @@ spec:
           containerPort: 8080
           protocol: TCP
         resources:
+          limits:
+            cpu: 99
+            memory: 128Mi
           requests:
             cpu: 0.1
             memory: 48Mi
@@ -2098,7 +2140,7 @@ metadata:
   name: matrix-neoboard-widget
   labels:
     app.kubernetes.io/name: matrix-neoboard-widget
-    helm.sh/chart: matrix-neoboard-widget-3.5.0
+    helm.sh/chart: matrix-neoboard-widget-3.5.1
     app.kubernetes.io/instance: matrix-neoboard-widget
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -2127,23 +2169,11 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: matrix-neochoice-widget
-    helm.sh/chart: matrix-neochoice-widget-3.5.0
+    helm.sh/chart: matrix-neochoice-widget-3.5.1
     app.kubernetes.io/instance: matrix-neochoice-widget
     app.kubernetes.io/managed-by: Helm
   annotations:
 automountServiceAccountToken: false
----
-# Source: matrix-neochoice-widget/templates/configmap.yaml
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: matrix-neochoice-widget
-  labels:
-    app.kubernetes.io/name: matrix-neochoice-widget
-    helm.sh/chart: matrix-neochoice-widget-3.5.0
-    app.kubernetes.io/instance: matrix-neochoice-widget
-    app.kubernetes.io/managed-by: Helm
-data: {}
 ---
 # Source: matrix-neochoice-widget/templates/service.yaml
 apiVersion: v1
@@ -2153,7 +2183,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: matrix-neochoice-widget
-    helm.sh/chart: matrix-neochoice-widget-3.5.0
+    helm.sh/chart: matrix-neochoice-widget-3.5.1
     app.kubernetes.io/instance: matrix-neochoice-widget
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -2176,7 +2206,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: matrix-neochoice-widget
-    helm.sh/chart: matrix-neochoice-widget-3.5.0
+    helm.sh/chart: matrix-neochoice-widget-3.5.1
     app.kubernetes.io/instance: matrix-neochoice-widget
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -2190,10 +2220,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: e1ff68244925e6b735edbb8c45c5fe9776ab3f51b54968228578c2228a1f0513
+        checksum/configmap: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
       labels:
         app.kubernetes.io/name: matrix-neochoice-widget
-        helm.sh/chart: matrix-neochoice-widget-3.5.0
+        helm.sh/chart: matrix-neochoice-widget-3.5.1
         app.kubernetes.io/instance: matrix-neochoice-widget
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -2217,7 +2247,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/matrix-poll-widget:1.4.0@sha256:216cb88aaa47449a15af9a531d60eee593cb1923c4e8fcc67c119982972911e5
+          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/matrix-poll-widget:1.5.0@sha256:29f332c5b79774201cc4fe2724e13017b6f4acc492211bc1cbfd6b4aa78b05fd
         imagePullPolicy: IfNotPresent
         env:
         - name: REACT_APP_HOME_SERVER_URL
@@ -2227,7 +2257,7 @@ spec:
         - name: REACT_APP_IGNORE_USER_IDS
           value: '@meetings-bot:opendesk.apps.digilab.network'
         - name: REACT_APP_PRIMARY_COLOR
-          value: '#6af56a'
+          value: '#571EFA'
         livenessProbe:
           httpGet:
             path: /
@@ -2251,6 +2281,9 @@ spec:
           containerPort: 8080
           protocol: TCP
         resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 48Mi
@@ -2276,7 +2309,7 @@ metadata:
   name: matrix-neochoice-widget
   labels:
     app.kubernetes.io/name: matrix-neochoice-widget
-    helm.sh/chart: matrix-neochoice-widget-3.5.0
+    helm.sh/chart: matrix-neochoice-widget-3.5.1
     app.kubernetes.io/instance: matrix-neochoice-widget
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -2305,23 +2338,11 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: matrix-neodatefix-widget
-    helm.sh/chart: matrix-neodatefix-widget-3.5.0
+    helm.sh/chart: matrix-neodatefix-widget-3.5.1
     app.kubernetes.io/instance: matrix-neodatefix-widget
     app.kubernetes.io/managed-by: Helm
   annotations:
 automountServiceAccountToken: false
----
-# Source: matrix-neodatefix-widget/templates/configmap.yaml
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: matrix-neodatefix-widget
-  labels:
-    app.kubernetes.io/name: matrix-neodatefix-widget
-    helm.sh/chart: matrix-neodatefix-widget-3.5.0
-    app.kubernetes.io/instance: matrix-neodatefix-widget
-    app.kubernetes.io/managed-by: Helm
-data: {}
 ---
 # Source: matrix-neodatefix-widget/templates/service.yaml
 apiVersion: v1
@@ -2331,7 +2352,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: matrix-neodatefix-widget
-    helm.sh/chart: matrix-neodatefix-widget-3.5.0
+    helm.sh/chart: matrix-neodatefix-widget-3.5.1
     app.kubernetes.io/instance: matrix-neodatefix-widget
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -2354,7 +2375,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: matrix-neodatefix-widget
-    helm.sh/chart: matrix-neodatefix-widget-3.5.0
+    helm.sh/chart: matrix-neodatefix-widget-3.5.1
     app.kubernetes.io/instance: matrix-neodatefix-widget
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -2368,10 +2389,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: bb3a65d460fb1516ab1d569a3662692d757f07146df5b095e723218fbc08be00
+        checksum/configmap: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
       labels:
         app.kubernetes.io/name: matrix-neodatefix-widget
-        helm.sh/chart: matrix-neodatefix-widget-3.5.0
+        helm.sh/chart: matrix-neodatefix-widget-3.5.1
         app.kubernetes.io/instance: matrix-neodatefix-widget
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -2395,7 +2416,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/matrix-meetings-widget:1.6.1@sha256:70bebd9293a977124a5da955e1a520381129d476d6414a083093c1b48a55dadd
+          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/matrix-meetings-widget:1.7.0@sha256:a3547f064dff6b469bb3ed931acd4edba9654699e1af59a9180987bbbfd8104b
         imagePullPolicy: IfNotPresent
         env:
         - name: REACT_APP_HOME_SERVER_URL
@@ -2407,7 +2428,7 @@ spec:
         - name: REACT_APP_DISPLAY_ALL_MEETINGS
           value: 'true'
         - name: REACT_APP_PRIMARY_COLOR
-          value: '#6af56a'
+          value: '#571EFA'
         livenessProbe:
           httpGet:
             path: /
@@ -2431,6 +2452,9 @@ spec:
           containerPort: 8080
           protocol: TCP
         resources:
+          limits:
+            cpu: 99
+            memory: 256Mi
           requests:
             cpu: 0.1
             memory: 48Mi
@@ -2456,7 +2480,7 @@ metadata:
   name: matrix-neodatefix-widget
   labels:
     app.kubernetes.io/name: matrix-neodatefix-widget
-    helm.sh/chart: matrix-neodatefix-widget-3.5.0
+    helm.sh/chart: matrix-neodatefix-widget-3.5.1
     app.kubernetes.io/instance: matrix-neodatefix-widget
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -2485,7 +2509,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: opendesk-synapse-create-account
-    helm.sh/chart: opendesk-synapse-create-account-3.4.1
+    helm.sh/chart: opendesk-synapse-create-account-6.0.0
     app.kubernetes.io/instance: matrix-neodatefix-bot-bootstrap
     app.kubernetes.io/managed-by: Helm
 ---
@@ -2515,7 +2539,8 @@ rules:
 - apiGroups: ['']
   resources:
   - secrets
-  resourceNames: [matrix-neodatefix-bot-account]
+  resourceNames:
+  - matrix-neodatefix-bot-account
   verbs: [delete]
 ---
 # Source: opendesk-synapse-create-account/templates/rolebinding.yaml
@@ -2540,7 +2565,7 @@ metadata:
   name: matrix-neodatefix-bot-bootstrap
   labels:
     app.kubernetes.io/name: opendesk-synapse-create-account
-    helm.sh/chart: opendesk-synapse-create-account-3.4.1
+    helm.sh/chart: opendesk-synapse-create-account-6.0.0
     app.kubernetes.io/instance: matrix-neodatefix-bot-bootstrap
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -2568,9 +2593,12 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry-1.docker.io/alpine/k8s:1.30.0@sha256:d7a11b7032550e992667fd7725b039dcd639270fbceec368d7e66e3d9e41ee15
+          registry-1.docker.io/alpine/k8s:1.31.3@sha256:77812543abe5649b286d5f0dc17a7dbaa4056433225f6f695150f329cb4b6803
         imagePullPolicy: IfNotPresent
         resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
           requests:
             cpu: 500m
             memory: 256Mi
@@ -2592,11 +2620,11 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: matrix-neodatefix-bot-bootstrap-v2
+  name: matrix-neodatefix-bot-bootstrap
   labels:
     app.kubernetes.io/name: opendesk-synapse-create-account
-    helm.sh/chart: opendesk-synapse-create-account-3.4.1
-    app.kubernetes.io/instance: matrix-neodatefix-bot-bootstrap-v2
+    helm.sh/chart: opendesk-synapse-create-account-6.0.0
+    app.kubernetes.io/instance: matrix-neodatefix-bot-bootstrap
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: post-install
@@ -2622,9 +2650,12 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry-1.docker.io/alpine/k8s:1.30.0@sha256:d7a11b7032550e992667fd7725b039dcd639270fbceec368d7e66e3d9e41ee15
+          registry-1.docker.io/alpine/k8s:1.31.3@sha256:77812543abe5649b286d5f0dc17a7dbaa4056433225f6f695150f329cb4b6803
         imagePullPolicy: IfNotPresent
         resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
           requests:
             cpu: 500m
             memory: 256Mi
@@ -2649,8 +2680,8 @@ spec:
         - /bin/bash
         - -c
         - |
+          # SPDX-FileCopyrightText: 2024 Zentrum für Digitale Souveränität der Öffentlichen Verwaltung (ZenDiS) GmbH
           # SPDX-FileCopyrightText: 2023 Bundesministerium des Innern und für Heimat, PG ZenDiS "Projektgruppe für Aufbau ZenDiS"
-          #
           # SPDX-License-Identifier: Apache-2.0
 
           until kubectl exec --namespace="${NAMESPACE}" ${SYNAPSE_POD} -c synapse \
@@ -2704,7 +2735,14 @@ spec:
           kubectl delete secret --namespace="${NAMESPACE}" ${SECRET_NAME} --ignore-not-found
           kubectl create secret --namespace="${NAMESPACE}" generic ${SECRET_NAME} --from-literal=access_token=$ACCESS_TOKEN
 
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
       restartPolicy: Never
+      volumes:
+      - name: tmp
+        emptyDir:
+          medium: Memory
   backoffLimit: 4
 ---
 # Source: matrix-neodatefix-bot/templates/serviceaccount.yaml
@@ -2715,7 +2753,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: matrix-neodatefix-bot
-    helm.sh/chart: matrix-neodatefix-bot-3.5.0
+    helm.sh/chart: matrix-neodatefix-bot-3.5.1
     app.kubernetes.io/instance: matrix-neodatefix-bot
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -2728,7 +2766,7 @@ metadata:
   name: matrix-neodatefix-bot-config
   labels:
     app.kubernetes.io/name: matrix-neodatefix-bot
-    helm.sh/chart: matrix-neodatefix-bot-3.5.0
+    helm.sh/chart: matrix-neodatefix-bot-3.5.1
     app.kubernetes.io/instance: matrix-neodatefix-bot
     app.kubernetes.io/managed-by: Helm
 data:
@@ -2903,7 +2941,7 @@ metadata:
   name: matrix-neodatefix-bot-widget-images
   labels:
     app.kubernetes.io/name: matrix-neodatefix-bot
-    helm.sh/chart: matrix-neodatefix-bot-3.5.0
+    helm.sh/chart: matrix-neodatefix-bot-3.5.1
     app.kubernetes.io/instance: matrix-neodatefix-bot
     app.kubernetes.io/managed-by: Helm
 binaryData:
@@ -2920,7 +2958,7 @@ metadata:
   annotations:
   labels:
     app.kubernetes.io/name: matrix-neodatefix-bot
-    helm.sh/chart: matrix-neodatefix-bot-3.5.0
+    helm.sh/chart: matrix-neodatefix-bot-3.5.1
     app.kubernetes.io/instance: matrix-neodatefix-bot
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -2939,7 +2977,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: matrix-neodatefix-bot
-    helm.sh/chart: matrix-neodatefix-bot-3.5.0
+    helm.sh/chart: matrix-neodatefix-bot-3.5.1
     app.kubernetes.io/instance: matrix-neodatefix-bot
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -2962,7 +3000,7 @@ metadata:
   namespace: tn-openbsw-opendesk
   labels:
     app.kubernetes.io/name: matrix-neodatefix-bot
-    helm.sh/chart: matrix-neodatefix-bot-3.5.0
+    helm.sh/chart: matrix-neodatefix-bot-3.5.1
     app.kubernetes.io/instance: matrix-neodatefix-bot
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -2976,10 +3014,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: a33326b554eaed5c2bf1fb44a6fefdc23834772252bfed269398b64312d02e86
+        checksum/configmap: 0b3bb470fd6a11018f767448a208172e2ebfb8ebe4c1790ac4b4f21155ead3d0
       labels:
         app.kubernetes.io/name: matrix-neodatefix-bot
-        helm.sh/chart: matrix-neodatefix-bot-3.5.0
+        helm.sh/chart: matrix-neodatefix-bot-3.5.1
         app.kubernetes.io/instance: matrix-neodatefix-bot
         app.kubernetes.io/managed-by: Helm
     spec:
@@ -3003,7 +3041,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         image:
-          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/matrix-meetings-bot:2.8.0@sha256:db1d99c13a9facfd08a7da1d0a9c7c05715bad47110e93649ad6b389e462b42c
+          registry.opencode.de/bmi/opendesk/components/supplier/nordeck/images-mirror/matrix-meetings-bot:2.8.2@sha256:1266f4af93cd82554e037125a7f6d753742bcde3dd90ecbeed8f6f5f64689c96
         imagePullPolicy: IfNotPresent
         env:
         - name: LOG_LEVEL
@@ -3071,6 +3109,9 @@ spec:
           containerPort: 3000
           protocol: TCP
         resources:
+          limits:
+            cpu: 99
+            memory: 512Mi
           requests:
             cpu: 0.1
             memory: 128Mi
@@ -3106,7 +3147,7 @@ metadata:
   name: matrix-neodatefix-bot
   labels:
     app.kubernetes.io/name: matrix-neodatefix-bot
-    helm.sh/chart: matrix-neodatefix-bot-3.5.0
+    helm.sh/chart: matrix-neodatefix-bot-3.5.1
     app.kubernetes.io/instance: matrix-neodatefix-bot
     app.kubernetes.io/managed-by: Helm
   annotations:
