@@ -29,15 +29,9 @@ To generate your own yaml manifests you can do the following:
 
 See [contributing docs](CONTRIBUTING.md)
 
-## Testing
-
-We use conftest to write tests against structured configuration data. 
-
-Question: should we add checkov and trivy checks
-
 ## Secret Management
 
-Secrets are managed with [SOPS](https://www.cncf.io/projects/sops/). Read the documentation on how to use it. We use the Age variant. 
+Secrets are managed with [SOPS](https://www.cncf.io/projects/sops/). Read the documentation on how to use it. We use the Age variant.
 
 ```shell
 sops --encrypt -i <file>

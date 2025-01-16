@@ -1725,11 +1725,11 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: opendesk-matrix-user-verification-service-bootstrap
+  name: opendesk-matrix-user-verification-service-bootstrap2
   labels:
     app.kubernetes.io/name: opendesk-synapse-create-account
     helm.sh/chart: opendesk-synapse-create-account-6.0.0
-    app.kubernetes.io/instance: opendesk-matrix-user-verification-service-bootstrap
+    app.kubernetes.io/instance: opendesk-matrix-user-verification-service-bootstrap2
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: post-install
@@ -2620,11 +2620,11 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: matrix-neodatefix-bot-bootstrap
+  name: matrix-neodatefix-bot-bootstrap2
   labels:
     app.kubernetes.io/name: opendesk-synapse-create-account
     helm.sh/chart: opendesk-synapse-create-account-6.0.0
-    app.kubernetes.io/instance: matrix-neodatefix-bot-bootstrap
+    app.kubernetes.io/instance: matrix-neodatefix-bot-bootstrap2
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: post-install
