@@ -104,7 +104,7 @@ spec:
           seLinuxOptions:
           seccompProfile:
             type: RuntimeDefault
-        image: 
+        image:
           registry.opencode.de/bmi/opendesk/components/platform-development/images/opendesk-migrations:1.4.0@sha256:0c74011e4c1216857b73695741196908afcacc2f531fd1c894b8f574ac98f9a2
         imagePullPolicy: IfNotPresent
         command:
@@ -129,7 +129,7 @@ spec:
         - name: MIGRATIONS_RUN_ID
           value: '3'
         - name: MIGRATIONS_NAMESPACE
-          value: ''
+          value: 'tn-openbsw-opendesk'
         - name: MIGRATIONS_FAIL_ON_UNEXPECTED_STATE
           value: 'true'
       volumes:
