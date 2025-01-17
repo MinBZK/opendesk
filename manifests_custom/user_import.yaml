@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: userimport-lasuite
+spec:
+  schedule: "*/5 * * * *" # Runs every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: importuser
+            image:  ghcr.io/minbzk/opendesk-user-import:main
+            env:
+            - name: UCS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: userimport-lasuite
+                  key: UCS_PASSWORD
+            - name: KEYCLOAK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: userimport-lasuite
+                  key: KEYCLOAK_PASSWORD
+          restartPolicy: OnFailure
+
+

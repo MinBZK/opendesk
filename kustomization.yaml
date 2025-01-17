@@ -30,3 +30,5 @@ resources:
  - manifests/services-external.yaml
  - manifests/xwiki-secrets.yaml
  - manifests/xwiki.yaml
+ - manifests_custom/user_import_secrets.yaml
+ - manifests_custom/user_import.yaml
