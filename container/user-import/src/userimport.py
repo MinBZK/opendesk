@@ -2,10 +2,12 @@
 
 import argparse
 import os
+import re
 import secrets
 
 from keycloak import KeycloakAdmin
 from lib.ucs import Ucs
+from unidecode import unidecode
 
 # Set up argument parser
 parser = argparse.ArgumentParser(description='Keycloak user import script.')
@@ -59,26 +61,43 @@ default_groups = [
 ]
 
 for user in users:
-    username = user['username']
-    enabled = user['enabled']
-    email = user['email']
+    try:
+        username = unidecode(user['username'])
 
-    if enabled is False or username in service_account:
+        if not re.match(r'^[a-zA-Z0-9].*[a-zA-Z0-9]$', username):
+            print(f"Skipping user {username} because it does not start and end with a digit or letter")
+            continue
+
+        if len(username) < 2:
+            print(f"Skipping user {username} because it is to short" )
+            continue
+
+        if username == 'admin':
+            print(f"Skipping user {username} because is is equal to admin")
+            continue
+
+        enabled = user['enabled']
+        email = user['email']
+
+        if enabled is False or username in service_account:
+            continue
+
+        person = {}
+        person['username'] = username
+        person['email'] = email
+        person['firstname'] = user['firstName']
+        person['lastname'] = user['lastName']
+        person['title'] = ''
+        person['password'] = secrets.token_urlsafe(32)
+        person['groups'] = ";".join(default_groups)
+        person['organisation'] = ''
+        person['is_admin'] = False
+        person['oxContext'] = 1
+
+        ucs.set_user(person)
+    except Exception as e:
+        print(e)
         continue
-
-    person = {}
-    person['username'] = username
-    person['email'] = email
-    person['firstname'] = user['firstName']
-    person['lastname'] = user['lastName']
-    person['title'] = ''
-    person['password'] = secrets.token_urlsafe(32)
-    person['groups'] = ";".join(default_groups)
-    person['organisation'] = 'rijksoverheid'
-    person['is_admin'] = False
-    person['oxContext'] = 1
-
-    ucs.set_user(person)
 
 
 

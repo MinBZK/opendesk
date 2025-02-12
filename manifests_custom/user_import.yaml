@@ -11,6 +11,7 @@ spec:
           containers:
           - name: importuser
             image:  ghcr.io/minbzk/opendesk-user-import:main
+            imagePullPolicy: Always
             env:
             - name: UCS_PASSWORD
               valueFrom:
