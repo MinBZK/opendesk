@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
 import os
 import re
 import secrets
@@ -8,6 +9,9 @@ import secrets
 from keycloak import KeycloakAdmin
 from lib.ucs import Ucs
 from unidecode import unidecode
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 # Set up argument parser
 parser = argparse.ArgumentParser(description='Keycloak user import script.')
@@ -29,14 +33,12 @@ keycloak_admin = KeycloakAdmin(server_url=args.keycloak_server_url,
                       realm_name=args.keycloak_realm_name,
                       verify=True)
 
-
 ucs = Ucs(
     adm_username=args.ucs_username,
     adm_password=args.ucs_password,
     base_url=args.ucs_server_url,
     maildomain='opendesk.apps.digilab.network',
-    options_object=None,
-    verify_certificate=False
+    options_object=None
 )
 
 service_account = ['exporter']
@@ -65,15 +67,15 @@ for user in users:
         username = unidecode(user['username'])
 
         if not re.match(r'^[a-zA-Z0-9].*[a-zA-Z0-9]$', username):
-            print(f"Skipping user {username} because it does not start and end with a digit or letter")
+            logging.info(f"Skipping user {username} because it does not start and end with a digit or letter")
             continue
 
         if len(username) < 2:
-            print(f"Skipping user {username} because it is to short" )
+            logging.info(f"Skipping user {username} because it is too short")
             continue
 
         if username == 'admin':
-            print(f"Skipping user {username} because is is equal to admin")
+            logging.info(f"Skipping user {username} because it is equal to admin")
             continue
 
         enabled = user['enabled']
@@ -96,8 +98,11 @@ for user in users:
 
         ucs.set_user(person)
     except Exception as e:
-        print(e)
+        logging.error(e)
         continue
+
+
+ucs.summary()
 
 
 

@@ -30,15 +30,15 @@ class Ucs:
                 'component_disable_livecollaboration': False,
                 'component_disable_videoconference': False,
                 'component_disable_notes': False,
-                'admin_enable_fileshare': False,
-                'admin_enable_projectmanagement': False,
-                'admin_enable_knowledgemanagement': False,
+                'admin_enable_fileshare': True,
+                'admin_enable_projectmanagement': True,
+                'admin_enable_knowledgemanagement': True,
                 'default_oxcontext': 1,
                 'create_maildomains': False,
                 'create_oxcontexts': False,
                 'output_accounts_filename': None,
                 'reconcile_groups': False,
-                'trigger_invitation_mail': False,  
+                'trigger_invitation_mail': False,
             }
             options_object = Options(**default_options)
         self.user = None
