@@ -62,6 +62,8 @@ default_groups = [
     "managed-by-attribute-Videoconference"
 ]
 
+logging.info(f"found {len(users)} users")
+
 for user in users:
     try:
         username = unidecode(user['username'])
@@ -83,6 +85,8 @@ for user in users:
 
         if enabled is False or username in service_account:
             continue
+
+        logging.info(f"Importing user {username}")
 
         person = {}
         person['username'] = username
