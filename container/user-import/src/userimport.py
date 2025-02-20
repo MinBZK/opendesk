@@ -57,6 +57,8 @@ default_groups = [
     "managed-by-attribute-Knowledgemanagement",
     "managed-by-attribute-KnowledgemanagementAdmin",
     "managed-by-attribute-Livecollaboration",
+    "managed-by-attribute-LivecollaborationAdmin",
+    "managed-by-attribute-Notes",
     "managed-by-attribute-Projectmanagement",
     "managed-by-attribute-ProjectmanagementAdmin",
     "managed-by-attribute-Videoconference"

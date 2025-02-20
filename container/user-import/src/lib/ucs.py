@@ -67,11 +67,11 @@ class Ucs:
         if (self.options_object.create_maildomains):
             for maildomain_object in self.__get_object_list('mail', 'domain'):
                 self.existing_maildomains.append(maildomain_object['id'])
-            logging.debug(f"Pre-existing maildomains: {', '.join(self.existing_maildomains)}")
+            logging.info(f"Pre-existing maildomains: {', '.join(self.existing_maildomains)}")
         if (self.options_object.create_oxcontexts):
             for oxcontext_object in self.__get_object_list('oxmail', 'oxcontext'):
                 self.existing_oxcontexts.append(oxcontext_object['id'])
-            logging.debug(f"Pre-existing OX contexts: {', '.join(self.existing_oxcontexts)}")
+            logging.info(f"Pre-existing OX contexts: {', '.join(self.existing_oxcontexts)}")
         self.__get_user_schema()
 
     def __get_user_schema(self):
@@ -210,7 +210,7 @@ class Ucs:
             data=json.dumps(user_json),
             allowed_responses = [204]
         )
-        logging.debug(f"{person['username']}: has been updated.")
+        logging.info(f"{person['username']}: has been updated.")
 
     def create_user(self, person):
         # https://<FQDN>/univention/udm/schema/ > users/user > POST
@@ -248,7 +248,7 @@ class Ucs:
         keys = list(user_json['properties'].keys())
         for key in keys:
             if key not in self.user_schema:
-                logging.debug(f"attribute {key} not supported, skipping.")
+                logging.info(f"attribute {key} not supported, skipping.")
                 del user_json['properties'][key]
 
         if (self.options_object.create_maildomains):
@@ -323,7 +323,7 @@ class Ucs:
         current_json = self.__get_object_json('user', dn)
         if current_json:
             if self.options_object.reconcile_groups:
-                logging.debug(f"Reconcile {username} groups to: {person['groups']}")
+                logging.info(f"Reconcile {username} groups to: {person['groups']}")
                 self.update_user(current_json, person)
             else:
                 logging.info(f"User {dn} already exists.")
