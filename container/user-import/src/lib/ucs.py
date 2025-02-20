@@ -37,7 +37,7 @@ class Ucs:
                 'create_maildomains': False,
                 'create_oxcontexts': False,
                 'output_accounts_filename': None,
-                'reconcile_groups': False,
+                'reconcile_groups': True,
                 'trigger_invitation_mail': False,
             }
             options_object = Options(**default_options)
